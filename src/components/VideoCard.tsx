@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Play, Clock, Edit3, Save, X, ExternalLink } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,6 +6,7 @@ import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Video } from '@/types/playlist';
+import { useNavigate, useParams } from 'react-router-dom';
 
 interface VideoCardProps {
   video: Video;
@@ -17,6 +17,8 @@ interface VideoCardProps {
 const VideoCard = ({ video, onProgressUpdate, delay }: VideoCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newProgress, setNewProgress] = useState(video.progress.toString());
+  const navigate = useNavigate();
+  const { id } = useParams();
 
   const handleSaveProgress = () => {
     const progress = Math.max(0, Math.min(100, parseInt(newProgress) || 0));
@@ -31,6 +33,12 @@ const VideoCard = ({ video, onProgressUpdate, delay }: VideoCardProps) => {
 
   const openVideo = () => {
     window.open(video.url, '_blank');
+  };
+
+  const playVideo = () => {
+    // Find the index of this video in the playlist
+    // We'll need to get this from the parent component or calculate it
+    navigate(`/playlist/${id}/play?video=0`); // Default to first video for now
   };
 
   return (
@@ -72,14 +80,23 @@ const VideoCard = ({ video, onProgressUpdate, delay }: VideoCardProps) => {
               <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 flex-1 mr-4">
                 {video.title}
               </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={openVideo}
-                className="flex-shrink-0"
-              >
-                <ExternalLink className="w-4 h-4" />
-              </Button>
+              <div className="flex gap-2 flex-shrink-0">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={playVideo}
+                  className="text-blue-600 hover:bg-blue-50"
+                >
+                  <Play className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={openVideo}
+                >
+                  <ExternalLink className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
 
             <div className="flex items-center gap-4 text-sm text-gray-600">
