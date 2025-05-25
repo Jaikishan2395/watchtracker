@@ -1,12 +1,12 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
 
@@ -107,6 +107,12 @@ const VideoPlayer = () => {
     }
   };
 
+  const resetAllData = () => {
+    localStorage.removeItem('youtubePlaylists');
+    toast.success('All data has been reset!');
+    navigate('/');
+  };
+
   if (!playlist) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -162,6 +168,34 @@ const VideoPlayer = () => {
               Back to Playlist
             </Button>
             <div className="text-2xl font-bold text-gray-800">WatchMap</div>
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                >
+                  <RotateCcw className="w-4 h-4 mr-2" />
+                  Reset Data
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Reset All Data</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    Are you sure you want to reset all data? This will permanently delete all playlists and their progress. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction 
+                    onClick={resetAllData} 
+                    className="bg-red-600 hover:bg-red-700"
+                  >
+                    Reset All Data
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
           </div>
           
           <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20">
