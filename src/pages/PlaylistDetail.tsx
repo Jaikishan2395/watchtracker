@@ -1,13 +1,14 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import VideoCard from '@/components/VideoCard';
+import AddVideoModal from '@/components/AddVideoModal';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
 
@@ -17,6 +18,7 @@ const PlaylistDetail = () => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [editingDeadline, setEditingDeadline] = useState(false);
   const [newDeadline, setNewDeadline] = useState('');
+  const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
 
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
@@ -53,6 +55,20 @@ const PlaylistDetail = () => {
     const updatedPlaylist = { ...playlist, videos: updatedVideos };
     updatePlaylist(updatedPlaylist);
     toast.success('Progress updated!');
+  };
+
+  const addVideoToPlaylist = (video: Omit<Video, 'id' | 'progress'>) => {
+    if (!playlist) return;
+
+    const newVideo: Video = {
+      ...video,
+      id: `${Date.now()}`,
+      progress: 0
+    };
+
+    const updatedVideos = [...playlist.videos, newVideo];
+    const updatedPlaylist = { ...playlist, videos: updatedVideos };
+    updatePlaylist(updatedPlaylist);
   };
 
   const saveDeadline = () => {
@@ -99,8 +115,19 @@ const PlaylistDetail = () => {
           </Button>
           
           <div className="bg-white/70 backdrop-blur-sm rounded-xl p-6 shadow-lg">
-            <h1 className="text-3xl font-bold text-gray-800 mb-2">{playlist.title}</h1>
-            <p className="text-gray-600 mb-4">{playlist.description}</p>
+            <div className="flex justify-between items-start mb-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-gray-800 mb-2">{playlist.title}</h1>
+                <p className="text-gray-600 mb-4">{playlist.description}</p>
+              </div>
+              <Button
+                onClick={() => setIsAddVideoModalOpen(true)}
+                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Add Video
+              </Button>
+            </div>
             
             <div className="flex flex-wrap gap-4 text-sm">
               <div className="flex items-center gap-1">
@@ -213,6 +240,12 @@ const PlaylistDetail = () => {
             />
           ))}
         </div>
+
+        <AddVideoModal
+          isOpen={isAddVideoModalOpen}
+          onClose={() => setIsAddVideoModalOpen(false)}
+          onAdd={addVideoToPlaylist}
+        />
       </div>
     </div>
   );
