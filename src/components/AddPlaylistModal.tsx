@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -83,6 +82,7 @@ const AddPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => 
       id: Date.now().toString(),
       title: title.trim(),
       description: description.trim(),
+      type: 'video', // Add the required type property
       deadline: deadline || undefined,
       createdAt: new Date().toISOString(),
       videos: videos.map((video, index) => ({
