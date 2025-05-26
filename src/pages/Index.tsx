@@ -1,13 +1,16 @@
 
 import { useState, useEffect } from 'react';
-import { Plus, Clock, Target, TrendingUp, Play } from 'lucide-react';
+import { Plus, Clock, Target, TrendingUp, Play, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PlaylistCard from '@/components/PlaylistCard';
 import AddPlaylistModal from '@/components/AddPlaylistModal';
 import StatsCard from '@/components/StatsCard';
+import StreakTracker from '@/components/StreakTracker';
 import { Playlist, PlaylistData } from '@/types/playlist';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 
 const Index = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -18,7 +21,11 @@ const Index = () => {
     completedVideos: 0,
     overallProgress: 0,
     estimatedCompletion: '',
-    dailyAverage: 0
+    dailyAverage: 0,
+    totalCodingQuestions: 0,
+    solvedQuestions: 0,
+    currentStreak: 0,
+    longestStreak: 0
   });
 
   useEffect(() => {
@@ -35,6 +42,8 @@ const Index = () => {
     let totalVideos = 0;
     let completedVideos = 0;
     let totalProgress = 0;
+    let totalCodingQuestions = 0;
+    let solvedQuestions = 0;
 
     playlistsData.forEach(playlist => {
       playlist.videos.forEach(video => {
@@ -45,12 +54,21 @@ const Index = () => {
         }
         totalProgress += video.progress;
       });
+
+      if (playlist.codingQuestions) {
+        totalCodingQuestions += playlist.codingQuestions.length;
+        solvedQuestions += playlist.codingQuestions.filter(q => q.solved).length;
+      }
     });
 
     const overallProgress = totalVideos > 0 ? totalProgress / totalVideos : 0;
-    const dailyAverage = 45; // minutes per day assumption
+    const dailyAverage = 45;
     const remainingTime = totalWatchTime * (1 - overallProgress / 100);
     const estimatedDays = Math.ceil(remainingTime / dailyAverage);
+    
+    // Calculate streaks (simplified)
+    const currentStreak = Math.floor(Math.random() * 15) + 1; // Placeholder
+    const longestStreak = Math.max(currentStreak, Math.floor(Math.random() * 25) + 5);
     
     setStats({
       totalWatchTime,
@@ -58,7 +76,11 @@ const Index = () => {
       completedVideos,
       overallProgress,
       estimatedCompletion: `${estimatedDays} days`,
-      dailyAverage
+      dailyAverage,
+      totalCodingQuestions,
+      solvedQuestions,
+      currentStreak,
+      longestStreak
     });
   };
 
@@ -76,29 +98,50 @@ const Index = () => {
     calculateStats(updatedPlaylists);
   };
 
+  const videoPlaylists = playlists.filter(p => p.type === 'video' || !p.type);
+  const codingPlaylists = playlists.filter(p => p.type === 'coding');
+
+  // Chart data
+  const progressData = [
+    { name: 'Videos', completed: stats.completedVideos, total: stats.totalVideos },
+    { name: 'Coding', completed: stats.solvedQuestions, total: stats.totalCodingQuestions }
+  ];
+
+  const pieData = [
+    { name: 'Completed', value: stats.completedVideos + stats.solvedQuestions, color: '#10b981' },
+    { name: 'Remaining', value: (stats.totalVideos - stats.completedVideos) + (stats.totalCodingQuestions - stats.solvedQuestions), color: '#e5e7eb' }
+  ];
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
+      <div className="container mx-auto px-6 py-8">
+        {/* Enhanced Header */}
         <div className="mb-8 text-center animate-fade-in">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent mb-2">
-            YouTube Playlist Tracker
-          </h1>
-          <p className="text-gray-600 text-lg">Track your learning progress and stay motivated</p>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <div className="p-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600">
+              <Code className="w-8 h-8 text-white" />
+            </div>
+            <div>
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                Learning Progress Tracker
+              </h1>
+              <p className="text-gray-600 text-lg">Master coding through videos and practice</p>
+            </div>
+          </div>
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatsCard
-            title="Total Videos"
-            value={stats.totalVideos.toString()}
+            title="Total Content"
+            value={(stats.totalVideos + stats.totalCodingQuestions).toString()}
             icon={Play}
             color="blue"
             delay="100"
           />
           <StatsCard
             title="Completed"
-            value={stats.completedVideos.toString()}
+            value={(stats.completedVideos + stats.solvedQuestions).toString()}
             icon={Target}
             color="green"
             delay="200"
@@ -117,76 +160,140 @@ const Index = () => {
             color="orange"
             delay="400"
           />
+          <div className="animate-fade-in" style={{ animationDelay: '500ms' }}>
+            <StreakTracker
+              currentStreak={stats.currentStreak}
+              longestStreak={stats.longestStreak}
+              lastActivityDate={new Date().toISOString().split('T')[0]}
+            />
+          </div>
         </div>
 
-        {/* Overall Progress */}
-        {stats.totalVideos > 0 && (
-          <Card className="mb-8 bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                Overall Progress
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <Progress value={stats.overallProgress} className="h-3" />
-                <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-600">Estimated completion:</span>
-                    <p className="font-semibold text-blue-600">{stats.estimatedCompletion}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-600">Daily average needed:</span>
-                    <p className="font-semibold text-purple-600">{stats.dailyAverage} min/day</p>
-                  </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Progress Charts */}
+        {(stats.totalVideos > 0 || stats.totalCodingQuestions > 0) && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
+              <CardHeader>
+                <CardTitle>Progress Overview</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={progressData}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" />
+                    <YAxis />
+                    <Tooltip />
+                    <Bar dataKey="completed" fill="#10b981" />
+                    <Bar dataKey="total" fill="#e5e7eb" />
+                  </BarChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+
+            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
+              <CardHeader>
+                <CardTitle>Completion Rate</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ResponsiveContainer width="100%" height={200}>
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={40}
+                      outerRadius={80}
+                      dataKey="value"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip />
+                  </PieChart>
+                </ResponsiveContainer>
+              </CardContent>
+            </Card>
+          </div>
         )}
 
         {/* Action Button */}
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">Your Playlists</h2>
+          <h2 className="text-2xl font-semibold text-gray-800">Your Learning Content</h2>
           <Button
             onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300 hover-scale"
+            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
           >
             <Plus className="w-4 h-4 mr-2" />
-            Add Playlist
+            Add Content
           </Button>
         </div>
 
-        {/* Playlists Grid */}
+        {/* Playlists with Tabs */}
         {playlists.length === 0 ? (
           <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
             <CardContent className="py-16 text-center">
               <div className="animate-fade-in">
-                <Play className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">No playlists yet</h3>
-                <p className="text-gray-500 mb-6">Create your first playlist to start tracking your progress</p>
+                <Code className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-semibold text-gray-600 mb-2">Start Your Learning Journey</h3>
+                <p className="text-gray-500 mb-6">Create your first playlist to track videos and coding problems</p>
                 <Button
                   onClick={() => setIsModalOpen(true)}
                   className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Playlist
+                  Create Content
                 </Button>
               </div>
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {playlists.map((playlist, index) => (
-              <PlaylistCard
-                key={playlist.id}
-                playlist={playlist}
-                onDelete={deletePlaylist}
-                delay={index * 100}
-              />
-            ))}
-          </div>
+          <Tabs defaultValue="all" className="space-y-6">
+            <TabsList className="bg-white/70 backdrop-blur-sm">
+              <TabsTrigger value="all">All Content</TabsTrigger>
+              <TabsTrigger value="videos">Video Playlists</TabsTrigger>
+              <TabsTrigger value="coding">Coding Practice</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="all" className="space-y-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {playlists.map((playlist, index) => (
+                  <PlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    onDelete={deletePlaylist}
+                    delay={index * 100}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="videos" className="space-y-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {videoPlaylists.map((playlist, index) => (
+                  <PlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    onDelete={deletePlaylist}
+                    delay={index * 100}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="coding" className="space-y-0">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {codingPlaylists.map((playlist, index) => (
+                  <PlaylistCard
+                    key={playlist.id}
+                    playlist={playlist}
+                    onDelete={deletePlaylist}
+                    delay={index * 100}
+                  />
+                ))}
+              </div>
+            </TabsContent>
+          </Tabs>
         )}
 
         <AddPlaylistModal
