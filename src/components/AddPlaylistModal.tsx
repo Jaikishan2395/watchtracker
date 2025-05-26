@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Loader2 } from 'lucide-react';
+import { Plus, X, Loader2, Video, Code } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Card, CardContent } from '@/components/ui/card';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
+import AddCodingPlaylistModal from './AddCodingPlaylistModal';
 
 interface AddPlaylistModalProps {
   isOpen: boolean;
@@ -16,6 +17,92 @@ interface AddPlaylistModalProps {
 }
 
 const AddPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => {
+  const [playlistType, setPlaylistType] = useState<'video' | 'coding' | null>(null);
+  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
+  const [isCodingModalOpen, setIsCodingModalOpen] = useState(false);
+
+  const handleClose = () => {
+    setPlaylistType(null);
+    setIsVideoModalOpen(false);
+    setIsCodingModalOpen(false);
+    onClose();
+  };
+
+  const handleTypeSelect = (type: 'video' | 'coding') => {
+    setPlaylistType(type);
+    if (type === 'video') {
+      setIsVideoModalOpen(true);
+    } else {
+      setIsCodingModalOpen(true);
+    }
+    onClose();
+  };
+
+  return (
+    <>
+      <Dialog open={isOpen} onOpenChange={handleClose}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-xl font-semibold text-center">
+              Choose Playlist Type
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="grid grid-cols-1 gap-4 py-6">
+            <Card 
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-blue-500 group"
+              onClick={() => handleTypeSelect('video')}
+            >
+              <CardContent className="p-6 text-center">
+                <Video className="w-12 h-12 mx-auto mb-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                <h3 className="text-lg font-semibold mb-2">Video Playlist</h3>
+                <p className="text-gray-600 text-sm">
+                  Track your progress through educational videos and tutorials
+                </p>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="cursor-pointer transition-all hover:shadow-lg hover:border-green-500 group"
+              onClick={() => handleTypeSelect('coding')}
+            >
+              <CardContent className="p-6 text-center">
+                <Code className="w-12 h-12 mx-auto mb-4 text-green-600 group-hover:scale-110 transition-transform" />
+                <h3 className="text-lg font-semibold mb-2">Coding Practice</h3>
+                <p className="text-gray-600 text-sm">
+                  Organize coding problems, track streaks, and monitor progress
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
+          <div className="flex justify-center pt-4 border-t">
+            <Button variant="outline" onClick={handleClose}>
+              Cancel
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Original Video Playlist Modal */}
+      <VideoPlaylistModal
+        isOpen={isVideoModalOpen}
+        onClose={() => setIsVideoModalOpen(false)}
+        onAdd={onAdd}
+      />
+
+      {/* New Coding Playlist Modal */}
+      <AddCodingPlaylistModal
+        isOpen={isCodingModalOpen}
+        onClose={() => setIsCodingModalOpen(false)}
+        onAdd={onAdd}
+      />
+    </>
+  );
+};
+
+// Extract the original video playlist logic to a separate component
+const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [deadline, setDeadline] = useState('');
@@ -74,15 +161,13 @@ const AddPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => 
     }
 
     setIsLoading(true);
-
-    // Simulate API call delay
     await new Promise(resolve => setTimeout(resolve, 1000));
 
     const playlist: Playlist = {
       id: Date.now().toString(),
       title: title.trim(),
       description: description.trim(),
-      type: 'video', // Add the required type property
+      type: 'video',
       deadline: deadline || undefined,
       createdAt: new Date().toISOString(),
       videos: videos.map((video, index) => ({
@@ -110,7 +195,10 @@ const AddPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => 
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle className="text-xl font-semibold">Create New Playlist</DialogTitle>
+          <DialogTitle className="text-xl font-semibold flex items-center gap-2">
+            <Video className="w-6 h-6" />
+            Create Video Playlist
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">

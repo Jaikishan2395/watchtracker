@@ -13,14 +13,16 @@ import { toast } from 'sonner';
 interface AddCodingQuestionModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onAdd: (question: Omit<CodingQuestion, 'id' | 'solved' | 'dateAdded'>) => void;
+  onAdd: (question: Omit<CodingQuestion, 'id' | 'solved' | 'dateAdded' | 'attempts'>) => void;
 }
 
 const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
+  const [category, setCategory] = useState<'algorithms' | 'data-structures' | 'system-design' | 'dynamic-programming' | 'graphs' | 'arrays' | 'strings' | 'trees' | 'other'>('algorithms');
   const [tags, setTags] = useState('');
+  const [solutionUrl, setSolutionUrl] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,9 +36,13 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
       title: title.trim(),
       description: description.trim(),
       difficulty,
+      category,
       tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
       notes: '',
-      timeSpent: 0
+      timeSpent: 0,
+      solutionUrl: solutionUrl.trim() || undefined,
+      lastAttemptDate: undefined,
+      difficulty_rating: undefined
     };
 
     onAdd(questionData);
@@ -45,7 +51,9 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
     setTitle('');
     setDescription('');
     setDifficulty('easy');
+    setCategory('algorithms');
     setTags('');
+    setSolutionUrl('');
     
     onClose();
     toast.success('Coding question added successfully!');
@@ -55,13 +63,15 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
     setTitle('');
     setDescription('');
     setDifficulty('easy');
+    setCategory('algorithms');
     setTags('');
+    setSolutionUrl('');
     onClose();
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Plus className="w-5 h-5" />
@@ -87,24 +97,46 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the coding problem..."
+              placeholder="Describe the coding problem in detail..."
               rows={3}
               required
             />
           </div>
           
-          <div>
-            <Label htmlFor="difficulty">Difficulty</Label>
-            <Select value={difficulty} onValueChange={(value: 'easy' | 'medium' | 'hard') => setDifficulty(value)}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="easy">Easy</SelectItem>
-                <SelectItem value="medium">Medium</SelectItem>
-                <SelectItem value="hard">Hard</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="difficulty">Difficulty</Label>
+              <Select value={difficulty} onValueChange={(value: 'easy' | 'medium' | 'hard') => setDifficulty(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="easy">Easy</SelectItem>
+                  <SelectItem value="medium">Medium</SelectItem>
+                  <SelectItem value="hard">Hard</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="category">Category</Label>
+              <Select value={category} onValueChange={(value: any) => setCategory(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="algorithms">Algorithms</SelectItem>
+                  <SelectItem value="data-structures">Data Structures</SelectItem>
+                  <SelectItem value="dynamic-programming">Dynamic Programming</SelectItem>
+                  <SelectItem value="graphs">Graphs</SelectItem>
+                  <SelectItem value="arrays">Arrays</SelectItem>
+                  <SelectItem value="strings">Strings</SelectItem>
+                  <SelectItem value="trees">Trees</SelectItem>
+                  <SelectItem value="system-design">System Design</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
           </div>
           
           <div>
@@ -113,7 +145,17 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
               id="tags"
               value={tags}
               onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g., arrays, sorting, algorithms"
+              placeholder="e.g., hash-map, two-pointers, binary-search"
+            />
+          </div>
+          
+          <div>
+            <Label htmlFor="solutionUrl">Solution URL (optional)</Label>
+            <Input
+              id="solutionUrl"
+              value={solutionUrl}
+              onChange={(e) => setSolutionUrl(e.target.value)}
+              placeholder="https://leetcode.com/problems/..."
             />
           </div>
           

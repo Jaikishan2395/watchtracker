@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Plus, Clock, Target, TrendingUp, Play, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +10,7 @@ import StatsCard from '@/components/StatsCard';
 import StreakTracker from '@/components/StreakTracker';
 import { Playlist, PlaylistData } from '@/types/playlist';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
+import CodingProgressDashboard from '@/components/CodingProgressDashboard';
 
 const Index = () => {
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
@@ -168,6 +168,14 @@ const Index = () => {
             />
           </div>
         </div>
+
+        {/* Coding Progress Dashboard - Show only if there are coding playlists */}
+        {codingPlaylists.length > 0 && (
+          <div className="mb-8">
+            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Coding Progress</h2>
+            <CodingProgressDashboard playlists={playlists} />
+          </div>
+        )}
 
         {/* Progress Charts */}
         {(stats.totalVideos > 0 || stats.totalCodingQuestions > 0) && (
