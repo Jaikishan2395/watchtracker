@@ -11,25 +11,29 @@ import VideoPlayer from "./pages/VideoPlayer";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
 import Splash from "./pages/Splash";
+import Login from "./pages/Login";
+import CreateAccount from "./pages/CreateAccount";
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
-  const isSplashPage = location.pathname === '/';
+  const isAuthPage = ['/', '/login', '/create-account'].includes(location.pathname);
 
   return (
     <SidebarProvider>
       <div className="min-h-screen flex w-full">
-        {!isSplashPage && <AppSidebar />}
-        <main className={`flex-1 ${!isSplashPage ? '' : 'w-full'}`}>
-          {!isSplashPage && (
+        {!isAuthPage && <AppSidebar />}
+        <main className={`flex-1 ${!isAuthPage ? '' : 'w-full'}`}>
+          {!isAuthPage && (
             <div className="p-2">
               <SidebarTrigger />
             </div>
           )}
           <Routes>
             <Route path="/" element={<Splash />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/dashboard" element={<Index />} />
             <Route path="/playlist/:id" element={<PlaylistDetail />} />
             <Route path="/playlist/:id/play" element={<VideoPlayer />} />
