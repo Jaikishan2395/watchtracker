@@ -115,21 +115,6 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-6 py-8">
-        {/* Enhanced Header */}
-        <div className="mb-8 text-center animate-fade-in">
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <div className="p-3 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600">
-              <Code className="w-8 h-8 text-white" />
-            </div>
-            <div>
-              <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                Learning Progress Tracker
-              </h1>
-              <p className="text-gray-600 text-lg">Master coding through videos and practice</p>
-            </div>
-          </div>
-        </div>
-
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard

@@ -38,19 +38,15 @@ export function AppSidebar() {
   return (
     <Sidebar>
       <SidebarHeader className="p-4">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center justify-center">
           <div className="p-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600">
             <Code className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <h2 className="font-semibold text-sm">Learning Tracker</h2>
-            <p className="text-xs text-muted-foreground">Track your progress</p>
           </div>
         </div>
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel>Navigation</SidebarGroupLabel>
+          
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -58,9 +54,9 @@ export function AppSidebar() {
                   <SidebarMenuButton
                     isActive={location.pathname === item.url}
                     onClick={() => navigate(item.url)}
+                    className="justify-center w-12 h-16 py-4"
                   >
-                    <item.icon className="w-4 h-4" />
-                    <span>{item.title}</span>
+                    <item.icon className="w-5 h-5" />
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -75,10 +71,9 @@ export function AppSidebar() {
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate('/login')}
-                  className="w-full justify-start bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                  className="w-12 h-16 py-4 justify-center bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
                 >
-                  <LogIn className="w-4 h-4" />
-                  <span>Sign In</span>
+                  <LogIn className="w-5 h-5" />
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

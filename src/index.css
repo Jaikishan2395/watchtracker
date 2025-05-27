@@ -35,6 +35,12 @@
 
     --radius: 0.5rem;
 
+    /* Text colors for light theme */
+    --text-primary: 222.2 84% 4.9%;
+    --text-secondary: 215.4 16.3% 46.9%;
+    --text-muted: 215.4 16.3% 46.9%;
+    --text-inverted: 210 40% 98%;
+
     /* Sidebar colors for light theme */
     --sidebar-background: 210 40% 98%;
     --sidebar-foreground: 222.2 84% 4.9%;
@@ -76,6 +82,12 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
 
+    /* Text colors for dark theme */
+    --text-primary: 210 40% 98%;
+    --text-secondary: 215 20.2% 65.1%;
+    --text-muted: 215 20.2% 65.1%;
+    --text-inverted: 222.2 84% 4.9%;
+
     /* Sidebar colors for dark theme */
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
@@ -95,6 +107,40 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Global text color utilities */
+  .text-on-dark {
+    @apply text-white dark:text-white;
+  }
+
+  .text-on-light {
+    @apply text-black dark:text-black;
+  }
+
+  .text-on-primary {
+    @apply text-primary-foreground;
+  }
+
+  .text-on-secondary {
+    @apply text-secondary-foreground;
+  }
+
+  .text-on-muted {
+    @apply text-muted-foreground;
+  }
+
+  /* Background-aware text colors */
+  .bg-aware-text {
+    @apply [&:not(.dark)]:text-black dark:text-white;
+  }
+
+  .bg-aware-text-muted {
+    @apply [&:not(.dark)]:text-gray-600 dark:text-gray-300;
+  }
+
+  .bg-aware-text-secondary {
+    @apply [&:not(.dark)]:text-gray-700 dark:text-gray-200;
   }
 }
 
@@ -122,6 +168,24 @@
 
   .glass-effect-dark {
     @apply bg-background/90 backdrop-blur-md border border-border/50;
+  }
+
+  /* Background-aware card styles */
+  .bg-aware-card {
+    @apply [&:not(.dark)]:bg-white dark:bg-gray-800;
+  }
+
+  .bg-aware-card-muted {
+    @apply [&:not(.dark)]:bg-gray-50 dark:bg-gray-900;
+  }
+
+  /* Background-aware border styles */
+  .bg-aware-border {
+    @apply [&:not(.dark)]:border-gray-200 dark:border-gray-700;
+  }
+
+  .bg-aware-border-muted {
+    @apply [&:not(.dark)]:border-gray-100 dark:border-gray-800;
   }
 }
 
