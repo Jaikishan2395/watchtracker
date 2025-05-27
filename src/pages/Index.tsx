@@ -2,10 +2,10 @@ import { useState, useEffect } from 'react';
 import { Clock, Target, TrendingUp, Play, Code } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import StatsCard from '@/components/StatsCard';
-import StreakTracker from '@/components/StreakTracker';
 import { PlaylistData, Playlist } from '@/types/playlist';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import CodingProgressDashboard from '@/components/CodingProgressDashboard';
+import ProgressTabs from '@/components/ProgressTabs';
 
 const Index = () => {
   const [stats, setStats] = useState<PlaylistData>({
@@ -17,17 +17,17 @@ const Index = () => {
     dailyAverage: 0,
     totalCodingQuestions: 0,
     solvedQuestions: 0,
-    currentStreak: 0,
-    longestStreak: 0,
     questionsThisWeek: 0,
     averageTimePerQuestion: 0,
     categoryProgress: {}
   });
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
       const parsedPlaylists = JSON.parse(savedPlaylists) as Playlist[];
+      setPlaylists(parsedPlaylists);
       calculateStats(parsedPlaylists);
     }
   }, []);
@@ -86,10 +86,6 @@ const Index = () => {
     const remainingTime = totalWatchTime * (1 - overallProgress / 100);
     const estimatedDays = Math.ceil(remainingTime / dailyAverage);
     
-    // Calculate streaks (simplified)
-    const currentStreak = Math.floor(Math.random() * 15) + 1; // Placeholder
-    const longestStreak = Math.max(currentStreak, Math.floor(Math.random() * 25) + 5);
-    
     setStats({
       totalWatchTime,
       totalVideos,
@@ -99,8 +95,6 @@ const Index = () => {
       dailyAverage,
       totalCodingQuestions,
       solvedQuestions,
-      currentStreak,
-      longestStreak,
       questionsThisWeek,
       averageTimePerQuestion: solvedQuestions > 0 ? totalTimePerQuestion / solvedQuestions : 0,
       categoryProgress
@@ -137,7 +131,7 @@ const Index = () => {
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
             title="Total Content"
             value={(stats.totalVideos + stats.totalCodingQuestions).toString()}
@@ -166,13 +160,6 @@ const Index = () => {
             color="orange"
             delay="400"
           />
-          <div className="animate-fade-in" style={{ animationDelay: '500ms' }}>
-            <StreakTracker
-              currentStreak={stats.currentStreak}
-              longestStreak={stats.longestStreak}
-              lastActivityDate={new Date().toISOString().split('T')[0]}
-            />
-          </div>
         </div>
 
         {/* Coding Progress Dashboard */}
@@ -185,50 +172,57 @@ const Index = () => {
 
         {/* Progress Charts */}
         {(stats.totalVideos > 0 || stats.totalCodingQuestions > 0) && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
-              <CardHeader>
-                <CardTitle>Progress Overview</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={progressData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="completed" fill="#10b981" />
-                    <Bar dataKey="total" fill="#e5e7eb" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
+          <>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
+                <CardHeader>
+                  <CardTitle>Progress Overview</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <BarChart data={progressData}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="name" />
+                      <YAxis />
+                      <Tooltip />
+                      <Bar dataKey="completed" fill="#10b981" />
+                      <Bar dataKey="total" fill="#e5e7eb" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
 
-            <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
-              <CardHeader>
-                <CardTitle>Completion Rate</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={200}>
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={40}
-                      outerRadius={80}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <Tooltip />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
+                <CardHeader>
+                  <CardTitle>Completion Rate</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={40}
+                        outerRadius={80}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Progress Over Time */}
+            <div className="mb-8">
+              <ProgressTabs playlists={playlists} />
+            </div>
+          </>
         )}
       </div>
     </div>

@@ -1,5 +1,4 @@
-
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, X, Loader2 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -15,7 +14,12 @@ interface AddVideoModalProps {
 }
 
 const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
-  const [currentVideo, setCurrentVideo] = useState({ title: '', url: '', duration: 0 });
+  const [currentVideo, setCurrentVideo] = useState({
+    title: '',
+    url: '',
+    duration: { hours: 0, minutes: 0 },
+    scheduledTime: ''
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const extractVideoIdFromUrl = (url: string): string | null => {
@@ -32,7 +36,8 @@ const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
   };
 
   const handleSubmit = async () => {
-    if (!currentVideo.title || !currentVideo.url || currentVideo.duration <= 0) {
+    if (!currentVideo.title || !currentVideo.url || 
+        (currentVideo.duration.hours === 0 && currentVideo.duration.minutes === 0)) {
       toast.error('Please fill in all video details');
       return;
     }
@@ -56,7 +61,12 @@ const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
     onAdd(newVideo);
     
     // Reset form
-    setCurrentVideo({ title: '', url: '', duration: 0 });
+    setCurrentVideo({
+      title: '',
+      url: '',
+      duration: { hours: 0, minutes: 0 },
+      scheduledTime: ''
+    });
     setIsLoading(false);
     
     toast.success('Video added to playlist!');
@@ -93,15 +103,48 @@ const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
             />
           </div>
 
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="video-hours">Hours *</Label>
+              <Input
+                id="video-hours"
+                type="number"
+                min="0"
+                value={currentVideo.duration.hours || ''}
+                onChange={(e) => setCurrentVideo({
+                  ...currentVideo,
+                  duration: { ...currentVideo.duration, hours: parseInt(e.target.value) || 0 }
+                })}
+                placeholder="Hours..."
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="video-minutes">Minutes *</Label>
+              <Input
+                id="video-minutes"
+                type="number"
+                min="0"
+                max="59"
+                value={currentVideo.duration.minutes || ''}
+                onChange={(e) => setCurrentVideo({
+                  ...currentVideo,
+                  duration: { ...currentVideo.duration, minutes: parseInt(e.target.value) || 0 }
+                })}
+                placeholder="Minutes..."
+                className="mt-1"
+              />
+            </div>
+          </div>
+
           <div>
-            <Label htmlFor="video-duration">Duration (minutes) *</Label>
+            <Label htmlFor="scheduled-time">Schedule Time (Optional)</Label>
             <Input
-              id="video-duration"
-              type="number"
-              min="1"
-              value={currentVideo.duration || ''}
-              onChange={(e) => setCurrentVideo({ ...currentVideo, duration: parseInt(e.target.value) || 0 })}
-              placeholder="Duration in minutes..."
+              id="scheduled-time"
+              type="datetime-local"
+              value={currentVideo.scheduledTime}
+              onChange={(e) => setCurrentVideo({ ...currentVideo, scheduledTime: e.target.value })}
               className="mt-1"
             />
           </div>
@@ -120,8 +163,7 @@ const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
               className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
               disabled={isLoading}
             >
-              {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}
-              Add Video
+              {isLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : 'Add Video'}
             </Button>
           </div>
         </div>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, FileText, ChevronDown, ChevronUp, Search, Languages, X, Copy, Download, Share2, Keyboard, FileJson, FileText as FileTextIcon, Clock as ClockIcon, CheckSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,6 +9,116 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+
+// Add YouTube API types
+interface YouTubePlayer {
+  destroy: () => void;
+  getPlayerState: () => number;
+  playVideo: () => void;
+  pauseVideo: () => void;
+  seekTo: (seconds: number) => void;
+  getCurrentTime: () => number;
+  getVideoData: () => { title: string };
+}
+
+interface YouTubePlayerEvent {
+  data: number;
+  target: YouTubePlayer;
+}
+
+interface YouTubeAPI {
+  Player: new (
+    elementId: HTMLElement,
+    options: {
+      videoId: string;
+      playerVars?: {
+        autoplay?: number;
+        controls?: number;
+        modestbranding?: number;
+        rel?: number;
+      };
+      events?: {
+        onStateChange?: (event: YouTubePlayerEvent) => void;
+        onReady?: (event: YouTubePlayerEvent) => void;
+      };
+    }
+  ) => YouTubePlayer;
+  PlayerState: {
+    PLAYING: number;
+    PAUSED: number;
+    ENDED: number;
+  };
+}
+
+declare global {
+  interface Window {
+    YT: YouTubeAPI;
+    onYouTubeIframeAPIReady: () => void;
+  }
+}
+
+interface WatchTimeData {
+  totalWatchTime: number;  // Total accumulated watch time in milliseconds
+  lastPosition: number;    // Last video position in seconds
+  lastUpdate: number;      // Timestamp of last update
+  sessions: {              // Track individual watch sessions
+    startTime: number;     // Session start timestamp
+    endTime?: number;      // Session end timestamp
+    duration: number;      // Session duration in milliseconds
+  }[];
+}
+
+// Add Transcript type
+interface TranscriptEntry {
+  start: number;
+  duration: number;
+  text: string;
+}
+
+interface Transcript {
+  language: string;
+  transcript: TranscriptEntry[];
+}
+
+interface AvailableLanguage {
+  languageCode: string;
+  languageName: string;
+}
+
+// Add keyboard shortcut type
+interface KeyboardShortcut {
+  key: string;
+  description: string;
+  action: () => void;
+}
+
+// Add export format type
+type ExportFormat = 'txt' | 'json' | 'srt' | 'vtt';
+
+const formatDuration = (duration: { hours: number; minutes: number }) => {
+  if (duration.hours > 0) {
+    return `${duration.hours}h ${duration.minutes}m`;
+  }
+  return `${duration.minutes}m`;
+};
+
+const formatTime = (seconds: number) => {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  const remainingSeconds = seconds % 60;
+
+  if (hours > 0) {
+    return `${hours}h ${minutes}m ${remainingSeconds}s`;
+  }
+  if (minutes > 0) {
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+  return `${remainingSeconds}s`;
+};
 
 const VideoPlayer = () => {
   const { id } = useParams();
@@ -19,7 +129,41 @@ const VideoPlayer = () => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(videoIndex);
   const [showAllVideos, setShowAllVideos] = useState(false);
+  const [watchTimeData, setWatchTimeData] = useState<WatchTimeData>({
+    totalWatchTime: 0,
+    lastPosition: 0,
+    lastUpdate: Date.now(),
+    sessions: []
+  });
+  const [videoTitle, setVideoTitle] = useState<string | null>(null);
+  const [transcript, setTranscript] = useState<Transcript | null>(null);
+  const [showTranscript, setShowTranscript] = useState(false);
+  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
+  const [transcriptError, setTranscriptError] = useState<string | null>(null);
+  const [availableLanguages, setAvailableLanguages] = useState<AvailableLanguage[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [currentTranscriptIndex, setCurrentTranscriptIndex] = useState<number | null>(null);
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
 
+  const playerRef = useRef<YouTubePlayer | null>(null);
+  const iframeRef = useRef<HTMLDivElement>(null);
+  const updateInterval = useRef<NodeJS.Timeout | null>(null);
+  const sessionStartTime = useRef<number | null>(null);
+  const lastUpdateTime = useRef<number>(Date.now());
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
+  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
+  const [shareUrl, setShareUrl] = useState<string | null>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const [selectedText, setSelectedText] = useState<string>('');
+  const [showCopySuccess, setShowCopySuccess] = useState<string | null>(null);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('txt');
+
+  // Get current video from playlist
+  const currentVideo = playlist?.videos[currentVideoIndex];
+
+  // Load playlist data
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
@@ -30,6 +174,120 @@ const VideoPlayer = () => {
       }
     }
   }, [id]);
+
+  // Initialize watch time data when video changes
+  useEffect(() => {
+    if (!playlist || !currentVideo) return;
+
+    // Load existing watch time data from localStorage
+    const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData) as WatchTimeData;
+        setWatchTimeData(parsedData);
+      } catch (e) {
+        console.error('Error loading watch time data:', e);
+      }
+    } else {
+      // Initialize new watch time data
+      setWatchTimeData({
+        totalWatchTime: 0,
+        lastPosition: 0,
+        lastUpdate: Date.now(),
+        sessions: []
+      });
+    }
+
+    // Reset session tracking
+    sessionStartTime.current = null;
+    lastUpdateTime.current = Date.now();
+
+    return () => {
+      // Save watch time data when component unmounts or video changes
+      if (currentVideo) {
+        localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(watchTimeData));
+      }
+    };
+  }, [currentVideo?.id, watchTimeData]);
+
+  // Function to start tracking watch time
+  const startWatchTimeTracking = () => {
+    if (!playerRef.current || !currentVideo || sessionStartTime.current !== null) return;
+
+    const now = Date.now();
+    sessionStartTime.current = now;
+    lastUpdateTime.current = now;
+
+    // Start the update interval
+    updateInterval.current = setInterval(() => {
+      if (!playerRef.current || !sessionStartTime.current || !currentVideo) return;
+
+      const currentTime = Date.now();
+      const elapsed = currentTime - lastUpdateTime.current;
+      lastUpdateTime.current = currentTime;
+
+      // Update watch time data
+      setWatchTimeData(prev => {
+        const currentPosition = Math.floor(playerRef.current!.getCurrentTime());
+        return {
+          ...prev,
+          totalWatchTime: prev.totalWatchTime + elapsed,
+          lastPosition: currentPosition,
+          lastUpdate: currentTime,
+          sessions: prev.sessions.map((session, index) => 
+            index === prev.sessions.length - 1 && !session.endTime
+              ? { ...session, duration: session.duration + elapsed }
+              : session
+          )
+        };
+      });
+    }, 100); // Update every 100ms for better precision
+
+    // Add new session
+    setWatchTimeData(prev => ({
+      ...prev,
+      sessions: [...prev.sessions, {
+        startTime: now,
+        duration: 0
+      }]
+    }));
+  };
+
+  // Function to stop tracking watch time
+  const stopWatchTimeTracking = () => {
+    if (!sessionStartTime.current || !currentVideo) return;
+
+    const now = Date.now();
+    const sessionDuration = now - sessionStartTime.current;
+
+    // Clear the update interval
+    if (updateInterval.current) {
+      clearInterval(updateInterval.current);
+      updateInterval.current = null;
+    }
+
+    // Update the last session and save to localStorage
+    setWatchTimeData(prev => {
+      const updatedSessions = [...prev.sessions];
+      const lastSession = updatedSessions[updatedSessions.length - 1];
+      if (lastSession && !lastSession.endTime) {
+        lastSession.endTime = now;
+        lastSession.duration = sessionDuration;
+      }
+
+      const finalData = {
+        ...prev,
+        sessions: updatedSessions,
+        lastUpdate: now
+      };
+
+      // Save to localStorage
+      localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(finalData));
+      return finalData;
+    });
+
+    sessionStartTime.current = null;
+  };
 
   const updateVideoProgress = (videoId: string, progress: number) => {
     if (!playlist) return;
@@ -113,6 +371,242 @@ const VideoPlayer = () => {
     navigate('/');
   };
 
+  // Load YouTube API
+  useEffect(() => {
+    const tag = document.createElement('script');
+    tag.src = 'https://www.youtube.com/iframe_api';
+    const firstScriptTag = document.getElementsByTagName('script')[0];
+    firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+
+    window.onYouTubeIframeAPIReady = () => {
+      setIsPlayerReady(true);
+    };
+
+    return () => {
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
+  }, []);
+
+  // Update player initialization with new event handlers
+  useEffect(() => {
+    if (!isPlayerReady || !iframeRef.current || !playlist) return;
+
+    const currentVideo = playlist.videos[currentVideoIndex];
+    if (!currentVideo) return;
+
+    const videoId = currentVideo.url.split('v=')[1] || currentVideo.url.split('/').pop();
+    
+    playerRef.current = new window.YT.Player(iframeRef.current, {
+      videoId,
+      playerVars: {
+        autoplay: 0,
+        controls: 1,
+        modestbranding: 1,
+        rel: 0,
+      },
+      events: {
+        onStateChange: (event: YouTubePlayerEvent) => {
+          if (event.data === window.YT.PlayerState.PLAYING) {
+            startWatchTimeTracking();
+          } else if (event.data === window.YT.PlayerState.PAUSED || 
+                     event.data === window.YT.PlayerState.ENDED) {
+            stopWatchTimeTracking();
+          }
+        },
+        onReady: (event: YouTubePlayerEvent) => {
+          // Get video title when player is ready
+          const videoData = event.target.getVideoData();
+          setVideoTitle(videoData.title);
+          
+          // Resume from last position
+          if (watchTimeData.lastPosition > 0) {
+            playerRef.current?.seekTo(watchTimeData.lastPosition);
+          }
+        }
+      }
+    });
+
+    // Cleanup
+    return () => {
+      stopWatchTimeTracking();
+      if (playerRef.current) {
+        playerRef.current.destroy();
+      }
+    };
+  }, [isPlayerReady, playlist, currentVideoIndex]);
+
+  // Reset watch time tracking when video changes
+  useEffect(() => {
+    stopWatchTimeTracking();
+  }, [currentVideoIndex]);
+
+  // Function to fetch available languages
+  const fetchAvailableLanguages = async (videoId: string) => {
+    try {
+      const response = await fetch(`http://localhost:3001/api/transcript/${videoId}/languages`);
+      if (!response.ok) throw new Error('Failed to fetch languages');
+      const data = await response.json();
+      setAvailableLanguages(data.languages);
+    } catch (error) {
+      console.error('Error fetching languages:', error);
+    }
+  };
+
+  // Keep only the essential transcript functions
+  const fetchTranscript = async (videoId: string) => {
+    if (!videoId) return;
+    
+    setIsLoadingTranscript(true);
+    setTranscriptError(null);
+    
+    try {
+      const response = await fetch(`http://localhost:3001/api/transcript/${videoId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch transcript');
+      }
+      const data = await response.json();
+      setTranscript(data);
+    } catch (error) {
+      console.error('Error fetching transcript:', error);
+      setTranscriptError(error instanceof Error ? error.message : 'Failed to load transcript');
+    } finally {
+      setIsLoadingTranscript(false);
+    }
+  };
+
+  // Update video change effect to fetch languages
+  useEffect(() => {
+    if (!currentVideo) return;
+    
+    const videoId = currentVideo.url.split('v=')[1] || currentVideo.url.split('/').pop();
+    if (videoId) {
+      fetchAvailableLanguages(videoId);
+      fetchTranscript(videoId);
+    }
+  }, [currentVideo?.id]);
+
+  // Format transcript for export
+  const formatTranscriptForExport = useCallback((format: ExportFormat) => {
+    if (!transcript || !currentVideo) return '';
+
+    switch (format) {
+      case 'json':
+        return JSON.stringify({
+          videoTitle: currentVideo.title,
+          language: transcript.language,
+          transcript: transcript.transcript
+        }, null, 2);
+
+      case 'srt':
+        return transcript.transcript.map((entry, index) => {
+          const start = new Date(entry.start * 1000).toISOString().substr(11, 12).replace('.', ',');
+          const end = new Date((entry.start + entry.duration) * 1000).toISOString().substr(11, 12).replace('.', ',');
+          return `${index + 1}\n${start} --> ${end}\n${entry.text}\n\n`;
+        }).join('');
+
+      case 'vtt':
+        return `WEBVTT\n\n${transcript.transcript.map((entry, index) => {
+          const start = new Date(entry.start * 1000).toISOString().substr(11, 12);
+          const end = new Date((entry.start + entry.duration) * 1000).toISOString().substr(11, 12);
+          return `${index + 1}\n${start} --> ${end}\n${entry.text}\n\n`;
+        }).join('')}`;
+
+      case 'txt':
+      default:
+        return transcript.transcript
+          .map(entry => `[${formatTime(entry.start)}] ${entry.text}`)
+          .join('\n');
+    }
+  }, [transcript, currentVideo]);
+
+  // Download transcript
+  const downloadTranscript = useCallback(() => {
+    if (!transcript || !currentVideo) return;
+
+    const content = formatTranscriptForExport(exportFormat);
+    const mimeTypes = {
+      txt: 'text/plain',
+      json: 'application/json',
+      srt: 'text/plain',
+      vtt: 'text/vtt'
+    };
+    const extensions = {
+      txt: 'txt',
+      json: 'json',
+      srt: 'srt',
+      vtt: 'vtt'
+    };
+
+    const blob = new Blob([content], { type: mimeTypes[exportFormat] });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${currentVideo.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_transcript.${extensions[exportFormat]}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, [transcript, currentVideo, exportFormat, formatTranscriptForExport]);
+
+  // Share timestamp
+  const shareTimestamp = useCallback(() => {
+    if (!currentVideo || !playerRef.current) return;
+
+    const currentTime = Math.floor(playerRef.current.getCurrentTime());
+    const videoId = currentVideo.url.split('v=')[1] || currentVideo.url.split('/').pop();
+    const url = `${window.location.origin}/playlist/${id}/play?video=${currentVideoIndex}&t=${currentTime}`;
+    
+    setShareUrl(url);
+    navigator.clipboard.writeText(url);
+    toast.success('Share link copied to clipboard!');
+  }, [currentVideo, currentVideoIndex, id]);
+
+  // Highlight search matches
+  const highlightText = (text: string, query: string) => {
+    if (!query) return text;
+    
+    const parts = text.split(new RegExp(`(${query})`, 'gi'));
+    return parts.map((part, i) => 
+      part.toLowerCase() === query.toLowerCase() 
+        ? <mark key={i} className="bg-yellow-200/80 px-0.5 rounded">{part}</mark>
+        : part
+    );
+  };
+
+  // Handle text selection
+  useEffect(() => {
+    const handleSelection = () => {
+      const selection = window.getSelection();
+      if (selection && selection.toString().trim()) {
+        setSelectedText(selection.toString().trim());
+      } else {
+        setSelectedText('');
+      }
+    };
+
+    document.addEventListener('selectionchange', handleSelection);
+    return () => document.removeEventListener('selectionchange', handleSelection);
+  }, []);
+
+  // Copy current timestamp
+  const copyTimestamp = useCallback(() => {
+    if (!playerRef.current) return;
+    const time = formatTime(playerRef.current.getCurrentTime());
+    navigator.clipboard.writeText(time);
+    setShowCopySuccess('Timestamp');
+    setTimeout(() => setShowCopySuccess(null), 2000);
+  }, []);
+
+  // Add seekToTranscript function before the return statement
+  const seekToTranscript = useCallback((time: number) => {
+    if (playerRef.current) {
+      playerRef.current.seekTo(time);
+      playerRef.current.playVideo();
+    }
+  }, []);
+
   if (!playlist) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -128,8 +622,6 @@ const VideoPlayer = () => {
     );
   }
 
-  const currentVideo = playlist.videos[currentVideoIndex];
-  
   if (!currentVideo) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -147,11 +639,28 @@ const VideoPlayer = () => {
 
   const getYouTubeEmbedUrl = (url: string) => {
     const videoId = url.split('v=')[1] || url.split('/').pop();
-    return `https://www.youtube.com/embed/${videoId}`;
+    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`;
   };
 
   const completedVideos = playlist.videos.filter(v => v.progress >= 100).length;
   const totalProgress = playlist.videos.reduce((sum, video) => sum + video.progress, 0) / playlist.videos.length;
+
+  // Format time with millisecond precision
+  const formatTimeWithPrecision = (ms: number) => {
+    const totalSeconds = Math.floor(ms / 1000);
+    const hours = Math.floor(totalSeconds / 3600);
+    const minutes = Math.floor((totalSeconds % 3600) / 60);
+    const seconds = totalSeconds % 60;
+    const milliseconds = ms % 1000;
+
+    if (hours > 0) {
+      return `${hours}h ${minutes}m ${seconds}s ${milliseconds}ms`;
+    }
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s ${milliseconds}ms`;
+    }
+    return `${seconds}s ${milliseconds}ms`;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -272,13 +781,7 @@ const VideoPlayer = () => {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
               <CardContent className="p-6">
                 <div className="aspect-video w-full rounded-lg overflow-hidden bg-black shadow-xl">
-                  <iframe
-                    src={getYouTubeEmbedUrl(currentVideo.url)}
-                    title={currentVideo.title}
-                    className="w-full h-full"
-                    allowFullScreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  />
+                  <div ref={iframeRef} className="w-full h-full"></div>
                 </div>
               </CardContent>
             </Card>
@@ -287,7 +790,9 @@ const VideoPlayer = () => {
             <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">{currentVideo.title}</CardTitle>
+                  <CardTitle className="text-xl">
+                    {videoTitle || currentVideo.title}
+                  </CardTitle>
                   {currentVideo.progress >= 100 && (
                     <Badge className="bg-green-600 hover:bg-green-600">
                       Complete
@@ -300,7 +805,7 @@ const VideoPlayer = () => {
                   <div className="flex items-center gap-4 text-sm text-gray-600">
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      <span>{currentVideo.duration} min</span>
+                      <span>{formatDuration(currentVideo.duration)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>Progress: {currentVideo.progress}%</span>
@@ -348,7 +853,215 @@ const VideoPlayer = () => {
                       </Button>
                     </div>
                   </div>
+
+                  <div className="space-y-4 mt-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-xl p-5 border border-blue-100/50 shadow-sm">
+                    {/* Main Watch Time Display */}
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="bg-blue-100/80 p-2.5 rounded-lg">
+                          <Timer className="w-6 h-6 text-blue-600" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <div className="text-sm font-medium text-blue-700">Total Watch Time</div>
+                          <div 
+                            className="text-xl font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-2 group"
+                            onClick={() => {
+                              if (currentVideo.watchTime) {
+                                playerRef.current?.seekTo(currentVideo.watchTime);
+                              }
+                            }}
+                            title="Click to continue from last watched position"
+                          >
+                            {formatTimeWithPrecision(watchTimeData.totalWatchTime)}
+                            <span className="text-xs text-blue-600 bg-blue-100/80 px-2.5 py-1 rounded-full group-hover:bg-blue-200/80 transition-colors">
+                              continue watching
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="text-right bg-white/80 px-4 py-2 rounded-lg border border-blue-100/50">
+                        <div className="text-sm font-medium text-blue-700">Current Position</div>
+                        <div className="text-xl font-semibold text-gray-900">
+                          {formatTime(currentVideo.watchTime || 0)}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stats Grid */}
+                    <div className="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-blue-100/50">
+                      <div className="bg-white/80 p-3 rounded-lg border border-blue-100/50">
+                        <div className="text-sm font-medium text-blue-700 mb-1">Watch Sessions</div>
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline" className="bg-blue-50/80 text-blue-700 border-blue-200/80">
+                            {watchTimeData.sessions.length} {watchTimeData.sessions.length === 1 ? 'session' : 'sessions'}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="bg-white/80 p-3 rounded-lg border border-blue-100/50 text-right">
+                        <div className="text-sm font-medium text-blue-700 mb-1">Last Updated</div>
+                        <div className="font-medium text-gray-900">
+                          {new Date(watchTimeData.lastUpdate).toLocaleTimeString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Active Session Indicator */}
+                    {sessionStartTime.current && (
+                      <div className="mt-4 bg-blue-100/50 p-3 rounded-lg border border-blue-200/50 animate-pulse">
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <Timer className="w-4 h-4" />
+                          <span className="font-medium">Current Session</span>
+                        </div>
+                        <div className="mt-1 text-lg font-semibold text-blue-900">
+                          {formatTimeWithPrecision(Date.now() - sessionStartTime.current)}
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Transcript Panel (Remove display: none) */}
+            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
+              <CardHeader>
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-xl flex items-center gap-2">
+                    <FileText className="w-5 h-5 text-blue-600" />
+                    Transcript
+                    {transcript && (
+                      <Badge variant="outline" className="ml-2 bg-blue-50/80 text-blue-700 border-blue-200/80">
+                        {transcript.language.toUpperCase()}
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    {availableLanguages.length > 1 && (
+                      <Select
+                        value={selectedLanguage}
+                        onValueChange={(value) => {
+                          setSelectedLanguage(value);
+                          const videoId = currentVideo?.url.split('v=')[1] || currentVideo?.url.split('/').pop();
+                          if (videoId) fetchTranscript(videoId);
+                        }}
+                      >
+                        <SelectTrigger className="w-[180px] bg-white/70">
+                          <div className="flex items-center gap-2">
+                            <Languages className="w-4 h-4" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          {availableLanguages.map((lang) => (
+                            <SelectItem key={lang.languageCode} value={lang.languageCode}>
+                              {lang.languageName}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {isLoadingTranscript ? (
+                  <div className="text-center py-4 text-gray-600">
+                    Loading transcript...
+                  </div>
+                ) : transcriptError ? (
+                  <div className="text-center py-4 text-red-600">
+                    {transcriptError}
+                  </div>
+                ) : !transcript ? (
+                  <div className="text-center py-4 text-gray-600">
+                    No transcript available for this video
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {/* Download Controls */}
+                    <div className="flex items-center gap-4">
+                      <Select
+                        value={exportFormat}
+                        onValueChange={(value: ExportFormat) => setExportFormat(value)}
+                      >
+                        <SelectTrigger className="w-[180px] bg-white/70">
+                          <div className="flex items-center gap-2">
+                            <FileTextIcon className="w-4 h-4" />
+                            <SelectValue />
+                          </div>
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="txt">
+                            <div className="flex items-center gap-2">
+                              <FileTextIcon className="w-4 h-4" />
+                              Text (TXT)
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="json">
+                            <div className="flex items-center gap-2">
+                              <FileJson className="w-4 h-4" />
+                              JSON
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="srt">
+                            <div className="flex items-center gap-2">
+                              <FileTextIcon className="w-4 h-4" />
+                              SubRip (SRT)
+                            </div>
+                          </SelectItem>
+                          <SelectItem value="vtt">
+                            <div className="flex items-center gap-2">
+                              <FileTextIcon className="w-4 h-4" />
+                              WebVTT
+                            </div>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
+
+                      <Button
+                        onClick={downloadTranscript}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        Download Transcript
+                      </Button>
+                    </div>
+
+                    {/* Transcript List */}
+                    <ScrollArea className="h-[400px] pr-4">
+                      <div ref={transcriptContainerRef} className="space-y-2">
+                        {transcript.transcript.map((entry, index) => (
+                          <div
+                            key={index}
+                            onClick={() => seekToTranscript(entry.start)}
+                            className={`p-3 rounded-lg cursor-pointer transition-all group ${
+                              currentTranscriptIndex === index
+                                ? 'bg-blue-100 border-l-4 border-blue-500'
+                                : 'hover:bg-blue-50 border-l-4 border-transparent'
+                            }`}
+                          >
+                            <div className="flex items-start gap-3">
+                              <span className={`text-sm font-medium whitespace-nowrap ${
+                                currentTranscriptIndex === index
+                                  ? 'text-blue-700'
+                                  : 'text-blue-600 group-hover:text-blue-700'
+                              }`}>
+                                {formatTime(entry.start)}
+                              </span>
+                              <p className={`${
+                                currentTranscriptIndex === index
+                                  ? 'text-gray-900'
+                                  : 'text-gray-700 group-hover:text-gray-900'
+                              }`}>
+                                {entry.text}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </ScrollArea>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -397,20 +1110,22 @@ const VideoPlayer = () => {
               {playlist.videos.map((video, index) => (
                 <Card
                   key={video.id}
-                  className={`bg-white/80 backdrop-blur-sm border-0 shadow-lg cursor-pointer transition-all duration-200 hover:shadow-xl hover:scale-105 ${
+                  className={`bg-white/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-200 hover:shadow-xl ${
                     index === currentVideoIndex ? 'ring-2 ring-blue-500 bg-blue-50/80' : ''
                   }`}
-                  onClick={() => selectVideo(index)}
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start gap-3">
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                        video.progress >= 100 
-                          ? 'bg-green-600 text-white' 
-                          : index === currentVideoIndex
-                          ? 'bg-blue-600 text-white'
-                          : 'bg-gray-200'
-                      }`}>
+                      <div 
+                        onClick={() => selectVideo(index)}
+                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
+                          video.progress >= 100 
+                            ? 'bg-green-600 text-white' 
+                            : index === currentVideoIndex
+                            ? 'bg-blue-600 text-white'
+                            : 'bg-gray-200 hover:bg-gray-300'
+                        }`}
+                      >
                         {video.progress >= 100 ? (
                           <CheckCircle className="w-5 h-5" />
                         ) : index === currentVideoIndex ? (
@@ -420,13 +1135,16 @@ const VideoPlayer = () => {
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className={`text-sm font-medium truncate ${
-                          index === currentVideoIndex ? 'text-blue-700' : 'text-gray-800'
-                        }`}>
+                        <p 
+                          onClick={() => selectVideo(index)}
+                          className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 transition-colors ${
+                            index === currentVideoIndex ? 'text-blue-700' : 'text-gray-800'
+                          }`}
+                        >
                           {video.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-600">{video.duration} min</span>
+                          <span className="text-xs text-gray-600">{formatDuration(video.duration)}</span>
                           <span className="text-xs text-gray-600">{video.progress}%</span>
                           {index === currentVideoIndex && (
                             <Badge variant="outline" className="text-xs px-1 py-0">

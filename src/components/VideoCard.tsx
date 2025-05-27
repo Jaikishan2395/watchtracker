@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { Play, Clock, Edit3, Save, X, ExternalLink } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { Play, Clock, Edit3, Save, X, ExternalLink, Bell } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -7,18 +7,72 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { Video } from '@/types/playlist';
 import { useNavigate, useParams } from 'react-router-dom';
+import { toast } from 'sonner';
 
 interface VideoCardProps {
   video: Video;
   onProgressUpdate: (progress: number) => void;
   delay: number;
+  index: number;
 }
 
-const VideoCard = ({ video, onProgressUpdate, delay }: VideoCardProps) => {
+const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) => {
   const [isEditing, setIsEditing] = useState(false);
   const [newProgress, setNewProgress] = useState(video.progress.toString());
+  const [isScheduled, setIsScheduled] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const navigate = useNavigate();
   const { id } = useParams();
+
+  useEffect(() => {
+    // Create audio element for beeping sound
+    audioRef.current = new Audio('/beep.mp3');
+    
+    // Check if video is scheduled
+    if (video.scheduledTime) {
+      const scheduledTime = new Date(video.scheduledTime).getTime();
+      const now = new Date().getTime();
+      
+      if (scheduledTime > now) {
+        setIsScheduled(true);
+        const timeUntilScheduled = scheduledTime - now;
+        
+        // Set timeout for scheduled time
+        const timeoutId = setTimeout(() => {
+          playBeepSound();
+          toast.info(`Time to watch: ${video.title}`);
+          setIsScheduled(false);
+        }, timeUntilScheduled);
+
+        return () => clearTimeout(timeoutId);
+      }
+    }
+  }, [video.scheduledTime, video.title]);
+
+  const playBeepSound = () => {
+    if (audioRef.current) {
+      audioRef.current.play().catch(error => {
+        console.error('Error playing beep sound:', error);
+      });
+    }
+  };
+
+  const formatDuration = (duration: { hours: number; minutes: number }) => {
+    const parts = [];
+    if (duration.hours > 0) {
+      parts.push(`${duration.hours}h`);
+    }
+    if (duration.minutes > 0) {
+      parts.push(`${duration.minutes}m`);
+    }
+    return parts.join(' ') || '0m';
+  };
+
+  const formatScheduledTime = (scheduledTime: string) => {
+    if (!scheduledTime) return '';
+    const date = new Date(scheduledTime);
+    return date.toLocaleString();
+  };
 
   const handleSaveProgress = () => {
     const progress = Math.max(0, Math.min(100, parseInt(newProgress) || 0));
@@ -36,154 +90,89 @@ const VideoCard = ({ video, onProgressUpdate, delay }: VideoCardProps) => {
   };
 
   const playVideo = () => {
-    // Find the index of this video in the playlist
-    // We'll need to get this from the parent component or calculate it
-    navigate(`/playlist/${id}/play?video=0`); // Default to first video for now
+    navigate(`/playlist/${id}/play?video=${index}`);
   };
 
   return (
-    <Card 
-      className="bg-white/70 backdrop-blur-sm border-0 shadow-lg hover:shadow-xl transition-all duration-300 animate-fade-in"
-      style={{ animationDelay: `${delay}ms` }}
-    >
-      <CardContent className="p-6">
-        <div className="flex flex-col lg:flex-row gap-4">
-          {/* Video Thumbnail */}
-          <div className="relative lg:w-48 h-32 lg:h-28 rounded-lg overflow-hidden bg-gray-200 flex-shrink-0">
-            {video.thumbnail ? (
+    <Card className="transition-all duration-300 hover:shadow-lg" style={{ animationDelay: `${delay}ms` }}>
+      <CardContent className="p-4">
+        <div className="flex items-start gap-4">
+          {video.thumbnail && (
+            <div className="relative">
               <img
                 src={video.thumbnail}
                 alt={video.title}
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
+                className="w-32 h-20 object-cover rounded-lg"
               />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Play className="w-8 h-8 text-gray-400" />
-              </div>
-            )}
-            
-            {video.progress >= 100 && (
-              <div className="absolute top-2 right-2">
-                <Badge className="bg-green-600 hover:bg-green-600">
-                  Complete
-                </Badge>
-              </div>
-            )}
-          </div>
-
-          {/* Video Info */}
-          <div className="flex-1 space-y-3">
-            <div className="flex justify-between items-start">
-              <h3 className="text-lg font-semibold text-gray-800 line-clamp-2 flex-1 mr-4">
-                {video.title}
-              </h3>
-              <div className="flex gap-2 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={playVideo}
+                className="absolute inset-0 m-auto w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full"
+              >
+                <Play className="w-5 h-5" />
+              </Button>
+            </div>
+          )}
+          
+          <div className="flex-1">
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-medium text-gray-900 truncate">{video.title}</h3>
+              <div className="flex items-center gap-2">
+                {video.scheduledTime && (
+                  <Badge variant="outline" className="flex items-center gap-1">
+                    <Bell className="w-3 h-3" />
+                    {formatScheduledTime(video.scheduledTime)}
+                  </Badge>
+                )}
                 <Button
                   variant="ghost"
-                  size="sm"
-                  onClick={playVideo}
-                  className="text-blue-600 hover:bg-blue-50"
-                >
-                  <Play className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                  size="icon"
                   onClick={openVideo}
+                  className="text-gray-500 hover:text-gray-700"
                 >
                   <ExternalLink className="w-4 h-4" />
                 </Button>
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm text-gray-600">
+            <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4" />
-                <span>{video.duration} min</span>
+                <span>{formatDuration(video.duration)}</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Play className="w-4 h-4" />
-                <span>{Math.round(video.duration * video.progress / 100)} min watched</span>
-              </div>
-            </div>
-
-            {/* Progress Section */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <span className="text-sm font-medium text-gray-700">Progress</span>
-                {!isEditing ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold">{video.progress}%</span>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setIsEditing(true)}
-                    >
-                      <Edit3 className="w-3 h-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={newProgress}
-                      onChange={(e) => setNewProgress(e.target.value)}
-                      className="w-20 h-8 text-sm"
-                    />
-                    <span className="text-sm">%</span>
-                    <Button
-                      size="sm"
-                      onClick={handleSaveProgress}
-                      className="h-8 px-2"
-                    >
-                      <Save className="w-3 h-3" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={handleCancelEdit}
-                      className="h-8 px-2"
-                    >
-                      <X className="w-3 h-3" />
-                    </Button>
-                  </div>
-                )}
-              </div>
-              <Progress value={video.progress} className="h-2" />
-            </div>
-
-            {/* Quick Actions */}
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onProgressUpdate(0)}
-                disabled={video.progress === 0}
-              >
-                Reset
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onProgressUpdate(50)}
-                disabled={video.progress >= 50}
-              >
-                50%
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() => onProgressUpdate(100)}
-                disabled={video.progress >= 100}
-                className="text-green-600 border-green-600 hover:bg-green-50"
-              >
-                Complete
-              </Button>
+              
+              {isEditing ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    value={newProgress}
+                    onChange={(e) => setNewProgress(e.target.value)}
+                    className="w-20"
+                  />
+                  <Button size="sm" onClick={handleSaveProgress}>
+                    <Save className="w-4 h-4" />
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Progress value={video.progress} className="w-32" />
+                  <span>{video.progress}%</span>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsEditing(true)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <Edit3 className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
             </div>
           </div>
         </div>

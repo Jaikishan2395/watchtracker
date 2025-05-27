@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus } from 'lucide-react';
@@ -97,8 +96,17 @@ const PlaylistDetail = () => {
 
   const completedVideos = playlist.videos.filter(v => v.progress >= 100).length;
   const totalProgress = playlist.videos.reduce((sum, video) => sum + video.progress, 0) / playlist.videos.length;
-  const totalDuration = playlist.videos.reduce((sum, video) => sum + video.duration, 0);
-  const watchedTime = playlist.videos.reduce((sum, video) => sum + (video.duration * video.progress / 100), 0);
+  
+  // Convert duration to total minutes for calculations
+  const getTotalMinutes = (duration: { hours: number; minutes: number }) => {
+    return duration.hours * 60 + duration.minutes;
+  };
+  
+  const totalDuration = playlist.videos.reduce((sum, video) => sum + getTotalMinutes(video.duration), 0);
+  const watchedTime = playlist.videos.reduce((sum, video) => {
+    const videoMinutes = getTotalMinutes(video.duration);
+    return sum + (videoMinutes * video.progress / 100);
+  }, 0);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
@@ -237,6 +245,7 @@ const PlaylistDetail = () => {
               video={video}
               onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
               delay={index * 50}
+              index={index}
             />
           ))}
         </div>

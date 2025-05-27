@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -11,12 +11,22 @@ const Library = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
+  // Load playlists from localStorage on component mount
+  useEffect(() => {
+    const savedPlaylists = localStorage.getItem('youtubePlaylists');
+    if (savedPlaylists) {
+      setPlaylists(JSON.parse(savedPlaylists));
+    }
+  }, []);
+
   // Filter playlists by type
   const videoPlaylists = playlists.filter(playlist => playlist.type === 'video');
   const codingPlaylists = playlists.filter(playlist => playlist.type === 'coding');
 
   const deletePlaylist = (id: string) => {
-    setPlaylists(playlists.filter(playlist => playlist.id !== id));
+    const updatedPlaylists = playlists.filter(playlist => playlist.id !== id);
+    setPlaylists(updatedPlaylists);
+    localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
   };
 
   return (
@@ -104,7 +114,9 @@ const Library = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onAdd={(newPlaylist) => {
-            setPlaylists([...playlists, newPlaylist]);
+            const updatedPlaylists = [...playlists, newPlaylist];
+            setPlaylists(updatedPlaylists);
+            localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
             setIsModalOpen(false);
           }}
         />

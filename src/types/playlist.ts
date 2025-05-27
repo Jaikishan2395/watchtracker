@@ -1,11 +1,16 @@
-
 export interface Video {
   id: string;
   title: string;
   url: string;
-  duration: number; // in minutes
+  duration: {
+    hours: number;
+    minutes: number;
+  };
   progress: number; // percentage 0-100
+  watchTime: number; // total watch time in seconds
   thumbnail?: string;
+  dateCompleted?: string; // ISO date string when video was completed
+  scheduledTime?: string; // ISO date string for scheduled time
 }
 
 export interface CodingQuestion {
@@ -54,8 +59,6 @@ export interface PlaylistData {
   dailyAverage: number;
   totalCodingQuestions: number;
   solvedQuestions: number;
-  currentStreak: number;
-  longestStreak: number;
   questionsThisWeek: number;
   averageTimePerQuestion: number;
   categoryProgress: { [key: string]: { solved: number; total: number } };
