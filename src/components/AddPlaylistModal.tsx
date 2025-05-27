@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, X, Loader2, Video, Code } from 'lucide-react';
+import { Plus, X, Loader2, Video as VideoIcon, Code } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -54,7 +54,7 @@ const AddPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => 
               onClick={() => handleTypeSelect('video')}
             >
               <CardContent className="p-6 text-center">
-                <Video className="w-12 h-12 mx-auto mb-4 text-blue-600 group-hover:scale-110 transition-transform" />
+                <VideoIcon className="w-12 h-12 mx-auto mb-4 text-blue-600 group-hover:scale-110 transition-transform" />
                 <h3 className="text-lg font-semibold mb-2">Video Playlist</h3>
                 <p className="text-gray-600 text-sm">
                   Track your progress through educational videos and tutorials
@@ -196,7 +196,7 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold flex items-center gap-2">
-            <Video className="w-6 h-6" />
+            <VideoIcon className="w-6 h-6" />
             Create Video Playlist
           </DialogTitle>
         </DialogHeader>

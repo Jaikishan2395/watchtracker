@@ -25,7 +25,10 @@ const Index = () => {
     totalCodingQuestions: 0,
     solvedQuestions: 0,
     currentStreak: 0,
-    longestStreak: 0
+    longestStreak: 0,
+    questionsThisWeek: 0,
+    averageTimePerQuestion: 0,
+    categoryProgress: {}
   });
 
   useEffect(() => {
@@ -44,6 +47,9 @@ const Index = () => {
     let totalProgress = 0;
     let totalCodingQuestions = 0;
     let solvedQuestions = 0;
+    let questionsThisWeek = 0;
+    let totalTimePerQuestion = 0;
+    const categoryProgress: Record<string, { solved: number; total: number }> = {};
 
     playlistsData.forEach(playlist => {
       playlist.videos.forEach(video => {
@@ -58,6 +64,28 @@ const Index = () => {
       if (playlist.codingQuestions) {
         totalCodingQuestions += playlist.codingQuestions.length;
         solvedQuestions += playlist.codingQuestions.filter(q => q.solved).length;
+        
+        // Calculate questions solved this week
+        const oneWeekAgo = new Date();
+        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+        questionsThisWeek += playlist.codingQuestions.filter(q => 
+          q.solved && q.dateSolved && new Date(q.dateSolved) > oneWeekAgo
+        ).length;
+
+        // Calculate average time per question
+        const solvedQuestionsWithTime = playlist.codingQuestions.filter(q => q.solved && q.timeSpent);
+        totalTimePerQuestion += solvedQuestionsWithTime.reduce((sum, q) => sum + (q.timeSpent || 0), 0);
+
+        // Calculate category progress
+        playlist.codingQuestions.forEach(q => {
+          if (!categoryProgress[q.category]) {
+            categoryProgress[q.category] = { solved: 0, total: 0 };
+          }
+          categoryProgress[q.category].total++;
+          if (q.solved) {
+            categoryProgress[q.category].solved++;
+          }
+        });
       }
     });
 
@@ -80,7 +108,10 @@ const Index = () => {
       totalCodingQuestions,
       solvedQuestions,
       currentStreak,
-      longestStreak
+      longestStreak,
+      questionsThisWeek,
+      averageTimePerQuestion: solvedQuestions > 0 ? totalTimePerQuestion / solvedQuestions : 0,
+      categoryProgress
     });
   };
 
