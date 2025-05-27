@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 
 export default function CreateAccount() {
   const navigate = useNavigate();
@@ -12,6 +14,16 @@ export default function CreateAccount() {
     email: '',
     password: '',
     confirmPassword: '',
+    state: '',
+    country: '',
+    institutionType: 'college', // 'college' or 'school'
+    institutionName: '',
+    branch: '',
+    jobPreparation: {
+      government: false,
+      private: false,
+      specificExams: [] as string[]
+    }
   });
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -22,15 +34,30 @@ export default function CreateAccount() {
     }));
   };
 
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleCheckboxChange = (type: 'government' | 'private') => {
+    setFormData(prev => ({
+      ...prev,
+      jobPreparation: {
+        ...prev.jobPreparation,
+        [type]: !prev.jobPreparation[type]
+      }
+    }));
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual registration logic
     if (formData.password !== formData.confirmPassword) {
       alert('Passwords do not match');
       return;
     }
     console.log('Registration attempt with:', formData);
-    // For now, just navigate to dashboard
     navigate('/dashboard');
   };
 
@@ -45,6 +72,7 @@ export default function CreateAccount() {
         </CardHeader>
         <form onSubmit={handleSubmit}>
           <CardContent className="space-y-4">
+            {/* Basic Information */}
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
@@ -69,6 +97,106 @@ export default function CreateAccount() {
                 required
               />
             </div>
+
+            {/* Location Information */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Input
+                  id="state"
+                  name="state"
+                  type="text"
+                  placeholder="Enter your state"
+                  value={formData.state}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="country">Country</Label>
+                <Input
+                  id="country"
+                  name="country"
+                  type="text"
+                  placeholder="Enter your country"
+                  value={formData.country}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            </div>
+
+            {/* Education Information */}
+            <div className="space-y-2">
+              <Label>Institution Type</Label>
+              <Select
+                value={formData.institutionType}
+                onValueChange={(value) => handleSelectChange('institutionType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select institution type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="college">College</SelectItem>
+                  <SelectItem value="school">School</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="institutionName">
+                {formData.institutionType === 'college' ? 'College Name' : 'School Name'}
+              </Label>
+              <Input
+                id="institutionName"
+                name="institutionName"
+                type="text"
+                placeholder={`Enter your ${formData.institutionType} name`}
+                value={formData.institutionName}
+                onChange={handleChange}
+                required
+              />
+            </div>
+
+            {formData.institutionType === 'college' && (
+              <div className="space-y-2">
+                <Label htmlFor="branch">Branch</Label>
+                <Input
+                  id="branch"
+                  name="branch"
+                  type="text"
+                  placeholder="Enter your branch"
+                  value={formData.branch}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+            )}
+
+            {/* Job Preparation Preferences */}
+            <div className="space-y-4">
+              <Label>Job Preparation Preferences</Label>
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="government"
+                    checked={formData.jobPreparation.government}
+                    onCheckedChange={() => handleCheckboxChange('government')}
+                  />
+                  <Label htmlFor="government">Government Exams</Label>
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox
+                    id="private"
+                    checked={formData.jobPreparation.private}
+                    onCheckedChange={() => handleCheckboxChange('private')}
+                  />
+                  <Label htmlFor="private">Private Sector Exams</Label>
+                </div>
+              </div>
+            </div>
+
+            {/* Password Fields */}
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
               <Input
