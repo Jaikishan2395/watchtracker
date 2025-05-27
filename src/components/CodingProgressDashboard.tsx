@@ -1,59 +1,24 @@
-
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Trophy, Target, Clock, TrendingUp, Calendar, Flame } from 'lucide-react';
-import { Playlist, CodingQuestion } from '@/types/playlist';
+import { PlaylistData } from '@/types/playlist';
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from 'recharts';
 
 interface CodingProgressDashboardProps {
-  playlists: Playlist[];
+  stats: PlaylistData;
 }
 
-const CodingProgressDashboard = ({ playlists }: CodingProgressDashboardProps) => {
-  const codingPlaylists = playlists.filter(p => p.type === 'coding');
-  
-  // Calculate overall stats
-  const totalQuestions = codingPlaylists.reduce((sum, playlist) => 
-    sum + (playlist.codingQuestions?.length || 0), 0);
-  
-  const solvedQuestions = codingPlaylists.reduce((sum, playlist) => 
-    sum + (playlist.codingQuestions?.filter(q => q.solved).length || 0), 0);
-  
-  const totalTimeSpent = codingPlaylists.reduce((sum, playlist) => 
-    sum + (playlist.codingQuestions?.reduce((qSum, q) => qSum + (q.timeSpent || 0), 0) || 0), 0);
-  
-  const averageTime = solvedQuestions > 0 ? Math.round(totalTimeSpent / solvedQuestions) : 0;
-  
-  // Calculate streaks
-  const currentStreak = Math.max(...codingPlaylists.map(p => p.streakData?.currentStreak || 0));
-  const longestStreak = Math.max(...codingPlaylists.map(p => p.streakData?.longestStreak || 0));
-  
-  // Category breakdown
-  const categoryStats: { [key: string]: { solved: number; total: number } } = {};
-  codingPlaylists.forEach(playlist => {
-    playlist.codingQuestions?.forEach(question => {
-      if (!categoryStats[question.category]) {
-        categoryStats[question.category] = { solved: 0, total: 0 };
-      }
-      categoryStats[question.category].total++;
-      if (question.solved) {
-        categoryStats[question.category].solved++;
-      }
-    });
-  });
-  
-  // Difficulty breakdown
-  const difficultyStats = { easy: { solved: 0, total: 0 }, medium: { solved: 0, total: 0 }, hard: { solved: 0, total: 0 } };
-  codingPlaylists.forEach(playlist => {
-    playlist.codingQuestions?.forEach(question => {
-      difficultyStats[question.difficulty].total++;
-      if (question.solved) {
-        difficultyStats[question.difficulty].solved++;
-      }
-    });
-  });
-  
+const CodingProgressDashboard = ({ stats }: CodingProgressDashboardProps) => {
+  const { 
+    totalCodingQuestions: totalQuestions,
+    solvedQuestions,
+    averageTimePerQuestion: averageTime,
+    currentStreak,
+    longestStreak,
+    categoryProgress: categoryStats
+  } = stats;
+
   // Chart data
   const categoryChartData = Object.entries(categoryStats).map(([category, stats]) => ({
     name: category.replace('-', ' '),
@@ -61,12 +26,6 @@ const CodingProgressDashboard = ({ playlists }: CodingProgressDashboardProps) =>
     total: stats.total,
     percentage: Math.round((stats.solved / stats.total) * 100) || 0
   }));
-  
-  const difficultyChartData = [
-    { name: 'Easy', solved: difficultyStats.easy.solved, total: difficultyStats.easy.total, color: '#10b981' },
-    { name: 'Medium', solved: difficultyStats.medium.solved, total: difficultyStats.medium.total, color: '#f59e0b' },
-    { name: 'Hard', solved: difficultyStats.hard.solved, total: difficultyStats.hard.total, color: '#ef4444' }
-  ];
   
   // Weekly progress (mock data for demonstration)
   const weeklyProgress = [
@@ -114,8 +73,8 @@ const CodingProgressDashboard = ({ playlists }: CodingProgressDashboardProps) =>
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm text-purple-600 font-medium">Time Spent</p>
-                <p className="text-2xl font-bold text-purple-800">{Math.round(totalTimeSpent / 60)}h</p>
-                <p className="text-xs text-purple-600">avg: {averageTime}m per problem</p>
+                <p className="text-2xl font-bold text-purple-800">{Math.round(averageTime * solvedQuestions / 60)}h</p>
+                <p className="text-xs text-purple-600">avg: {Math.round(averageTime)}m per problem</p>
               </div>
               <Clock className="w-8 h-8 text-purple-600" />
             </div>
@@ -160,57 +119,21 @@ const CodingProgressDashboard = ({ playlists }: CodingProgressDashboardProps) =>
 
         <Card>
           <CardHeader>
-            <CardTitle>Difficulty Breakdown</CardTitle>
+            <CardTitle>Weekly Activity</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={250}>
-              <PieChart>
-                <Pie
-                  data={difficultyChartData}
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={80}
-                  dataKey="solved"
-                >
-                  {difficultyChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
+            <ResponsiveContainer width="100%" height={200}>
+              <LineChart data={weeklyProgress}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="day" />
+                <YAxis />
                 <Tooltip />
-              </PieChart>
+                <Line type="monotone" dataKey="solved" stroke="#3b82f6" strokeWidth={3} />
+              </LineChart>
             </ResponsiveContainer>
-            <div className="flex justify-center gap-4 mt-4">
-              {difficultyChartData.map((item) => (
-                <div key={item.name} className="flex items-center gap-2">
-                  <div 
-                    className="w-3 h-3 rounded"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="text-sm">{item.name}: {item.solved}/{item.total}</span>
-                </div>
-              ))}
-            </div>
           </CardContent>
         </Card>
       </div>
-
-      {/* Weekly Activity */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Weekly Activity</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <ResponsiveContainer width="100%" height={200}>
-            <LineChart data={weeklyProgress}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="day" />
-              <YAxis />
-              <Tooltip />
-              <Line type="monotone" dataKey="solved" stroke="#3b82f6" strokeWidth={3} />
-            </LineChart>
-          </ResponsiveContainer>
-        </CardContent>
-      </Card>
 
       {/* Category Details */}
       <Card>

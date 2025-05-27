@@ -1,20 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Plus, Clock, Target, TrendingUp, Play, Code } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Clock, Target, TrendingUp, Play, Code } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import PlaylistCard from '@/components/PlaylistCard';
-import AddPlaylistModal from '@/components/AddPlaylistModal';
 import StatsCard from '@/components/StatsCard';
 import StreakTracker from '@/components/StreakTracker';
-import { Playlist, PlaylistData } from '@/types/playlist';
+import { PlaylistData, Playlist } from '@/types/playlist';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from 'recharts';
 import CodingProgressDashboard from '@/components/CodingProgressDashboard';
 
 const Index = () => {
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
   const [stats, setStats] = useState<PlaylistData>({
     totalWatchTime: 0,
     totalVideos: 0,
@@ -34,8 +27,7 @@ const Index = () => {
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
-      const parsedPlaylists = JSON.parse(savedPlaylists);
-      setPlaylists(parsedPlaylists);
+      const parsedPlaylists = JSON.parse(savedPlaylists) as Playlist[];
       calculateStats(parsedPlaylists);
     }
   }, []);
@@ -115,23 +107,6 @@ const Index = () => {
     });
   };
 
-  const addPlaylist = (playlist: Playlist) => {
-    const updatedPlaylists = [...playlists, playlist];
-    setPlaylists(updatedPlaylists);
-    localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
-    calculateStats(updatedPlaylists);
-  };
-
-  const deletePlaylist = (id: string) => {
-    const updatedPlaylists = playlists.filter(p => p.id !== id);
-    setPlaylists(updatedPlaylists);
-    localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
-    calculateStats(updatedPlaylists);
-  };
-
-  const videoPlaylists = playlists.filter(p => p.type === 'video' || !p.type);
-  const codingPlaylists = playlists.filter(p => p.type === 'coding');
-
   // Chart data
   const progressData = [
     { name: 'Videos', completed: stats.completedVideos, total: stats.totalVideos },
@@ -200,11 +175,11 @@ const Index = () => {
           </div>
         </div>
 
-        {/* Coding Progress Dashboard - Show only if there are coding playlists */}
-        {codingPlaylists.length > 0 && (
+        {/* Coding Progress Dashboard */}
+        {stats.totalCodingQuestions > 0 && (
           <div className="mb-8">
             <h2 className="text-2xl font-semibold text-gray-800 mb-6">Coding Progress</h2>
-            <CodingProgressDashboard playlists={playlists} />
+            <CodingProgressDashboard stats={stats} />
           </div>
         )}
 
@@ -255,91 +230,6 @@ const Index = () => {
             </Card>
           </div>
         )}
-
-        {/* Action Button */}
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-semibold text-gray-800">Your Learning Content</h2>
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white shadow-lg hover:shadow-xl transition-all duration-300"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Add Content
-          </Button>
-        </div>
-
-        {/* Playlists with Tabs */}
-        {playlists.length === 0 ? (
-          <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg">
-            <CardContent className="py-16 text-center">
-              <div className="animate-fade-in">
-                <Code className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-xl font-semibold text-gray-600 mb-2">Start Your Learning Journey</h3>
-                <p className="text-gray-500 mb-6">Create your first playlist to track videos and coding problems</p>
-                <Button
-                  onClick={() => setIsModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Create Content
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className="bg-white/70 backdrop-blur-sm">
-              <TabsTrigger value="all">All Content</TabsTrigger>
-              <TabsTrigger value="videos">Video Playlists</TabsTrigger>
-              <TabsTrigger value="coding">Coding Practice</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="space-y-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {playlists.map((playlist, index) => (
-                  <PlaylistCard
-                    key={playlist.id}
-                    playlist={playlist}
-                    onDelete={deletePlaylist}
-                    delay={index * 100}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="videos" className="space-y-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {videoPlaylists.map((playlist, index) => (
-                  <PlaylistCard
-                    key={playlist.id}
-                    playlist={playlist}
-                    onDelete={deletePlaylist}
-                    delay={index * 100}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="coding" className="space-y-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {codingPlaylists.map((playlist, index) => (
-                  <PlaylistCard
-                    key={playlist.id}
-                    playlist={playlist}
-                    onDelete={deletePlaylist}
-                    delay={index * 100}
-                  />
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
-        )}
-
-        <AddPlaylistModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          onAdd={addPlaylist}
-        />
       </div>
     </div>
   );

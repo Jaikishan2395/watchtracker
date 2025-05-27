@@ -1,4 +1,4 @@
-import { Home, User, Code, LogIn } from 'lucide-react';
+import { Home, User, Code, LogIn, Library } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -18,6 +18,11 @@ const menuItems = [
     title: 'Dashboard',
     url: '/dashboard',
     icon: Home,
+  },
+  {
+    title: 'Library',
+    url: '/library',
+    icon: Library,
   },
   {
     title: 'Profile',

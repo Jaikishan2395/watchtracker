@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import Splash from "./pages/Splash";
 import Login from "./pages/Login";
 import CreateAccount from "./pages/CreateAccount";
+import Library from "./pages/Library";
 
 const queryClient = new QueryClient();
 
@@ -35,6 +36,7 @@ const AppContent = () => {
             <Route path="/login" element={<Login />} />
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/dashboard" element={<Index />} />
+            <Route path="/library" element={<Library />} />
             <Route path="/playlist/:id" element={<PlaylistDetail />} />
             <Route path="/playlist/:id/play" element={<VideoPlayer />} />
             <Route path="/profile" element={<Profile />} />
