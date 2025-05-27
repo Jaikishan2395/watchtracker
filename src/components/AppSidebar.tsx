@@ -1,4 +1,3 @@
-
 import { Home, User, Code, TrendingUp } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
@@ -16,7 +15,7 @@ import {
 const menuItems = [
   {
     title: 'Dashboard',
-    url: '/',
+    url: '/dashboard',
     icon: Home,
   },
   {
