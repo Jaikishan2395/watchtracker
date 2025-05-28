@@ -117,13 +117,6 @@ const PlaylistCard = ({ playlist, onDelete, delay }: PlaylistCardProps) => {
           </div>
         )}
 
-        {playlist.deadline && (
-          <div className="flex items-center gap-1 text-sm text-purple-600">
-            <Calendar className="w-4 h-4" />
-            <span>Due: {new Date(playlist.deadline).toLocaleDateString()}</span>
-          </div>
-        )}
-
         <div className="flex items-center justify-between pt-2">
           <span className="text-sm font-semibold text-gray-700">
             {Math.round(totalProgress)}% Complete

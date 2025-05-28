@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { Code, X, Loader2, Plus } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -21,7 +20,6 @@ interface AddCodingPlaylistModalProps {
 const AddCodingPlaylistModal = ({ isOpen, onClose, onAdd }: AddCodingPlaylistModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
   const [targetQuestionsPerDay, setTargetQuestionsPerDay] = useState(2);
   const [weeklyGoal, setWeeklyGoal] = useState(10);
   const [questions, setQuestions] = useState<Omit<CodingQuestion, 'id' | 'solved' | 'dateAdded' | 'attempts'>[]>([]);
@@ -60,7 +58,6 @@ const AddCodingPlaylistModal = ({ isOpen, onClose, onAdd }: AddCodingPlaylistMod
       title: title.trim(),
       description: description.trim(),
       type: 'coding',
-      deadline: deadline || undefined,
       createdAt: new Date().toISOString(),
       videos: [],
       targetQuestionsPerDay,
@@ -85,7 +82,6 @@ const AddCodingPlaylistModal = ({ isOpen, onClose, onAdd }: AddCodingPlaylistMod
     // Reset form
     setTitle('');
     setDescription('');
-    setDeadline('');
     setTargetQuestionsPerDay(2);
     setWeeklyGoal(10);
     setQuestions([]);
@@ -132,41 +128,29 @@ const AddCodingPlaylistModal = ({ isOpen, onClose, onAdd }: AddCodingPlaylistMod
                 />
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <Label htmlFor="deadline">Deadline (Optional)</Label>
-                  <Input
-                    id="deadline"
-                    type="date"
-                    value={deadline}
-                    onChange={(e) => setDeadline(e.target.value)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="daily-target">Questions per Day</Label>
-                  <Input
-                    id="daily-target"
-                    type="number"
-                    min="1"
-                    max="20"
-                    value={targetQuestionsPerDay}
-                    onChange={(e) => setTargetQuestionsPerDay(parseInt(e.target.value) || 2)}
-                    className="mt-1"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="weekly-goal">Weekly Goal</Label>
-                  <Input
-                    id="weekly-goal"
-                    type="number"
-                    min="1"
-                    max="50"
-                    value={weeklyGoal}
-                    onChange={(e) => setWeeklyGoal(parseInt(e.target.value) || 10)}
-                    className="mt-1"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="daily-target">Questions per Day</Label>
+                <Input
+                  id="daily-target"
+                  type="number"
+                  min="1"
+                  max="20"
+                  value={targetQuestionsPerDay}
+                  onChange={(e) => setTargetQuestionsPerDay(parseInt(e.target.value) || 2)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="weekly-goal">Weekly Goal</Label>
+                <Input
+                  id="weekly-goal"
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={weeklyGoal}
+                  onChange={(e) => setWeeklyGoal(parseInt(e.target.value) || 10)}
+                  className="mt-1"
+                />
               </div>
             </div>
 

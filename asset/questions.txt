@@ -1,0 +1,728 @@
+| Topic | Questions | Level |
+|-------|-----------|-------|
+| Array | Search an Element in an array | Easy |
+| Array | Check if two arrays are equal or not | Easy |
+| Array | Missing element of AP | Easy |
+| Array | Cyclically rotate an array by one | Easy |
+| Array | Find minimum and maximum element in an array | Easy |
+| Array | Binary Array Sorting | Easy |
+| Array | Move all negative elements to end | Easy |
+| Array | Missing number | Easy |
+| Array | Search Element in Matrix | Easy |
+| Array | Find the fine | Easy |
+| Array | Greater on right side | Easy |
+| Array | Remove duplicate elements from sorted Array | Easy |
+| Array | Subarray with given sum | Easy |
+| Array | Sort an array of 0s, 1s and 2s | Easy |
+| Array | Equilibrium Point | Easy |
+| Array | Peak element | Easy |
+| Array | Find Transition Point | Easy |
+| Array | Alternate positive and negative numbers | Easy |
+| Array | Union of Two Sorted Arrays | Easy |
+| Array | Three way partitioning | Easy |
+| Array | Frogs and Jumps | Easy |
+| Array | Min Subsets with Consecutive Numbers | Easy |
+| Array | Find Missing And Repeating | Medium |
+| Array | Rearrange Array Alternately | Medium |
+| Array | Pythagorean Triplet | Medium |
+| Array | Rearrange an array with O(1) extra space | Medium |
+| Array | Count triplets with sum smaller than X | Medium |
+| Array | Boolean Matrix | Medium |
+| Array | Row with max 1s | Medium |
+| Array | Container With Most Water | Medium |
+| Array | Maximum Triplet product | Medium |
+| Array | Coins of Geekland | Medium |
+| Array | Next Permutation | Medium |
+| Array | Rotate Image | Medium |
+| Array | Count Primes | Medium |
+| Array | Watering Plants | Medium |
+| Array | Arithmetic Subarrays | Medium |
+| Array | Majority Element | Medium |
+| Array | Max Circular Subarray Sum | Hard |
+| Array | Count the subarrays having product less than k | Hard |
+| Array | Maximum subset XOR | Hard |
+| Array | Next Smallest Palindrome | Hard |
+| Array | Count the number of subarrays | Hard |
+| Array | Largest rectangle of 1s with swapping of columns allowed | Hard |
+| Array | N/3 Repeat Number | Hard |
+| String | Reverse a String | Easy |
+| String | Check if strings are rotations of each other or not | Easy |
+| String | Maximum Occuring Character | Easy |
+| String | Binary String | Easy |
+| String | Anagram of String | Easy |
+| String | Merge two strings | Easy |
+| String | Reverse words in a given string | Easy |
+| String | Palindrome String | Easy |
+| String | Longest Common Prefix in an Array | Easy |
+| String | Roman Number to Integer | Easy |
+| String | Length of Last Word | Easy |
+| String | Longest Distinct characters in string | Easy |
+| String | Remove all duplicates from a given string | Easy |
+| String | Min Number of Flips | Easy |
+| String | Meta Strings | Easy |
+| String | Smallest window containing 0, 1 and 2 | Easy |
+| String | Generate Grey Code Sequences | Easy |
+| String | Sum of two large numbers | Medium |
+| String | Length of the longest substring | Medium |
+| String | Longest Prefix Suffix | Medium |
+| String | Smallest distinct window | Medium |
+| String | Case-specific Sorting of Strings | Medium |
+| String | Excel Sheet | Part - 1 | Medium |
+| String | Transform String | Medium |
+| String | Remove and Reverse | Medium |
+| String | String formation from substring | Medium |
+| String | Minimum Days | Medium |
+| String | Remove Consecutive Characters | Medium |
+| String | Bulls and Cows | Medium |
+| String | Atoi | Medium |
+| String | Valid Ip Addresses | Hard |
+| String | Integer To Roman | Hard |
+| String | Minimum characters to be added at front to make string palindrome | Hard |
+| String | Wildcard string matching | Hard |
+| String | Longest Palindromic Substring in Linear Time | Hard |
+| String | Numbers with one absolute difference | Hard |
+| String | Stringoholics | Hard |
+| String | Power of 2 | Hard |
+| String | Justified Text | Hard |
+| Searching and Sorting | Searching an element in a sorted array | Easy |
+| Searching and Sorting | Last index of One | Easy |
+| Searching and Sorting | Count the Zeros | Easy |
+| Searching and Sorting | Elements in the Range | Easy |
+| Searching and Sorting | Bubble Sort | Easy |
+| Searching and Sorting | Insertion Sort | Easy |
+| Searching and Sorting | First and last occurrences of X | Easy |
+| Searching and Sorting | Count zeros in a sorted matrix | Easy |
+| Searching and Sorting | Array Subset of another array | Easy |
+| Searching and Sorting | Selection Sort | Easy |
+| Searching and Sorting | Floor in a Sorted Array | Easy |
+| Searching and Sorting | Radix Sort | Easy |
+| Searching and Sorting | Search in a matrix | Easy |
+| Searching and Sorting | Bitonic Point | Easy |
+| Searching and Sorting | Two Repeated Elements | Easy |
+| Searching and Sorting | Count More than n/k Occurences | Easy |
+| Searching and Sorting | Number and the Digit Sum | Easy |
+| Searching and Sorting | Find triplets with zero sum | Easy |
+| Searching and Sorting | Sort The Array | Easy |
+| Searching and Sorting | Sort in specific order | Easy |
+| Searching and Sorting | Sort a String | Easy |
+| Searching and Sorting | Triplet Family | Easy |
+| Searching and Sorting | Merge and Sort | Easy |
+| Searching and Sorting | Merging two unsorted arrays in sorted order | Easy |
+| Searching and Sorting | Rope Cutting | Easy |
+| Searching and Sorting | Make array elements unique | Easy |
+| Searching and Sorting | Kth smallest element | Medium |
+| Searching and Sorting | Smallest Positive missing number | Medium |
+| Searching and Sorting | Sort an array according to the other | Medium |
+| Searching and Sorting | Square root of a number | Medium |
+| Searching and Sorting | Search in a row-column sorted Matrix | Medium |
+| Searching and Sorting | Smallest factorial number | Medium |
+| Searching and Sorting | Merge Sort | Medium |
+| Searching and Sorting | Quick Sort | Medium |
+| Searching and Sorting | Count Inversions | Medium |
+| Searching and Sorting | Find All Four Sum Numbers | Medium |
+| Searching and Sorting | Minimum Swaps to Sort | Medium |
+| Searching and Sorting | Number of pairs | Medium |
+| Searching and Sorting | Sort an Array | Medium |
+| Searching and Sorting | Sorting Elements of an Array by Frequency | Medium |
+| Searching and Sorting | Overlapping Intervals | Medium |
+| Searching and Sorting | Find minimum number of Laptops required | Medium |
+| Searching and Sorting | LCP | Medium |
+| Searching and Sorting | Reach a Number | Medium |
+| Searching and Sorting | Heaters | Medium |
+| Searching and Sorting | Friends Of Appropriate Ages | Medium |
+| Searching and Sorting | Koko Eating Bananas | Medium |
+| Searching and Sorting | 3Sum | Medium |
+| Searching and Sorting | 3Sum Closest | Medium |
+| Searching and Sorting | Nth Digit | Medium |
+| Searching and Sorting | Sort a 2D vector diagonally | Medium |
+| Searching and Sorting | Maximum Intersecting Lines | Medium |
+| Searching and Sorting | Merge Without Extra Space | Hard |
+| Searching and Sorting | Median of the Subarrays | Hard |
+| Searching and Sorting | Median of Array | Hard |
+| Searching and Sorting | Implement Power Function | Hard |
+| Searching and Sorting | WoodCutting Made Easy! | Hard |
+| Searching and Sorting | Matrix Median | Hard |
+| Searching and Sorting | Allocate Books | Hard |
+| Searching and Sorting | Painter's Partition Problem | Hard |
+| Searching and Sorting | Red Zone | Hard |
+| Searching and Sorting | Max Sum of Rectangle No Larger Than K | Hard |
+| Searching and Sorting | Smallest Good Base | Hard |
+| Searching and Sorting | House Robber IV | Hard |
+| Searching and Sorting | Maximum Gap | Hard |
+| LinkedList | Print Linked List elements | Easy |
+| LinkedList | Linked List Insertion | Easy |
+| LinkedList | Count nodes of linked list | Easy |
+| LinkedList | Check If Circular Linked List | Easy |
+| LinkedList | Identical Linked Lists | Easy |
+| LinkedList | Insert in a Sorted List | Easy |
+| LinkedList | Insert in Middle of Linked List | Easy |
+| LinkedList | Delete node in Doubly Linked List | Easy |
+| LinkedList | Reverse a Doubly Linked List | Easy |
+| LinkedList | Delete Alternate Nodes | Easy |
+| LinkedList | Find the Sum of Last N nodes of the Linked List | Easy |
+| LinkedList | Find n/k th node in Linked list | Easy |
+| LinkedList | Detect Loop in linked list | Easy |
+| LinkedList | Move Last Element to Front of a Linked List | Easy |
+| LinkedList | Nth node from end of linked list | Easy |
+| LinkedList | Finding middle element in a linked list | Easy |
+| LinkedList | Reverse a linked list | Easy |
+| LinkedList | Remove duplicate element from sorted Linked List | Easy |
+| LinkedList | Delete without head pointer | Easy |
+| LinkedList | Remove duplicates from an unsorted linked list | Easy |
+| LinkedList | Delete a Node in Single Linked List | Easy |
+| LinkedList | Given a linked list of 0s, 1s and 2s, sort it. | Easy |
+| LinkedList | Find length of Loop | Easy |
+| LinkedList | Intersection of two sorted Linked lists | Easy |
+| LinkedList | Pairwise swap elements of a linked list | Easy |
+| LinkedList | Sorted insert for circular linked list | Easy |
+| LinkedList | Count Pairs whose sum is equal to X | Easy |
+| LinkedList | Intersection of Two Linked Lists | Easy |
+| LinkedList | Split a Circular Linked List into two halves | Easy |
+| LinkedList | Union of Two Linked Lists | Easy |
+| LinkedList | Linked List Matrix | Easy |
+| LinkedList | XOR Linked List | Easy |
+| LinkedList | Remove loop in Linked List | Medium |
+| LinkedList | Intersection Point in Y Shaped Linked Lists | Medium |
+| LinkedList | Check if Linked List is Palindrome | Medium |
+| LinkedList | Rotate a Linked List | Medium |
+| LinkedList | Merge two sorted linked lists | Medium |
+| LinkedList | Delete nodes having greater value on right | Medium |
+| LinkedList | Merge Sort for Linked List | Medium |
+| LinkedList | Rearrange a linked list | Medium |
+| LinkedList | Prime List | Medium |
+| LinkedList | Length of longest palindrome in linked list | Medium |
+| LinkedList | Reverse alternate nodes in Link List | Medium |
+| LinkedList | Merge Sort on Doubly Linked List | Medium |
+| LinkedList | Quick Sort on Linked List | Medium |
+| LinkedList | QuickSort on Doubly Linked List | Medium |
+| LinkedList | Remove all occurrences of duplicates in a linked list | Medium |
+| LinkedList | Insertion Sort for Singly Linked List | Medium |
+| LinkedList | Reverse Alternate K Nodes | Medium |
+| LinkedList | Linked List Cycle II | Medium |
+| LinkedList | LRU Cache | Medium |
+| LinkedList | Flatten a Multilevel Doubly Linked List | Medium |
+| LinkedList | Clone a linked list with next and random pointer | Hard |
+| LinkedList | Reorder List | Hard |
+| LinkedList | Reverse a sublist of a linked list | Hard |
+| LinkedList | LFU Cache | Hard |
+| LinkedList | Reverse Nodes in k-Group | Hard |
+| LinkedList | Design Skiplist | Hard |
+| LinkedList | Subtraction in Linked List | Hard |
+| Stack | Immediate Smaller Element | Easy |
+| Stack | Implement stack using array | Easy |
+| Stack | Implement Stack using Linked List | Easy |
+| Stack | Pairwise Consecutive Elements | Easy |
+| Stack | Parenthesis Checker | Easy |
+| Stack | Sort a stack | Easy |
+| Stack | Delete middle element of a stack | Easy |
+| Stack | Maximum Difference | Easy |
+| Stack | Print Bracket Number | Easy |
+| Stack | Max sum in sub-arrays | Easy |
+| Stack | String Manipulation | Easy |
+| Stack | Make the array beautiful | Easy |
+| Stack | Next Greater Element I | Easy |
+| Stack | Baseball Game | Easy |
+| Stack | Backspace String Compare | Easy |
+| Stack | Next Greater Element | Medium |
+| Stack | Get minimum element from stack | Medium |
+| Stack | The Celebrity Problem | Medium |
+| Stack | Smallest number on left | Medium |
+| Stack | Asteroid Collision | Medium |
+| Stack | Remove K Digits | Medium |
+| Stack | Valid Expression | Medium |
+| Stack | Find Maximum Equal sum of Three Stacks | Medium |
+| Stack | MAXSPPROD | Medium |
+| Stack | Decode String | Medium |
+| Stack | Evaluate Expression | Medium |
+| Stack | Redundant Braces | Medium |
+| Stack | Next Greater Element II | Medium |
+| Stack | Clumsy Factorial | Medium |
+| Stack | Maximum Rectangular Area in a Histogram | Hard |
+| Stack | Maximum of minimum for every window size | Hard |
+| Stack | IPL 2021 - Final | Hard |
+| Stack | IPL 2021 - Match Day 6 - Semi Final | Hard |
+| Stack | Rain Water Trapped | Hard |
+| Stack | Simplify Directory Path | Hard |
+| Stack | Basic Calculator | Hard |
+| Stack | Create Maximum Number | Hard |
+| Stack | Tag Validator | Hard |
+| Stack | Max Chunks To Make Sorted II | Hard |
+| Queue | Queue Push & Pop | Easy |
+| Queue | Queue Reversal | Easy |
+| Queue | Implement Queue using array | Easy |
+| Queue | Implement Queue using Linked List | Easy |
+| Queue | Generate Binary Numbers | Easy |
+| Queue | Stack using two queues | Easy |
+| Queue | Queue using two Stacks | Easy |
+| Queue | Reverse First K elements of Queue | Easy |
+| Queue | Deque Implementations | Easy |
+| Queue | Next Right Node | Easy |
+| Queue | First Unique Character in a Str | Easy |
+| Queue | Number of Recent Calls | Easy |
+| Queue | Time Needed to Buy Tickets | Easy |
+| Queue | First non-repeating character in a stream | Medium |
+| Queue | Circular tour | Medium |
+| Queue | Count the Reversals | Medium |
+| Queue | Stack Permutations | Medium |
+| Queue | Operations on PriorityQueue | Medium |
+| Queue | Design Circular Deque | Medium |
+| Queue | First non-repeating character in a stream of characters | Medium |
+| Queue | Sliding Window Maximum | Medium |
+| Queue | Stamping The Sequence | Hard |
+| Queue | Minimum Number of K Consecutive Bit Flips | Hard |
+| Queue | Count Subarrays With Fixed Bounds | Hard |
+| Tree | Inorder Traversal | Easy |
+| Tree | Preorder Traversal | Easy |
+| Tree | Postorder Traversal | Easy |
+| Tree | Count Leaves in Binary Tree | Easy |
+| Tree | Size of Binary Tree | Easy |
+| Tree | Sum of Binary Tree | Easy |
+| Tree | Count Non-Leaf Nodes in Tree | Easy |
+| Tree | Left View of Binary Tree | Easy |
+| Tree | Right View of Binary Tree | Easy |
+| Tree | Height of Binary Tree | Easy |
+| Tree | Root to leaf paths sum | Easy |
+| Tree | Check for Balanced Tree | Easy |
+| Tree | Determine if Two Trees are Identical | Easy |
+| Tree | Level order traversal | Easy |
+| Tree | Level order traversal in spiral form | Easy |
+| Tree | Mirror Tree | Easy |
+| Tree | Print all nodes that don't have sibling | Easy |
+| Tree | Maximum Depth Of Binary Tree | Easy |
+| Tree | Shortest distance in infinite tree | Easy |
+| Tree | Largest value in each level | Easy |
+| Tree | Perfect Binary Tree | Easy |
+| Tree | Nodes at Odd Levels | Easy |
+| Tree | Remove Half Nodes | Easy |
+| Tree | Find the maximum GCD of the siblings of a Binary Tree | Easy |
+| Tree | Maximum Node Level | Easy |
+| Tree | Deletion in a Binary Tree | Easy |
+| Tree | Check if two Nodes are Cousins | Easy |
+| Tree | Vertical Order traversal of Binary Tree | Medium |
+| Tree | Diagonal Traversal | Medium |
+| Tree | Flatten Binary Tree to Linked List | Medium |
+| Tree | Merge two Binary Tree | Medium |
+| Tree | Maximum Edge Removal | Medium |
+| Tree | Populate Next Right Pointers Tree | Medium |
+| Tree | Burn a Tree | Medium |
+| Tree | Boundary Traversal of binary tree | Medium |
+| Tree | Diameter of a Binary Tree | Medium |
+| Tree | Sum Tree | Medium |
+| Tree | Top View of Binary Tree | Medium |
+| Tree | Bottom View of Binary Tree | Medium |
+| Tree | Lowest Common Ancestor in a Binary Tree | Medium |
+| Tree | Maximum difference between node and its ancestor | Medium |
+| Tree | Serialize and Deserialize a Binary Tree | Medium |
+| Tree | Maximum sum of Non-adjacent nodes | Medium |
+| Tree | Foldable Binary Tree | Medium |
+| Tree | Construct Binary Tree from Parent Array | Medium |
+| Tree | Make Binary Tree From Linked List | Medium |
+| Tree | Check Mirror in N-ary tree | Medium |
+| Tree | Inorder Traversal (Iterative) | Medium |
+| Tree | Postorder Traversal (Iterative) | Medium |
+| Tree | Print Nodes having K leaves | Medium |
+| Tree | Print Binary Tree levels in sorted order | Medium |
+| Tree | Nodes at given distance in binary tree | Hard |
+| Tree | Burning Tree | Hard |
+| Tree | Check if all levels of two trees are anagrams or not | Hard |
+| Tree | Binary Tree to DLL | Hard |
+| Tree | Maximum Path Sum between 2 Special Nodes | Hard |
+| Tree | Scrambled String | Hard |
+| Tree | Check Tree Traversal | Hard |
+| Tree | Corona Vaccine | Hard |
+| Tree | Recover a Tree From Preorder | Hard |
+| Binary Search Tree | Search a node in BST | Easy |
+| Binary Search Tree | Minimum element in BST | Easy |
+| Binary Search Tree | Check for BST | Easy |
+| Binary Search Tree | Insert a node in a BST | Easy |
+| Binary Search Tree | Kth largest element in BST | Easy |
+| Binary Search Tree | Inorder Traversal and BST | Easy |
+| Binary Search Tree | Binary Tree to BST | Easy |
+| Binary Search Tree | Median of BST | Easy |
+| Binary Search Tree | Kth Smallest Element In Tree | Easy |
+| Binary Search Tree | BST Iterator | Easy |
+| Binary Search Tree | 2-Sum Binary Tree | Easy |
+| Binary Search Tree | Find Common Nodes in two BSTs | Easy |
+| Binary Search Tree | Array to BST | Easy |
+| Binary Search Tree | Inorder Successor in BST | Easy |
+| Binary Search Tree | Print BST elements in given range | Easy |
+| Binary Search Tree | Check whether BST contains Dead End | Easy |
+| Binary Search Tree | Brothers From Different Roots | Easy |
+| Binary Search Tree | Sum of k smallest elements in BST | Easy |
+| Binary Search Tree | Minimum Distance Between | Easy |
+| Binary Search Tree | Normal BST to Balanced BST | Easy |
+| Binary Search Tree | Construct BST from Postorder | Easy |
+| Binary Search Tree | Recover Binary Search Tree | Medium |
+| Binary Search Tree | Valid BST from Preorder | Medium |
+| Binary Search Tree | k-th smallest element in BST | Medium |
+| Binary Search Tree | Delete a node from BST | Medium |
+| Binary Search Tree | Largest BST | Medium |
+| Binary Search Tree | Predecessor and Successor | Medium |
+| Binary Search Tree | Preorder to PostOrder | Medium |
+| Binary Search Tree | Find the Closest Element in BST | Medium |
+| Binary Search Tree | Ceil in BST | Medium |
+| Binary Search Tree | Preorder Traversal and BST | Medium |
+| Binary Search Tree | Bheem Wants Ladoos | Medium |
+| Binary Search Tree | Minimum Absolute Difference In BST | Medium |
+| Binary Search Tree | Valentine Sum | Medium |
+| Binary Search Tree | Pairs violating BST property | Medium |
+| Binary Search Tree | Remove BST keys outside given range | Medium |
+| Binary Search Tree | Print leaf nodes from preorder traversal of BST | Medium |
+| Binary Search Tree | Delete nodes greater than k | Medium |
+| Binary Search Tree | Balance a Binary Search Tree | Medium |
+| Binary Search Tree | Merge two BST 's | Hard |
+| Binary Search Tree | Fixing Two nodes of a BST | Hard |
+| Binary Search Tree | Fixing Two swapped nodes of a BST | Hard |
+| Binary Search Tree | Sorted Link List to BST | Hard |
+| Binary Search Tree | Shortest Range In BST | Hard |
+| Heaps | Implement a Maxheap/MinHeap using arrays and recursion. | Easy |
+| Heaps | Height of Heap | Easy |
+| Heaps | Relative Ranks | Easy |
+| Heaps | Last Stone Weight | Easy |
+| Heaps | Profit Maximisation | Easy |
+| Heaps | Maximum Product of Two Elem | Easy |
+| Heaps | Largest Number After Digit Swaps by Parity | Easy |
+| Heaps | Minimum Amount of Time to Fil | Easy |
+| Heaps | Take Gifts From the Richest P | Easy |
+| Heaps | Minimum Cost of ropes | Easy |
+| Heaps | Sum of elements between k1'th and k2'th smallest elements | Easy |
+| Heaps | Merge two binary Max heaps | Easy |
+| Heaps | Maximum distinct elements after removing K elements | Easy |
+| Heaps | Gadgets of Doraland | Easy |
+| Heaps | Merge K sorted arrays! | Easy |
+| Heaps | Magician and Chocolates | Easy |
+| Heaps | Heap Sort | Medium |
+| Heaps | k largest elements | Medium |
+| Heaps | Kth largest element in a stream | Medium |
+| Heaps | Is Binary Tree Heap | Medium |
+| Heaps | Kth element in Matrix | Medium |
+| Heaps | Huffman Encoding | Medium |
+| Heaps | K-th Smallest Prime Fraction | Medium |
+| Heaps | Exam Room | Medium |
+| Heaps | Rearrange characters | Medium |
+| Heaps | BST to max heap | Medium |
+| Heaps | Design Twitter | Medium |
+| Heaps | Minimum increment/decrement to make array non-Increasing | Medium |
+| Heaps | Find median in a stream | Hard |
+| Heaps | Smallest range in K lists | Hard |
+| Heaps | Reachable Nodes In Subdivided Graph | Hard |
+| Heaps | Ways to form Max Heap | Hard |
+| Heaps | Maximum Sum Combinations | Hard |
+| Heaps | Dinner Plate Stacks | Hard |
+| Heaps | Construct Target Array With | Hard |
+| Heaps | Minimum Time to Visit a Cell In a Grid | Hard |
+| Greedy | Bulbs | Easy |
+| Greedy | Ishaan Loves Chocolates | Easy |
+| Greedy | Assign Mice to Holes | Easy |
+| Greedy | Majority Element | Easy |
+| Greedy | Highest Product | Easy |
+| Greedy | Swap and Maximize | Easy |
+| Greedy | Good or Bad string | Easy |
+| Greedy | N meetings in one room | Easy |
+| Greedy | Longest Palindrome | Easy |
+| Greedy | Assign Cookies | Easy |
+| Greedy | Can Place Flowers | Easy |
+| Greedy | Valid Palindrome II | Easy |
+| Greedy | Minimum Cost to Move Chips | Easy |
+| Greedy | Raju and coins | Easy |
+| Greedy | Huffman Decoding | Easy |
+| Greedy | Huffman Decoding-1 | Easy |
+| Greedy | Largest number with given sum | Easy |
+| Greedy | Disjoint Intervals | Medium |
+| Greedy | Meeting rooms | Medium |
+| Greedy | Minimum number of jumps | Medium |
+| Greedy | Majority Element | Medium |
+| Greedy | Minimize the Heights I | Medium |
+| Greedy | Minimize the Heights II | Medium |
+| Greedy | Minimum Platforms | Medium |
+| Greedy | Fractional Knapsack | Medium |
+| Greedy | Page Faults in LRU | Medium |
+| Greedy | Valid Compressed String | Medium |
+| Greedy | String rp or pr | Medium |
+| Greedy | Coin Piles | Medium |
+| Greedy | Police and Thieves | Medium |
+| Greedy | Maximum number of events that can be attended | Medium |
+| Greedy | Water the plants | Medium |
+| Greedy | Binary Searchable elements | Medium |
+| Greedy | Decrease Elements To Make A | Medium |
+| Greedy | Minimum Cost to Move Chips to The Same Position | Medium |
+| Greedy | Largest Permutation | Hard |
+| Greedy | Distribute Candy | Hard |
+| Greedy | Seats | Hard |
+| Greedy | Gas Station | Hard |
+| Greedy | Candy | Hard |
+| Greedy | Patching Array | Hard |
+| Greedy | Strong Password Checker | Hard |
+| Greedy | IPO | Hard |
+| Greedy | Super Washing Machines | Hard |
+| Greedy | Course Schedule III | Hard |
+| Greedy | Stamping The Sequence | Hard |
+| BackTracking | Find all possible paths from top to bottom | Easy |
+| BackTracking | Combinations | Easy |
+| BackTracking | Binary Tree Paths | Easy |
+| BackTracking | Gray Code | Easy |
+| BackTracking | Letter Phone | Easy |
+| BackTracking | Generate all Parentheses II | Easy |
+| BackTracking | Permutation with Spaces | Easy |
+| BackTracking | Binary Watch | Easy |
+| BackTracking | Generate IP Addresses | Medium |
+| BackTracking | Sudoku | Medium |
+| BackTracking | Permutations | Medium |
+| BackTracking | Maximal String | Medium |
+| BackTracking | Kth Permutation Sequence | Medium |
+| BackTracking | Palindrome Partitioning | Medium |
+| BackTracking | Permutations of a given string | Medium |
+| BackTracking | M-Coloring Problem | Medium |
+| BackTracking | Combination Sum | Medium |
+| BackTracking | Rat in a Maze Problem - I | Medium |
+| BackTracking | Largest number in K swaps | Medium |
+| BackTracking | Unique Subsets | Medium |
+| BackTracking | Generate Parentheses | Medium |
+| BackTracking | Rat Maze With Multiple Jumps | Medium |
+| BackTracking | Coins and Game | Medium |
+| BackTracking | NQueens | Hard |
+| BackTracking | 24 Game | Hard |
+| BackTracking | Maximum Good People Based on Statements | Hard |
+| BackTracking | Expression Add Operators | Hard |
+| Hashing | First Repeating element | Easy |
+| Hashing | 2 Sum | Easy |
+| Hashing | Union of two arrays | Easy |
+| Hashing | First element to occur k times | Easy |
+| Hashing | Diffk II | Easy |
+| Hashing | Longest Substring Without Repeat | Easy |
+| Hashing | Pairs With Given Xor | Easy |
+| Hashing | Sum of f(a[i], a[j]) over all pairs in an array of n integers | Easy |
+| Hashing | Substrings with same first and last characters | Easy |
+| Hashing | Largest subarray with 0 sum | Easy |
+| Hashing | Count distinct elements in every window | Easy |
+| Hashing | Largest subarray of 0's and 1's | Easy |
+| Hashing | Longest consecutive subsequence | Medium |
+| Hashing | Colorful Number | Medium |
+| Hashing | Subarray with B odd numbers | Medium |
+| Hashing | An Increment Problem | Medium |
+| Hashing | Substring Concatenation | Medium |
+| Hashing | Copy List | Medium |
+| Hashing | Triplet Sum in Array | Medium |
+| Hashing | Nuts and Bolts Problem | Medium |
+| Hashing | Subarrays with equal 1s and 0s | Medium |
+| Hashing | Longest subarray with sum divisible by K | Medium |
+| Hashing | Equal 0, 1 and 2 | Medium |
+| Hashing | Points on the Straight Line | Hard |
+| Hashing | Fraction | Hard |
+| Hashing | Window String | Hard |
+| Hashing | 4 Sum | Hard |
+| Hashing | Two out of Three | Hard |
+| Hashing | Joey doesn't share food | Hard |
+| Graphs | BFS of graph | Easy |
+| Graphs | DFS of Graph | Easy |
+| Graphs | Shortest path from 1 to n | Easy |
+| Graphs | Print adjacency list | Easy |
+| Graphs | Maximum Weight Node | Easy |
+| Graphs | Union-Find | Easy |
+| Graphs | Eulerian Path in an Undirected Graph | Easy |
+| Graphs | Find the Town Judge | Easy |
+| Graphs | Find Center of Star Graph | Easy |
+| Graphs | Path with good nodes! | Easy |
+| Graphs | Largest Distance between nodes of a Tree | Easy |
+| Graphs | Two teams? | Easy |
+| Graphs | Region in BinaryMatrix | Easy |
+| Graphs | Level Order | Easy |
+| Graphs | Black Shapes | Easy |
+| Graphs | Detect cycle in an undirected graph | Medium |
+| Graphs | Detect cycle in a directed graph | Medium |
+| Graphs | Topological sort | Medium |
+| Graphs | Bipartite Graph | Medium |
+| Graphs | Implementing Dijkstra Algorithm | Medium |
+| Graphs | Minimum Spanning Tree(Kruksal and Prims) | Medium |
+| Graphs | Strongly Connected Components (Kosaraju's Algo) | Medium |
+| Graphs | Distance from the Source (Bellman-Ford Algorithm) | Medium |
+| Graphs | Euler circuit and Path | Medium |
+| Graphs | Rotten Oranges | Medium |
+| Graphs | Steps by Knight | Medium |
+| Graphs | Flood fill Algorithm | Medium |
+| Graphs | Find the number of islands | Medium |
+| Graphs | Shortest Source to Destination Path | Medium |
+| Graphs | Unit Area of largest region of 1's | Medium |
+| Graphs | Negative weight cycle | Medium |
+| Graphs | Circle of strings | Medium |
+| Graphs | Number of Provinces | Medium |
+| Graphs | Knight Walk | Medium |
+| Graphs | Bridge edge in a graph | Medium |
+| Graphs | Hamiltonian Path | Medium |
+| Graphs | Replace O's with X's | Medium |
+| Graphs | Shortest path in Directed Acyclic Graph | Medium |
+| Graphs | Word Search | Medium |
+| Graphs | Course Schedule | Medium |
+| Graphs | Maximum Bipartite Matching | Medium |
+| Graphs | Number of Ways to Arrive at Destination | Medium |
+| Graphs | Water Connection Problem | Medium |
+| Graphs | Covid Spread | Medium |
+| Graphs | Euler Circuit in an Undirected Graph | Medium |
+| Graphs | Maximum Bipartite Matching | Medium |
+| Graphs | Water Flow | Medium |
+| Graphs | Possible paths between 2 vertices | Medium |
+| Graphs | X Total Shapes | Medium |
+| Graphs | Prerequisite Tasks | Medium |
+| Graphs | Find whether path exist | Medium |
+| Graphs | Strongly connected component (Tarjans's Algo) | Hard |
+| Graphs | Alien Dictionary | Hard |
+| Graphs | Minimum Cost Path | Hard |
+| Graphs | Articulation Point - I | Hard |
+| Graphs | Word Ladder I | Hard |
+| Graphs | Largest Sum Cycle | Hard |
+| Graphs | Shortest Path Using Atmost One Curved Edge | Hard |
+| Graphs | Word Ladder II | Hard |
+| Graphs | Assignment Problem | Hard |
+| Graphs | Articulation Point - II | Hard |
+| Graphs | Critical Connections | Hard |
+| Graphs | Find number of closed islands | Hard |
+| Dynamic Programming | Print first n Fibonacci Numbers | Easy |
+| Dynamic Programming | Count numbers containing 4 | Easy |
+| Dynamic Programming | Nth Fibonacci Number | Easy |
+| Dynamic Programming | Stock buy and sell | Easy |
+| Dynamic Programming | Count number of hops | Easy |
+| Dynamic Programming | Coin ChangeProblem | Medium |
+| Dynamic Programming | Number of Coins | Medium |
+| Dynamic Programming | 0-1 Knapsack | Medium |
+| Dynamic Programming | Tushar's Birthday Party | Medium |
+| Dynamic Programming | Matrix Chain Multiplication | Medium |
+| Dynamic Programming | Program for nth Catalan Number | Medium |
+| Dynamic Programming | Kadane's Algorithm | Medium |
+| Dynamic Programming | Longest Common Subsequence | Medium |
+| Dynamic Programming | Longest Increasing Subsequence | Medium |
+| Dynamic Programming | Longest Common Substring | Medium |
+| Dynamic Programming | Longest Repeating Subsequence | Medium |
+| Dynamic Programming | Longest Palindromic Subsequence | Medium |
+| Dynamic Programming | Longest Arithmetic Progression | Medium |
+| Dynamic Programming | Longest Bitonic subsequence | Medium |
+| Dynamic Programming | Longest Common Increasing Subsequence | Medium |
+| Dynamic Programming | Subset Sum Problem | Medium |
+| Dynamic Programming | Count Palindromic Subsequences | Medium |
+| Dynamic Programming | Longest Palindrome in a String | Medium |
+| Dynamic Programming | Egg Dropping Puzzle | Medium |
+| Dynamic Programming | Floyd Warshall | Medium |
+| Dynamic Programming | Word Break | Medium |
+| Dynamic Programming | Palindrome Partitioning II | Medium |
+| Dynamic Programming | Shortest Common Supersequence | Medium |
+| Dynamic Programming | LCS of three strings | Medium |
+| Dynamic Programming | Box Stacking | Medium |
+| Dynamic Programming | Count of Subarrays | Medium |
+| Dynamic Programming | Longest alternating subsequence | Medium |
+| Dynamic Programming | Count Cyclic Paths | Medium |
+| Dynamic Programming | Ways to sum to N | Medium |
+| Dynamic Programming | Maximum Sum Subsequence of length k | Medium |
+| Dynamic Programming | Find length of longest subsequence | Medium |
+| Dynamic Programming | Number of palindromic strings | Medium |
+| Dynamic Programming | Palindromic Strings | Medium |
+| Dynamic Programming | Trapping Rain Water | Medium |
+| Dynamic Programming | Maximum Product Subarray | Medium |
+| Dynamic Programming | nCr | Medium |
+| Dynamic Programming | Maximize The Cut Segments | Medium |
+| Dynamic Programming | Edit Distance | Medium |
+| Dynamic Programming | Partition Equal Subset Sum | Medium |
+| Dynamic Programming | Count ways to reach the n'th stair | Medium |
+| Dynamic Programming | Stickler Thief | Medium |
+| Dynamic Programming | Job Sequencing Problem | Medium |
+| Dynamic Programming | Perfect Sum Problem | Medium |
+| Dynamic Programming | Maximum sum increasing subsequence | Medium |
+| Dynamic Programming | Max length chain | Medium |
+| Dynamic Programming | Maximum path sum in matrix | Medium |
+| Dynamic Programming | Regular Expression Match | Medium |
+| Dynamic Programming | Smallest sequence with given Primes | Medium |
+| Dynamic Programming | Wildcard Pattern Matching | Medium |
+| Dynamic Programming | Tiling With Dominoes | Medium |
+| Dynamic Programming | Paint House! | Medium |
+| Dynamic Programming | Intersecting Chords in a Circle | Medium |
+| Dynamic Programming | N digit numbers with digit sum S | Medium |
+| Dynamic Programming | Kth Manhattan Distance Neighbourhood | Medium |
+| Dynamic Programming | Best Time to Buy and Sell Stock atmost B times | Medium |
+| Dynamic Programming | Best Time to Buy and Sell Stocks III | Medium |
+| Dynamic Programming | Longest valid Parentheses | Medium |
+| Dynamic Programming | Rod Cutting | Medium |
+| Dynamic Programming | Max Rectangle in Binary Matrix | Medium |
+| Dynamic Programming | Maximum Size Square Sub-matrix | Medium |
+| Dynamic Programming | Maximum Path in Triangle | Medium |
+| Dynamic Programming | Min Sum Path in Matrix | Medium |
+| Dynamic Programming | Coin Sum Infinite | Medium |
+| Dynamic Programming | Arrange II | Medium |
+| Dynamic Programming | Interleaved Strings | Medium |
+| Dynamic Programming | Consecutive 1's not allowed | Medium |
+| Dynamic Programming | Unique BST's | Medium |
+| Dynamic Programming | Minimum number of Coins | Medium |
+| Dynamic Programming | Maximum Tip Calculator | Medium |
+| Dynamic Programming | Snake and Ladder Problem | Medium |
+| Dynamic Programming | Special Keyboard | Medium |
+| Dynamic Programming | Minimum cost to fill given weight in a bag | Medium |
+| Dynamic Programming | Count ways to N'th Stair(Order does not matter) | Medium |
+| Dynamic Programming | Distinct occurrences | Medium |
+| Dynamic Programming | Count subsequences of type a^i, b^j, c^k | Medium |
+| Dynamic Programming | Special Matrix | Medium |
+| Dynamic Programming | Number of ways | Medium |
+| Dynamic Programming | Distinct Coloring | Medium |
+| Dynamic Programming | Shortest XY distance in Grid | Medium |
+| Dynamic Programming | Water Overflow | Medium |
+| Dynamic Programming | Count possible ways to construct buildings | Medium |
+| Dynamic Programming | Number of paths in a matrix with k coins | Medium |
+| Dynamic Programming | Buy and Sell a Share at most twice | Medium |
+| Dynamic Programming | Minimum steps to destination | Medium |
+| Dynamic Programming | Player with max score | Medium |
+| Dynamic Programming | Cutting Binary String | Medium |
+| Dynamic Programming | Two water Jug problem | Medium |
+| Dynamic Programming | Min cut Square | Medium |
+| Dynamic Programming | Maximum sum of elements not part of LIS | Medium |
+| Dynamic Programming | Count of AP Subsequences | Medium |
+| Dynamic Programming | Pascal's Triangle | Medium |
+| Dynamic Programming | Pascal's Triangle II | Medium |
+| Dynamic Programming | Best Time to Buy and Sell Stock IV | Medium |
+| Dynamic Programming | House Robber | Medium |
+| Dynamic Programming | House Robber II | Medium |
+| Dynamic Programming | Last Stone Weight II | Medium |
+| Dynamic Programming | Predict the Winner | Medium |
+| Dynamic Programming | Palindromic Partitioning | Hard |
+| Dynamic Programming | Minimum sum partition | Hard |
+| Dynamic Programming | Smallest window in a string containing all the characters of another string | Hard |
+| Dynamic Programming | The Painter's Partition Problem-II | Hard |
+| Dynamic Programming | Word Wrap | Hard |
+| Dynamic Programming | Partition array to K subsets | Hard |
+| Dynamic Programming | Word Break - Part 2 | Hard |
+| Dynamic Programming | Maximum Profit | Hard |
+| Dynamic Programming | Maximum Number of coins | Hard |
+| Dynamic Programming | Minimum Points To Reach Destination | Hard |
+| Dynamic Programming | Count occurrences of a given word in a 2-d array | Hard |
+| Dynamic Programming | Print all LCS sequences | Hard |
+| Dynamic Programming | Find all possible palindromic partitions of a String | Hard |
+| Dynamic Programming | Strictly Increasing Array | Hard |
+| Dynamic Programming | Brackets in Matrix Chain Multiplication | Hard |
+| Dynamic Programming | Longest Zig-Zag Sub Sequence | Hard |
+| Dynamic Programming | Longest Increasing Path in a Matrix | Hard |
+| Dynamic Programming | Burst Balloons | Hard |
+| Dynamic Programming | Russian Doll Envelopes | Hard |
+| Dynamic Programming | Number of Ways to Stay in the | Hard |
+| Dynamic Programming | Maximum Sum BST in Binary | Hard |
+| Segment Tree | XOR of a given range | Easy |
+| Segment Tree | Maximum prefix sum for a given range | Easy |
+| Segment Tree | Range Minimum Query | Medium |
+| Segment Tree | Nitika and her queries | Medium |
+| Segment Tree | Smallest Subarray GCD | Medium |
+| Segment Tree | Element left after performing alternate OR & XOR operation | Medium |
+| Segment Tree | Array Partition | Hard |
+| Segment Tree | Akku and Arrays | Hard |
+| Segment Tree | Greater or Less | Hard |
+| Trie | Unique rows in boolean matrix | Easy |
+| Trie | Trie | (Insert and Search) | Medium |
+| Trie | Word Boggle | Medium |
+| Trie | Most frequent word in an array of strings | Medium |
+| Trie | Maximum XOR subarray | Medium |
+| Trie | CamelCase Pattern Matching | Medium |
+| Trie | Trie | (Delete) | Medium |
+| Trie | Word Boggle - II | Medium |
+| Trie | Prefix match with other strings | Medium |
+| Trie | Phone directory | Hard |
+| Trie | Palindrome Pairs | Hard |
+| Trie | Shortest Unique prefix for every word | Hard |
+| Trie | Word Break (Trie) | Hard |
+| Trie | Find duplicate rows in a binary matrix | Hard |
+| Fenwick Tree | Range Sum Query - Mutable | Medium |
+| Fenwick Tree | Count Number of Teams | Medium |
+| Fenwick Tree | Minimum Possible Integer After at Most K Adjacent Swaps On Digits | Hard |
+| Fenwick Tree | Count Increasing Quadruplets | Hard |

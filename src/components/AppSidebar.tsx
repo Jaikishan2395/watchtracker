@@ -1,4 +1,4 @@
-import { Home, User, Code, LogIn, Library } from 'lucide-react';
+import { Home, User, Code, LogIn, Library, Settings, ListChecks } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -23,6 +23,11 @@ const menuItems = [
     title: 'Library',
     url: '/library',
     icon: Library,
+  },
+  {
+    title: 'All Questions',
+    url: '/all-questions',
+    icon: ListChecks,
   },
   {
     title: 'Profile',
@@ -64,10 +69,19 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="p-4 border-t">
+      <SidebarFooter>
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  onClick={() => navigate('/settings')}
+                  className="w-12 h-16 py-4 justify-center hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200"
+                  tooltip="Settings"
+                >
+                  <Settings className="w-5 h-5" />
+                </SidebarMenuButton>
+              </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate('/login')}

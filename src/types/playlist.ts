@@ -20,6 +20,7 @@ export interface CodingQuestion {
   timeSpent?: number; // in minutes
   notes?: string;
   tags?: string[];
+  topics?: string[];
   dateAdded: string;
   dateSolved?: string;
   attempts: number;

@@ -1,14 +1,12 @@
-
 import { useState } from 'react';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { CodingQuestion } from '@/types/playlist';
 import { toast } from 'sonner';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddCodingQuestionModalProps {
   isOpen: boolean;
@@ -17,30 +15,39 @@ interface AddCodingQuestionModalProps {
 }
 
 const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionModalProps) => {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
+  const [questionContent, setQuestionContent] = useState('');
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
-  const [category, setCategory] = useState<'algorithms' | 'data-structures' | 'system-design' | 'dynamic-programming' | 'graphs' | 'arrays' | 'strings' | 'trees' | 'other'>('algorithms');
-  const [tags, setTags] = useState('');
-  const [solutionUrl, setSolutionUrl] = useState('');
+  const [category, setCategory] = useState<CodingQuestion['category']>('algorithms');
+  const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     
-    if (!title.trim() || !description.trim()) {
-      toast.error('Please fill in all required fields');
+    const trimmedContent = questionContent.trim();
+    if (!trimmedContent) {
+      setError('Please paste the question content');
       return;
     }
 
+    // Extract title from the first line of the content
+    const lines = trimmedContent.split('\n');
+    const title = lines[0].trim();
+    const description = lines.slice(1).join('\n').trim();
+
+    if (!title) {
+      setError('Please include a title in the first line of the question');
+      return;
+    }
+    
     const questionData = {
-      title: title.trim(),
-      description: description.trim(),
+      title,
+      description,
       difficulty,
       category,
-      tags: tags ? tags.split(',').map(tag => tag.trim()).filter(Boolean) : [],
+      tags: [],
       notes: '',
       timeSpent: 0,
-      solutionUrl: solutionUrl.trim() || undefined,
       lastAttemptDate: undefined,
       difficulty_rating: undefined
     };
@@ -48,24 +55,20 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
     onAdd(questionData);
     
     // Reset form
-    setTitle('');
-    setDescription('');
+    setQuestionContent('');
     setDifficulty('easy');
     setCategory('algorithms');
-    setTags('');
-    setSolutionUrl('');
+    setError(null);
     
     onClose();
     toast.success('Coding question added successfully!');
   };
 
   const handleClose = () => {
-    setTitle('');
-    setDescription('');
+    setQuestionContent('');
     setDifficulty('easy');
     setCategory('algorithms');
-    setTags('');
-    setSolutionUrl('');
+    setError(null);
     onClose();
   };
 
@@ -81,34 +84,32 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <Label htmlFor="title">Question Title *</Label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g., Two Sum Problem"
-              required
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="description">Description *</Label>
+            <Label htmlFor="questionContent">Question Content *</Label>
             <Textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe the coding problem in detail..."
-              rows={3}
+              id="questionContent"
+              value={questionContent}
+              onChange={(e) => {
+                setQuestionContent(e.target.value);
+                setError(null);
+              }}
+              placeholder="Paste the entire question content here. First line should be the title."
+              className={`min-h-[200px] ${error ? "border-red-500" : ""}`}
               required
             />
+            {error && (
+              <p className="text-sm text-red-500 mt-1">{error}</p>
+            )}
+            <p className="text-sm text-gray-500 mt-1">
+              Paste the entire question content. The first line will be used as the title.
+            </p>
           </div>
-          
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label htmlFor="difficulty">Difficulty</Label>
               <Select value={difficulty} onValueChange={(value: 'easy' | 'medium' | 'hard') => setDifficulty(value)}>
-                <SelectTrigger>
-                  <SelectValue />
+                <SelectTrigger id="difficulty">
+                  <SelectValue placeholder="Select difficulty" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="easy">Easy</SelectItem>
@@ -117,46 +118,26 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div>
               <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={(value: any) => setCategory(value)}>
-                <SelectTrigger>
-                  <SelectValue />
+              <Select value={category} onValueChange={(value: CodingQuestion['category']) => setCategory(value)}>
+                <SelectTrigger id="category">
+                  <SelectValue placeholder="Select category" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="algorithms">Algorithms</SelectItem>
                   <SelectItem value="data-structures">Data Structures</SelectItem>
+                  <SelectItem value="system-design">System Design</SelectItem>
                   <SelectItem value="dynamic-programming">Dynamic Programming</SelectItem>
                   <SelectItem value="graphs">Graphs</SelectItem>
                   <SelectItem value="arrays">Arrays</SelectItem>
                   <SelectItem value="strings">Strings</SelectItem>
                   <SelectItem value="trees">Trees</SelectItem>
-                  <SelectItem value="system-design">System Design</SelectItem>
                   <SelectItem value="other">Other</SelectItem>
                 </SelectContent>
               </Select>
             </div>
-          </div>
-          
-          <div>
-            <Label htmlFor="tags">Tags (comma-separated)</Label>
-            <Input
-              id="tags"
-              value={tags}
-              onChange={(e) => setTags(e.target.value)}
-              placeholder="e.g., hash-map, two-pointers, binary-search"
-            />
-          </div>
-          
-          <div>
-            <Label htmlFor="solutionUrl">Solution URL (optional)</Label>
-            <Input
-              id="solutionUrl"
-              value={solutionUrl}
-              onChange={(e) => setSolutionUrl(e.target.value)}
-              placeholder="https://leetcode.com/problems/..."
-            />
           </div>
           
           <div className="flex gap-2 pt-4">

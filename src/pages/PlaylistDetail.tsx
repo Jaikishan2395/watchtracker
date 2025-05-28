@@ -15,8 +15,6 @@ const PlaylistDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
-  const [editingDeadline, setEditingDeadline] = useState(false);
-  const [newDeadline, setNewDeadline] = useState('');
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
 
   useEffect(() => {
@@ -26,7 +24,6 @@ const PlaylistDetail = () => {
       const found = playlists.find(p => p.id === id);
       if (found) {
         setPlaylist(found);
-        setNewDeadline(found.deadline || '');
       }
     }
   }, [id]);
@@ -68,15 +65,6 @@ const PlaylistDetail = () => {
     const updatedVideos = [...playlist.videos, newVideo];
     const updatedPlaylist = { ...playlist, videos: updatedVideos };
     updatePlaylist(updatedPlaylist);
-  };
-
-  const saveDeadline = () => {
-    if (!playlist) return;
-
-    const updatedPlaylist = { ...playlist, deadline: newDeadline };
-    updatePlaylist(updatedPlaylist);
-    setEditingDeadline(false);
-    toast.success('Deadline updated!');
   };
 
   if (!playlist) {
@@ -149,12 +137,6 @@ const PlaylistDetail = () => {
                 <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span className="font-medium">{Math.round(watchedTime)}/{Math.round(totalDuration)} min</span>
               </div>
-              {playlist.deadline && (
-                <div className="flex items-center gap-1 text-gray-700 dark:text-gray-200 transition-colors duration-200">
-                  <Calendar className="w-4 h-4 text-purple-600 dark:text-purple-400" />
-                  <span className="font-medium">Due: {new Date(playlist.deadline).toLocaleDateString()}</span>
-                </div>
-              )}
             </div>
           </div>
         </div>
@@ -186,58 +168,6 @@ const PlaylistDetail = () => {
                   <span className="font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">{Math.round(totalDuration - watchedTime)} min</span>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-
-          <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-lg hover:shadow-xl transition-all duration-200 animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200 flex items-center justify-between">
-                Deadline
-                {!editingDeadline && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setEditingDeadline(true)}
-                    className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors duration-200"
-                  >
-                    <Edit3 className="w-4 h-4" />
-                  </Button>
-                )}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              {editingDeadline ? (
-                <div className="space-y-2">
-                  <Input
-                    type="date"
-                    value={newDeadline}
-                    onChange={(e) => setNewDeadline(e.target.value)}
-                    className="bg-white dark:bg-slate-700/50 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400 transition-colors duration-200"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={saveDeadline} className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white transition-colors duration-200">
-                      <Save className="w-3 h-3 mr-1" />
-                      Save
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => setEditingDeadline(false)}
-                      className="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700/50 transition-colors duration-200"
-                    >
-                      <X className="w-3 h-3 mr-1" />
-                      Cancel
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <p className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
-                  {playlist.deadline
-                    ? new Date(playlist.deadline).toLocaleDateString()
-                    : 'No deadline set'
-                  }
-                </p>
-              )}
             </CardContent>
           </Card>
         </div>
