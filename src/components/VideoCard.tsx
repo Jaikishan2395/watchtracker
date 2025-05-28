@@ -94,21 +94,21 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
   };
 
   return (
-    <Card className="transition-all duration-300 hover:shadow-lg" style={{ animationDelay: `${delay}ms` }}>
+    <Card className="transition-all duration-300 hover:shadow-lg bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 hover:border-gray-300/50 dark:hover:border-slate-600/30" style={{ animationDelay: `${delay}ms` }}>
       <CardContent className="p-4">
         <div className="flex items-start gap-4">
           {video.thumbnail && (
-            <div className="relative">
+            <div className="relative group">
               <img
                 src={video.thumbnail}
                 alt={video.title}
-                className="w-32 h-20 object-cover rounded-lg"
+                className="w-32 h-20 object-cover rounded-lg shadow-md group-hover:shadow-lg transition-shadow duration-300"
               />
               <Button
                 variant="ghost"
                 size="icon"
                 onClick={playVideo}
-                className="absolute inset-0 m-auto w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full"
+                className="absolute inset-0 m-auto w-10 h-10 bg-black/50 hover:bg-black/70 text-white rounded-full transition-all duration-300 hover:scale-110"
               >
                 <Play className="w-5 h-5" />
               </Button>
@@ -117,28 +117,20 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
           
           <div className="flex-1">
             <div className="flex items-start justify-between gap-2">
-              <h3 className="font-medium text-gray-900 truncate">{video.title}</h3>
+              <h3 className="font-medium text-gray-900 dark:text-gray-50 truncate">{video.title}</h3>
               <div className="flex items-center gap-2">
                 {video.scheduledTime && (
-                  <Badge variant="outline" className="flex items-center gap-1">
+                  <Badge variant="outline" className="flex items-center gap-1 text-gray-700 dark:text-gray-200 border-gray-200 dark:border-slate-600 bg-white/50 dark:bg-slate-700/50">
                     <Bell className="w-3 h-3" />
                     {formatScheduledTime(video.scheduledTime)}
                   </Badge>
                 )}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={openVideo}
-                  className="text-gray-500 hover:text-gray-700"
-                >
-                  <ExternalLink className="w-4 h-4" />
-                </Button>
               </div>
             </div>
 
-            <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+            <div className="mt-2 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-200">
               <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4" />
+                <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                 <span>{formatDuration(video.duration)}</span>
               </div>
               
@@ -150,24 +142,32 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
                     max="100"
                     value={newProgress}
                     onChange={(e) => setNewProgress(e.target.value)}
-                    className="w-20"
+                    className="w-20 bg-white dark:bg-slate-700/50 text-gray-900 dark:text-gray-100 border-gray-200 dark:border-slate-600 focus:border-blue-500 dark:focus:border-blue-400"
                   />
-                  <Button size="sm" onClick={handleSaveProgress}>
+                  <Button size="sm" onClick={handleSaveProgress} className="bg-blue-500 hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 text-white">
                     <Save className="w-4 h-4" />
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={handleCancelEdit}>
+                  <Button 
+                    size="sm" 
+                    variant="ghost" 
+                    onClick={handleCancelEdit} 
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700/50"
+                  >
                     <X className="w-4 h-4" />
                   </Button>
                 </div>
               ) : (
                 <div className="flex items-center gap-2">
-                  <Progress value={video.progress} className="w-32" />
-                  <span>{video.progress}%</span>
+                  <Progress 
+                    value={video.progress} 
+                    className="w-32 bg-gray-200 dark:bg-slate-700/50 [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-purple-500" 
+                  />
+                  <span className="text-gray-700 dark:text-gray-200 font-medium">{video.progress}%</span>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setIsEditing(true)}
-                    className="text-gray-500 hover:text-gray-700"
+                    className="text-gray-500 dark:text-gray-300 hover:text-gray-700 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-slate-700/50"
                   >
                     <Edit3 className="w-4 h-4" />
                   </Button>
@@ -180,5 +180,4 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
     </Card>
   );
 };
-
 export default VideoCard;

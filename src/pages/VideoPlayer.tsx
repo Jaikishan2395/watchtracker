@@ -662,8 +662,11 @@ const VideoPlayer = () => {
     return `${seconds}s ${milliseconds}ms`;
   };
 
+  const uncompletedVideos = playlist.videos.filter(video => video.progress < 100);
+  const completedVideosList = playlist.videos.filter(video => video.progress >= 100);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-200">
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="mb-8 animate-fade-in">
@@ -671,34 +674,34 @@ const VideoPlayer = () => {
             <Button
               variant="ghost"
               onClick={() => navigate(`/playlist/${id}`)}
-              className="hover:bg-white/50"
+              className="hover:bg-white/50 dark:hover:bg-slate-800 dark:text-slate-200"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Playlist
             </Button>
-            <div className="text-2xl font-bold text-gray-800">WatchMap</div>
+            <div className="text-2xl font-bold text-gray-800 dark:text-white">WatchMap</div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
                   variant="outline"
-                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100"
+                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30"
                 >
                   <RotateCcw className="w-4 h-4 mr-2" />
                   Reset Data
                 </Button>
               </AlertDialogTrigger>
-              <AlertDialogContent>
+              <AlertDialogContent className="dark:bg-slate-800 dark:border-slate-700">
                 <AlertDialogHeader>
-                  <AlertDialogTitle>Reset All Data</AlertDialogTitle>
-                  <AlertDialogDescription>
+                  <AlertDialogTitle className="dark:text-white">Reset All Data</AlertDialogTitle>
+                  <AlertDialogDescription className="dark:text-slate-300">
                     Are you sure you want to reset all data? This will permanently delete all playlists and their progress. This action cannot be undone.
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">Cancel</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={resetAllData} 
-                    className="bg-red-600 hover:bg-red-700"
+                    className="bg-red-600 hover:bg-red-700 dark:bg-red-900 dark:hover:bg-red-800"
                   >
                     Reset All Data
                   </AlertDialogAction>
@@ -707,19 +710,19 @@ const VideoPlayer = () => {
             </AlertDialog>
           </div>
           
-          <div className="bg-white/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20">
-            <h1 className="text-2xl font-bold text-gray-800 mb-2">{playlist.title}</h1>
-            <p className="text-gray-600 mb-4">
+          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
+            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{playlist.title}</h1>
+            <p className="text-gray-600 dark:text-slate-300 mb-4">
               Video {currentVideoIndex + 1} of {playlist.videos.length}
             </p>
             
             <div className="flex items-center gap-4 text-sm mb-4">
-              <div className="flex items-center gap-1">
-                <CheckCircle className="w-4 h-4 text-green-600" />
+              <div className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
+                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
                 <span>{completedVideos}/{playlist.videos.length} completed</span>
               </div>
-              <div className="flex items-center gap-1">
-                <Clock className="w-4 h-4 text-blue-600" />
+              <div className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
+                <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
                 <span>Overall Progress: {Math.round(totalProgress)}%</span>
               </div>
             </div>
@@ -730,17 +733,17 @@ const VideoPlayer = () => {
                 value={currentVideoIndex.toString()}
                 onValueChange={(value) => selectVideo(parseInt(value))}
               >
-                <SelectTrigger className="w-80 bg-white/70">
+                <SelectTrigger className="w-80 bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
                   <SelectValue />
                 </SelectTrigger>
-                <SelectContent className="bg-white/95 backdrop-blur-sm">
+                <SelectContent className="bg-white/95 dark:bg-slate-800 dark:border-slate-700">
                   {playlist.videos.map((video, index) => (
-                    <SelectItem key={video.id} value={index.toString()}>
+                    <SelectItem key={video.id} value={index.toString()} className="dark:text-slate-200">
                       <div className="flex items-center gap-2">
                         <span className="font-medium">{index + 1}.</span>
                         <span className="truncate">{video.title}</span>
                         {video.progress >= 100 && (
-                          <CheckCircle className="w-3 h-3 text-green-600" />
+                          <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
                         )}
                       </div>
                     </SelectItem>
@@ -751,7 +754,7 @@ const VideoPlayer = () => {
               <Button
                 variant="outline"
                 onClick={() => setShowAllVideos(!showAllVideos)}
-                className="bg-white/70 hover:bg-white/90"
+                className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
               >
                 <List className="w-4 h-4 mr-2" />
                 {showAllVideos ? 'Hide' : 'Show'} All Videos
@@ -759,7 +762,7 @@ const VideoPlayer = () => {
 
               <Button
                 onClick={playNextUnwatched}
-                className="bg-blue-600 hover:bg-blue-700"
+                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
               >
                 <PlayCircle className="w-4 h-4 mr-2" />
                 Next Unwatched
@@ -767,7 +770,7 @@ const VideoPlayer = () => {
 
               <Button
                 onClick={markAllAsComplete}
-                className="bg-green-600 hover:bg-green-700"
+                className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
               >
                 Complete All
               </Button>
@@ -778,7 +781,7 @@ const VideoPlayer = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Video Player */}
           <div className="xl:col-span-3 space-y-6">
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
               <CardContent className="p-6">
                 <div className="aspect-video w-full rounded-lg overflow-hidden bg-black shadow-xl">
                   <div ref={iframeRef} className="w-full h-full"></div>
@@ -787,14 +790,14 @@ const VideoPlayer = () => {
             </Card>
 
             {/* Video Info */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl">
+                  <CardTitle className="text-xl dark:text-white">
                     {videoTitle || currentVideo.title}
                   </CardTitle>
                   {currentVideo.progress >= 100 && (
-                    <Badge className="bg-green-600 hover:bg-green-600">
+                    <Badge className="bg-green-600 hover:bg-green-600 dark:bg-green-700 dark:hover:bg-green-700">
                       Complete
                     </Badge>
                   )}
@@ -802,7 +805,7 @@ const VideoPlayer = () => {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
                       <span>{formatDuration(currentVideo.duration)}</span>
@@ -813,14 +816,14 @@ const VideoPlayer = () => {
                   </div>
 
                   <div className="space-y-3">
-                    <Progress value={currentVideo.progress} className="h-3" />
+                    <Progress value={currentVideo.progress} className="h-3 dark:bg-slate-700" />
                     <div className="flex gap-2 flex-wrap">
                       <Button
                         size="sm"
                         variant="outline"
                         onClick={() => updateVideoProgress(currentVideo.id, 25)}
                         disabled={currentVideo.progress >= 25}
-                        className="bg-white/70 hover:bg-white/90"
+                        className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
                       >
                         25%
                       </Button>
@@ -829,7 +832,7 @@ const VideoPlayer = () => {
                         variant="outline"
                         onClick={() => updateVideoProgress(currentVideo.id, 50)}
                         disabled={currentVideo.progress >= 50}
-                        className="bg-white/70 hover:bg-white/90"
+                        className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
                       >
                         50%
                       </Button>
@@ -838,7 +841,7 @@ const VideoPlayer = () => {
                         variant="outline"
                         onClick={() => updateVideoProgress(currentVideo.id, 75)}
                         disabled={currentVideo.progress >= 75}
-                        className="bg-white/70 hover:bg-white/90"
+                        className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
                       >
                         75%
                       </Button>
@@ -846,7 +849,7 @@ const VideoPlayer = () => {
                         size="sm"
                         onClick={markAsComplete}
                         disabled={currentVideo.progress >= 100}
-                        className="bg-green-600 hover:bg-green-700 text-white"
+                        className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white"
                       >
                         <CheckCircle className="w-3 h-3 mr-1" />
                         Complete
@@ -854,17 +857,17 @@ const VideoPlayer = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-4 mt-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 rounded-xl p-5 border border-blue-100/50 shadow-sm">
+                  <div className="space-y-4 mt-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-100/50 dark:border-blue-800/50 shadow-sm">
                     {/* Main Watch Time Display */}
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-3">
-                        <div className="bg-blue-100/80 p-2.5 rounded-lg">
-                          <Timer className="w-6 h-6 text-blue-600" />
+                        <div className="bg-blue-100/80 dark:bg-blue-900/30 p-2.5 rounded-lg">
+                          <Timer className="w-6 h-6 text-blue-600 dark:text-blue-400" />
                         </div>
                         <div className="space-y-1.5">
-                          <div className="text-sm font-medium text-blue-700">Total Watch Time</div>
+                          <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Total Watch Time</div>
                           <div 
-                            className="text-xl font-semibold text-gray-900 cursor-pointer hover:text-blue-600 transition-colors flex items-center gap-2 group"
+                            className="text-xl font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2 group"
                             onClick={() => {
                               if (currentVideo.watchTime) {
                                 playerRef.current?.seekTo(currentVideo.watchTime);
@@ -873,33 +876,33 @@ const VideoPlayer = () => {
                             title="Click to continue from last watched position"
                           >
                             {formatTimeWithPrecision(watchTimeData.totalWatchTime)}
-                            <span className="text-xs text-blue-600 bg-blue-100/80 px-2.5 py-1 rounded-full group-hover:bg-blue-200/80 transition-colors">
+                            <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-900/30 px-2.5 py-1 rounded-full group-hover:bg-blue-200/80 dark:group-hover:bg-blue-800/30 transition-colors">
                               continue watching
                             </span>
                           </div>
                         </div>
                       </div>
-                      <div className="text-right bg-white/80 px-4 py-2 rounded-lg border border-blue-100/50">
-                        <div className="text-sm font-medium text-blue-700">Current Position</div>
-                        <div className="text-xl font-semibold text-gray-900">
+                      <div className="text-right bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Current Position</div>
+                        <div className="text-xl font-semibold text-gray-900 dark:text-white">
                           {formatTime(currentVideo.watchTime || 0)}
                         </div>
                       </div>
                     </div>
 
                     {/* Stats Grid */}
-                    <div className="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-blue-100/50">
-                      <div className="bg-white/80 p-3 rounded-lg border border-blue-100/50">
-                        <div className="text-sm font-medium text-blue-700 mb-1">Watch Sessions</div>
+                    <div className="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-blue-100/50 dark:border-blue-800/50">
+                      <div className="bg-white/80 dark:bg-slate-800/80 p-3 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Watch Sessions</div>
                         <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-blue-50/80 text-blue-700 border-blue-200/80">
+                          <Badge variant="outline" className="bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/50">
                             {watchTimeData.sessions.length} {watchTimeData.sessions.length === 1 ? 'session' : 'sessions'}
                           </Badge>
                         </div>
                       </div>
-                      <div className="bg-white/80 p-3 rounded-lg border border-blue-100/50 text-right">
-                        <div className="text-sm font-medium text-blue-700 mb-1">Last Updated</div>
-                        <div className="font-medium text-gray-900">
+                      <div className="bg-white/80 dark:bg-slate-800/80 p-3 rounded-lg border border-blue-100/50 dark:border-blue-800/50 text-right">
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Last Updated</div>
+                        <div className="font-medium text-gray-900 dark:text-white">
                           {new Date(watchTimeData.lastUpdate).toLocaleTimeString()}
                         </div>
                       </div>
@@ -907,12 +910,12 @@ const VideoPlayer = () => {
 
                     {/* Active Session Indicator */}
                     {sessionStartTime.current && (
-                      <div className="mt-4 bg-blue-100/50 p-3 rounded-lg border border-blue-200/50 animate-pulse">
-                        <div className="flex items-center gap-2 text-blue-700">
+                      <div className="mt-4 bg-blue-100/50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200/50 dark:border-blue-800/50 animate-pulse">
+                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
                           <Timer className="w-4 h-4" />
                           <span className="font-medium">Current Session</span>
                         </div>
-                        <div className="mt-1 text-lg font-semibold text-blue-900">
+                        <div className="mt-1 text-lg font-semibold text-blue-900 dark:text-blue-300">
                           {formatTimeWithPrecision(Date.now() - sessionStartTime.current)}
                         </div>
                       </div>
@@ -922,15 +925,15 @@ const VideoPlayer = () => {
               </CardContent>
             </Card>
 
-            {/* Transcript Panel (Remove display: none) */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
+            {/* Transcript Panel */}
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
               <CardHeader>
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl flex items-center gap-2">
-                    <FileText className="w-5 h-5 text-blue-600" />
+                  <CardTitle className="text-xl flex items-center gap-2 dark:text-white">
+                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     Transcript
                     {transcript && (
-                      <Badge variant="outline" className="ml-2 bg-blue-50/80 text-blue-700 border-blue-200/80">
+                      <Badge variant="outline" className="ml-2 bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/50">
                         {transcript.language.toUpperCase()}
                       </Badge>
                     )}
@@ -945,15 +948,15 @@ const VideoPlayer = () => {
                           if (videoId) fetchTranscript(videoId);
                         }}
                       >
-                        <SelectTrigger className="w-[180px] bg-white/70">
+                        <SelectTrigger className="w-[180px] bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
                           <div className="flex items-center gap-2">
                             <Languages className="w-4 h-4" />
                             <SelectValue />
                           </div>
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
                           {availableLanguages.map((lang) => (
-                            <SelectItem key={lang.languageCode} value={lang.languageCode}>
+                            <SelectItem key={lang.languageCode} value={lang.languageCode} className="dark:text-slate-200">
                               {lang.languageName}
                             </SelectItem>
                           ))}
@@ -965,15 +968,15 @@ const VideoPlayer = () => {
               </CardHeader>
               <CardContent>
                 {isLoadingTranscript ? (
-                  <div className="text-center py-4 text-gray-600">
+                  <div className="text-center py-4 text-gray-600 dark:text-slate-400">
                     Loading transcript...
                   </div>
                 ) : transcriptError ? (
-                  <div className="text-center py-4 text-red-600">
+                  <div className="text-center py-4 text-red-600 dark:text-red-400">
                     {transcriptError}
                   </div>
                 ) : !transcript ? (
-                  <div className="text-center py-4 text-gray-600">
+                  <div className="text-center py-4 text-gray-600 dark:text-slate-400">
                     No transcript available for this video
                   </div>
                 ) : (
@@ -984,32 +987,32 @@ const VideoPlayer = () => {
                         value={exportFormat}
                         onValueChange={(value: ExportFormat) => setExportFormat(value)}
                       >
-                        <SelectTrigger className="w-[180px] bg-white/70">
+                        <SelectTrigger className="w-[180px] bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
                           <div className="flex items-center gap-2">
                             <FileTextIcon className="w-4 h-4" />
                             <SelectValue />
                           </div>
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="txt">
+                        <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
+                          <SelectItem value="txt" className="dark:text-slate-200">
                             <div className="flex items-center gap-2">
                               <FileTextIcon className="w-4 h-4" />
                               Text (TXT)
                             </div>
                           </SelectItem>
-                          <SelectItem value="json">
+                          <SelectItem value="json" className="dark:text-slate-200">
                             <div className="flex items-center gap-2">
                               <FileJson className="w-4 h-4" />
                               JSON
                             </div>
                           </SelectItem>
-                          <SelectItem value="srt">
+                          <SelectItem value="srt" className="dark:text-slate-200">
                             <div className="flex items-center gap-2">
                               <FileTextIcon className="w-4 h-4" />
                               SubRip (SRT)
                             </div>
                           </SelectItem>
-                          <SelectItem value="vtt">
+                          <SelectItem value="vtt" className="dark:text-slate-200">
                             <div className="flex items-center gap-2">
                               <FileTextIcon className="w-4 h-4" />
                               WebVTT
@@ -1020,7 +1023,7 @@ const VideoPlayer = () => {
 
                       <Button
                         onClick={downloadTranscript}
-                        className="bg-blue-600 hover:bg-blue-700"
+                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
                       >
                         <Download className="w-4 h-4 mr-2" />
                         Download Transcript
@@ -1036,22 +1039,22 @@ const VideoPlayer = () => {
                             onClick={() => seekToTranscript(entry.start)}
                             className={`p-3 rounded-lg cursor-pointer transition-all group ${
                               currentTranscriptIndex === index
-                                ? 'bg-blue-100 border-l-4 border-blue-500'
-                                : 'hover:bg-blue-50 border-l-4 border-transparent'
+                                ? 'bg-blue-100 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400'
+                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-4 border-transparent'
                             }`}
                           >
                             <div className="flex items-start gap-3">
                               <span className={`text-sm font-medium whitespace-nowrap ${
                                 currentTranscriptIndex === index
-                                  ? 'text-blue-700'
-                                  : 'text-blue-600 group-hover:text-blue-700'
+                                  ? 'text-blue-700 dark:text-blue-400'
+                                  : 'text-blue-600 dark:text-blue-500 group-hover:text-blue-700 dark:group-hover:text-blue-400'
                               }`}>
                                 {formatTime(entry.start)}
                               </span>
                               <p className={`${
                                 currentTranscriptIndex === index
-                                  ? 'text-gray-900'
-                                  : 'text-gray-700 group-hover:text-gray-900'
+                                  ? 'text-gray-900 dark:text-white'
+                                  : 'text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white'
                               }`}>
                                 {entry.text}
                               </p>
@@ -1066,20 +1069,20 @@ const VideoPlayer = () => {
             </Card>
 
             {/* Navigation Controls */}
-            <Card className="bg-white/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20">
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
               <CardContent className="p-6">
                 <div className="flex justify-between items-center">
                   <Button
                     onClick={goToPreviousVideo}
                     disabled={currentVideoIndex === 0}
                     variant="outline"
-                    className="bg-white/70 hover:bg-white/90"
+                    className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
                   >
                     <SkipBack className="w-4 h-4 mr-2" />
                     Previous
                   </Button>
                   
-                  <span className="text-sm text-gray-600 font-medium">
+                  <span className="text-sm text-gray-600 dark:text-slate-300 font-medium">
                     {currentVideoIndex + 1} / {playlist.videos.length}
                   </span>
                   
@@ -1087,7 +1090,7 @@ const VideoPlayer = () => {
                     onClick={goToNextVideo}
                     disabled={currentVideoIndex === playlist.videos.length - 1}
                     variant="outline"
-                    className="bg-white/70 hover:bg-white/90"
+                    className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
                   >
                     Next
                     <SkipForward className="w-4 h-4 ml-2" />
@@ -1099,95 +1102,191 @@ const VideoPlayer = () => {
 
           {/* Enhanced Playlist Sidebar */}
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-800">Playlist Videos</h3>
-              <Badge variant="outline" className="bg-white/70">
-                {completedVideos}/{playlist.videos.length}
-              </Badge>
-            </div>
-            
-            <div className={`space-y-3 ${showAllVideos ? 'max-h-none' : 'max-h-[600px] overflow-y-auto'}`}>
-              {playlist.videos.map((video, index) => (
-                <Card
-                  key={video.id}
-                  className={`bg-white/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-200 hover:shadow-xl ${
-                    index === currentVideoIndex ? 'ring-2 ring-blue-500 bg-blue-50/80' : ''
-                  }`}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-start gap-3">
-                      <div 
-                        onClick={() => selectVideo(index)}
-                        className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
-                          video.progress >= 100 
-                            ? 'bg-green-600 text-white' 
-                            : index === currentVideoIndex
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-gray-200 hover:bg-gray-300'
-                        }`}
-                      >
-                        {video.progress >= 100 ? (
-                          <CheckCircle className="w-5 h-5" />
-                        ) : index === currentVideoIndex ? (
-                          <Play className="w-4 h-4" />
-                        ) : (
-                          index + 1
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <p 
+            {/* Uncompleted Videos */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Uncompleted Videos</h3>
+                <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                  {uncompletedVideos.length}
+                </Badge>
+              </div>
+              {uncompletedVideos.length === 0 ? (
+                <div className="text-gray-600 dark:text-slate-400 text-sm">No uncompleted videos.</div>
+              ) : (
+                uncompletedVideos.map((video, index) => (
+                  <Card
+                    key={video.id}
+                    className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-200 hover:shadow-xl ${
+                      index === currentVideoIndex ? 'ring-2 ring-blue-500 dark:ring-blue-400 bg-blue-50/80 dark:bg-blue-900/20' : ''
+                    }`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div 
                           onClick={() => selectVideo(index)}
-                          className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 transition-colors ${
-                            index === currentVideoIndex ? 'text-blue-700' : 'text-gray-800'
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
+                            video.progress >= 100 
+                              ? 'bg-green-600 dark:bg-green-700 text-white' 
+                              : index === currentVideoIndex
+                              ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                              : 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
                           }`}
                         >
-                          {video.title}
-                        </p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="text-xs text-gray-600">{formatDuration(video.duration)}</span>
-                          <span className="text-xs text-gray-600">{video.progress}%</span>
-                          {index === currentVideoIndex && (
-                            <Badge variant="outline" className="text-xs px-1 py-0">
-                              Now Playing
-                            </Badge>
+                          {video.progress >= 100 ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : index === currentVideoIndex ? (
+                            <Play className="w-4 h-4" />
+                          ) : (
+                            index + 1
                           )}
                         </div>
-                        <Progress value={video.progress} className="h-2 mt-2" />
-                        
-                        {/* Quick action buttons */}
-                        <div className="flex gap-1 mt-2">
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-xs hover:bg-green-100"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateVideoProgress(video.id, 100);
-                            }}
-                            disabled={video.progress >= 100}
+                        <div className="flex-1 min-w-0">
+                          <p 
+                            onClick={() => selectVideo(index)}
+                            className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                              index === currentVideoIndex ? 'text-blue-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-200'
+                            }`}
                           >
-                            <CheckCircle className="w-3 h-3 mr-1" />
-                            Done
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            className="h-6 px-2 text-xs hover:bg-gray-100"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              updateVideoProgress(video.id, 0);
-                            }}
-                            disabled={video.progress === 0}
-                          >
-                            Reset
-                          </Button>
+                            {video.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.duration)}</span>
+                            <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
+                            {index === currentVideoIndex && (
+                              <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                                Now Playing
+                              </Badge>
+                            )}
+                          </div>
+                          <Progress value={video.progress} className="h-2 mt-2 dark:bg-slate-700" />
+                          
+                          {/* Quick action buttons */}
+                          <div className="flex gap-1 mt-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs hover:bg-green-100 dark:hover:bg-green-900/30 dark:text-slate-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateVideoProgress(video.id, 100);
+                              }}
+                              disabled={video.progress >= 100}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Done
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-slate-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateVideoProgress(video.id, 0);
+                              }}
+                              disabled={video.progress === 0}
+                            >
+                              Reset
+                            </Button>
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
+
+            {/* Completed Videos */}
+            {completedVideosList.length > 0 && (
+              <div className="space-y-3 mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Completed Videos</h3>
+                  <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                    {completedVideosList.length}
+                  </Badge>
+                </div>
+                {completedVideosList.map((video, index) => (
+                  <Card
+                    key={video.id}
+                    className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-200 hover:shadow-xl opacity-70 ${
+                      index === currentVideoIndex ? 'ring-2 ring-blue-500 dark:ring-blue-400 bg-blue-50/80 dark:bg-blue-900/20' : ''
+                    }`}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start gap-3">
+                        <div 
+                          onClick={() => selectVideo(index)}
+                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
+                            video.progress >= 100 
+                              ? 'bg-green-600 dark:bg-green-700 text-white' 
+                              : index === currentVideoIndex
+                              ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                              : 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
+                          }`}
+                        >
+                          {video.progress >= 100 ? (
+                            <CheckCircle className="w-5 h-5" />
+                          ) : index === currentVideoIndex ? (
+                            <Play className="w-4 h-4" />
+                          ) : (
+                            index + 1
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p 
+                            onClick={() => selectVideo(index)}
+                            className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                              index === currentVideoIndex ? 'text-blue-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-200'
+                            }`}
+                          >
+                            {video.title}
+                          </p>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.duration)}</span>
+                            <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
+                            {index === currentVideoIndex && (
+                              <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                                Now Playing
+                              </Badge>
+                            )}
+                          </div>
+                          <Progress value={video.progress} className="h-2 mt-2 dark:bg-slate-700" />
+                          
+                          {/* Quick action buttons */}
+                          <div className="flex gap-1 mt-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs hover:bg-green-100 dark:hover:bg-green-900/30 dark:text-slate-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateVideoProgress(video.id, 100);
+                              }}
+                              disabled={video.progress >= 100}
+                            >
+                              <CheckCircle className="w-3 h-3 mr-1" />
+                              Done
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-slate-200"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                updateVideoProgress(video.id, 0);
+                              }}
+                              disabled={video.progress === 0}
+                            >
+                              Reset
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>

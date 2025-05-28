@@ -9,6 +9,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
 import AddCodingPlaylistModal from './AddCodingPlaylistModal';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddPlaylistModalProps {
   isOpen: boolean;
@@ -105,9 +106,14 @@ const AddPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => 
 const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [deadline, setDeadline] = useState('');
+  const [contentType, setContentType] = useState<'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'>('course');
   const [videos, setVideos] = useState<Omit<Video, 'id' | 'progress'>[]>([]);
-  const [currentVideo, setCurrentVideo] = useState({ title: '', url: '', duration: 0 });
+  const [currentVideo, setCurrentVideo] = useState<Omit<Video, 'id' | 'progress' | 'thumbnail' | 'dateCompleted' | 'contentType'>>({ 
+    title: '', 
+    url: '', 
+    scheduledTime: '',
+    watchTime: 0
+  });
   const [isLoading, setIsLoading] = useState(false);
 
   const extractVideoIdFromUrl = (url: string): string | null => {
@@ -124,8 +130,8 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
   };
 
   const addVideo = () => {
-    if (!currentVideo.title || !currentVideo.url || currentVideo.duration <= 0) {
-      toast.error('Please fill in all video details');
+    if (!currentVideo.title || !currentVideo.url || !currentVideo.scheduledTime) {
+      toast.error('Please fill in all video details including scheduled time');
       return;
     }
 
@@ -135,13 +141,20 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
       return;
     }
 
-    const newVideo = {
+    const newVideo: Omit<Video, 'id' | 'progress'> = {
       ...currentVideo,
-      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
+      thumbnail: `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`,
+      dateCompleted: undefined,
+      contentType
     };
 
     setVideos([...videos, newVideo]);
-    setCurrentVideo({ title: '', url: '', duration: 0 });
+    setCurrentVideo({ 
+      title: '', 
+      url: '', 
+      scheduledTime: '',
+      watchTime: 0
+    });
     toast.success('Video added to playlist');
   };
 
@@ -168,12 +181,14 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
       title: title.trim(),
       description: description.trim(),
       type: 'video',
-      deadline: deadline || undefined,
+      contentType,
       createdAt: new Date().toISOString(),
       videos: videos.map((video, index) => ({
         ...video,
         id: `${Date.now()}-${index}`,
-        progress: 0
+        progress: 0,
+        watchTime: 0,
+        contentType
       }))
     };
 
@@ -182,9 +197,14 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
     // Reset form
     setTitle('');
     setDescription('');
-    setDeadline('');
+    setContentType('course');
     setVideos([]);
-    setCurrentVideo({ title: '', url: '', duration: 0 });
+    setCurrentVideo({ 
+      title: '', 
+      url: '', 
+      scheduledTime: '',
+      watchTime: 0
+    });
     setIsLoading(false);
     
     toast.success('Playlist created successfully!');
@@ -228,14 +248,30 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
             </div>
 
             <div>
-              <Label htmlFor="deadline">Deadline (Optional)</Label>
-              <Input
-                id="deadline"
-                type="date"
-                value={deadline}
-                onChange={(e) => setDeadline(e.target.value)}
-                className="mt-1"
-              />
+              <Label htmlFor="playlist-type">Playlist Type *</Label>
+              <Select
+                value={contentType}
+                onValueChange={(value: typeof contentType) => setContentType(value)}
+              >
+                <SelectTrigger className="mt-1">
+                  <SelectValue placeholder="Select playlist type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="course">Course</SelectItem>
+                  <SelectItem value="tutorial">Tutorial</SelectItem>
+                  <SelectItem value="lecture">Lecture</SelectItem>
+                  <SelectItem value="workshop">Workshop</SelectItem>
+                  <SelectItem value="interview">Interview</SelectItem>
+                  <SelectItem value="documentary">Documentary</SelectItem>
+                  <SelectItem value="conference">Conference Talk</SelectItem>
+                  <SelectItem value="webinar">Webinar</SelectItem>
+                  <SelectItem value="podcast">Podcast</SelectItem>
+                  <SelectItem value="coding-tutorial">Coding Tutorial</SelectItem>
+                  <SelectItem value="project-walkthrough">Project Walkthrough</SelectItem>
+                  <SelectItem value="tech-talk">Tech Talk</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -243,30 +279,15 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
           <div className="space-y-4 border-t pt-4">
             <h3 className="font-semibold">Add Videos</h3>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="video-title">Video Title *</Label>
-                <Input
-                  id="video-title"
-                  value={currentVideo.title}
-                  onChange={(e) => setCurrentVideo({ ...currentVideo, title: e.target.value })}
-                  placeholder="Enter video title..."
-                  className="mt-1"
-                />
-              </div>
-
-              <div>
-                <Label htmlFor="video-duration">Duration (minutes) *</Label>
-                <Input
-                  id="video-duration"
-                  type="number"
-                  min="1"
-                  value={currentVideo.duration || ''}
-                  onChange={(e) => setCurrentVideo({ ...currentVideo, duration: parseInt(e.target.value) || 0 })}
-                  placeholder="Duration in minutes..."
-                  className="mt-1"
-                />
-              </div>
+            <div>
+              <Label htmlFor="video-title">Video Title *</Label>
+              <Input
+                id="video-title"
+                value={currentVideo.title}
+                onChange={(e) => setCurrentVideo({ ...currentVideo, title: e.target.value })}
+                placeholder="Enter video title..."
+                className="mt-1"
+              />
             </div>
 
             <div>
@@ -276,6 +297,17 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
                 value={currentVideo.url}
                 onChange={(e) => setCurrentVideo({ ...currentVideo, url: e.target.value })}
                 placeholder="https://www.youtube.com/watch?v=..."
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="scheduled-time">Schedule Time *</Label>
+              <Input
+                id="scheduled-time"
+                type="datetime-local"
+                value={currentVideo.scheduledTime}
+                onChange={(e) => setCurrentVideo({ ...currentVideo, scheduledTime: e.target.value })}
                 className="mt-1"
               />
             </div>
@@ -300,7 +332,9 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
                     <div className="flex justify-between items-start">
                       <div className="flex-1">
                         <h4 className="font-medium text-sm">{video.title}</h4>
-                        <p className="text-xs text-gray-600">{video.duration} minutes</p>
+                        <p className="text-xs text-gray-600">
+                          Scheduled: {new Date(video.scheduledTime!).toLocaleString()}
+                        </p>
                       </div>
                       <Button
                         variant="ghost"
@@ -329,7 +363,7 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
             </Button>
             <Button
               onClick={handleSubmit}
-              className="flex-1 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              className="flex-1"
               disabled={isLoading}
             >
               {isLoading && <Loader2 className="w-4 h-4 mr-2 animate-spin" />}

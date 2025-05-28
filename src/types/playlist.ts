@@ -2,15 +2,12 @@ export interface Video {
   id: string;
   title: string;
   url: string;
-  duration: {
-    hours: number;
-    minutes: number;
-  };
+  scheduledTime?: string; // ISO date string for scheduled time
   progress: number; // percentage 0-100
   watchTime: number; // total watch time in seconds
   thumbnail?: string;
   dateCompleted?: string; // ISO date string when video was completed
-  scheduledTime?: string; // ISO date string for scheduled time
+  contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'; // Type of video content
 }
 
 export interface CodingQuestion {
@@ -36,10 +33,10 @@ export interface Playlist {
   title: string;
   description: string;
   type: 'video' | 'coding';
+  contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'; // Type of content in the playlist
   videos: Video[];
   codingQuestions?: CodingQuestion[];
   createdAt: string;
-  deadline?: string;
   targetQuestionsPerDay?: number; // For accountability
   streakData?: {
     currentStreak: number;

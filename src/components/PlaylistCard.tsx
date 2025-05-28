@@ -146,5 +146,4 @@ const PlaylistCard = ({ playlist, onDelete, delay }: PlaylistCardProps) => {
     </Card>
   );
 };
-
 export default PlaylistCard;

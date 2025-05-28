@@ -36,8 +36,7 @@ const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
   };
 
   const handleSubmit = async () => {
-    if (!currentVideo.title || !currentVideo.url || 
-        (currentVideo.duration.hours === 0 && currentVideo.duration.minutes === 0)) {
+    if (!currentVideo.title || !currentVideo.url) {
       toast.error('Please fill in all video details');
       return;
     }
@@ -101,41 +100,6 @@ const AddVideoModal = ({ isOpen, onClose, onAdd }: AddVideoModalProps) => {
               placeholder="https://www.youtube.com/watch?v=..."
               className="mt-1"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="video-hours">Hours *</Label>
-              <Input
-                id="video-hours"
-                type="number"
-                min="0"
-                value={currentVideo.duration.hours || ''}
-                onChange={(e) => setCurrentVideo({
-                  ...currentVideo,
-                  duration: { ...currentVideo.duration, hours: parseInt(e.target.value) || 0 }
-                })}
-                placeholder="Hours..."
-                className="mt-1"
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="video-minutes">Minutes *</Label>
-              <Input
-                id="video-minutes"
-                type="number"
-                min="0"
-                max="59"
-                value={currentVideo.duration.minutes || ''}
-                onChange={(e) => setCurrentVideo({
-                  ...currentVideo,
-                  duration: { ...currentVideo.duration, minutes: parseInt(e.target.value) || 0 }
-                })}
-                placeholder="Minutes..."
-                className="mt-1"
-              />
-            </div>
           </div>
 
           <div>
