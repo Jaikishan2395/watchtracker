@@ -650,34 +650,6 @@ const VideoPlayer = () => {
               )}
               <div className="text-2xl font-bold text-gray-800 dark:text-white">WatchMap</div>
             </div>
-            <AlertDialog>
-              <AlertDialogTrigger asChild>
-                <Button
-                  variant="outline"
-                  className="bg-red-50 text-red-600 border-red-200 hover:bg-red-100 dark:bg-red-900/20 dark:text-red-400 dark:border-red-800 dark:hover:bg-red-900/30"
-                >
-                  <RotateCcw className="w-4 h-4 mr-2" />
-                  Reset Data
-                </Button>
-              </AlertDialogTrigger>
-              <AlertDialogContent className="dark:bg-slate-800 dark:border-slate-700">
-                <AlertDialogHeader>
-                  <AlertDialogTitle className="dark:text-white">Reset All Data</AlertDialogTitle>
-                  <AlertDialogDescription className="dark:text-slate-300">
-                    Are you sure you want to reset all data? This will permanently delete all playlists and their progress. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">Cancel</AlertDialogCancel>
-                  <AlertDialogAction 
-                    onClick={resetAllData} 
-                    className="bg-red-600 hover:bg-red-700 dark:bg-red-900 dark:hover:bg-red-800"
-                  >
-                    Reset All Data
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
           </div>
           
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
