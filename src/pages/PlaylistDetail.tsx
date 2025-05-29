@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -65,6 +65,15 @@ const PlaylistDetail = () => {
     const updatedVideos = [...playlist.videos, newVideo];
     const updatedPlaylist = { ...playlist, videos: updatedVideos };
     updatePlaylist(updatedPlaylist);
+  };
+
+  const deleteVideoFromPlaylist = (videoId: string) => {
+    if (!playlist) return;
+
+    const updatedVideos = playlist.videos.filter(video => video.id !== videoId);
+    const updatedPlaylist = { ...playlist, videos: updatedVideos };
+    updatePlaylist(updatedPlaylist);
+    toast.success('Video removed from playlist');
   };
 
   const handleVideoClick = (video: Video) => {
@@ -214,15 +223,32 @@ const PlaylistDetail = () => {
                 uncompletedVideos.map((video, index) => (
                   <div 
                     key={video.id}
-                    className="transform transition-all duration-200 hover:scale-[1.01] cursor-pointer"
-                    onClick={() => handleVideoClick(video)}
+                    className="relative transform transition-all duration-200 hover:scale-[1.01]"
                   >
-                    <VideoCard
-                      video={video}
-                      onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
-                      delay={index * 50}
-                      index={index}
-                    />
+                    <div className="absolute right-4 top-4 z-10">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteVideoFromPlaylist(video.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => handleVideoClick(video)}
+                    >
+                      <VideoCard
+                        video={video}
+                        onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
+                        delay={index * 50}
+                        index={index}
+                      />
+                    </div>
                   </div>
                 ))
               ) : (
@@ -248,15 +274,32 @@ const PlaylistDetail = () => {
                 {completedVideosList.map((video, index) => (
                   <div 
                     key={video.id}
-                    className="transform transition-all duration-200 hover:scale-[1.01] cursor-pointer"
-                    onClick={() => handleVideoClick(video)}
+                    className="relative transform transition-all duration-200 hover:scale-[1.01]"
                   >
-                    <VideoCard
-                      video={video}
-                      onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
-                      delay={index * 50}
-                      index={index}
-                    />
+                    <div className="absolute right-4 top-4 z-10">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          deleteVideoFromPlaylist(video.id);
+                        }}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div 
+                      className="cursor-pointer"
+                      onClick={() => handleVideoClick(video)}
+                    >
+                      <VideoCard
+                        video={video}
+                        onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
+                        delay={index * 50}
+                        index={index}
+                      />
+                    </div>
                   </div>
                 ))}
               </div>

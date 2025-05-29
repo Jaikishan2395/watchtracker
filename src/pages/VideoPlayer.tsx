@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -103,6 +103,42 @@ const formatTime = (seconds: number) => {
   return `${remainingSeconds}s`;
 };
 
+// Add these styles at the top of the file, after the imports
+const styles = `
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+}
+
+.animate-fade-in {
+  animation: fade-in 0.5s ease-out forwards;
+}
+`;
+
+// Add this after the styles declaration
+const styleSheet = document.createElement("style");
+styleSheet.textContent = styles;
+document.head.appendChild(styleSheet);
+
 const VideoPlayer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -113,7 +149,7 @@ const VideoPlayer = () => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(videoIndex);
-  const [showAllVideos, setShowAllVideos] = useState(false);
+  const [showAllVideos, setShowAllVideos] = useState(true);
   const [watchTimeData, setWatchTimeData] = useState<WatchTimeData>({
     totalWatchTime: 0,
     lastPosition: 0,
@@ -122,6 +158,8 @@ const VideoPlayer = () => {
   });
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [showCompletionDialog, setShowCompletionDialog] = useState(false);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const iframeRef = useRef<HTMLDivElement>(null);
@@ -133,36 +171,65 @@ const VideoPlayer = () => {
   // Get current video from playlist
   const currentVideo = playlist?.videos[currentVideoIndex];
 
+  // Move these useMemo declarations to the top, before any effects
+  const uncompletedVideos = useMemo(() => 
+    playlist?.videos.filter(video => video.progress < 100) || [],
+    [playlist?.videos]
+  );
+
+  const completedVideosList = useMemo(() => 
+    playlist?.videos.filter(video => video.progress >= 100) || [],
+    [playlist?.videos]
+  );
+
   // Load playlist data
   useEffect(() => {
-    setIsLoading(true);
-    // First try to get playlist from navigation state
-    const statePlaylist = location.state?.playlist as Playlist | undefined;
-    if (statePlaylist) {
-      setPlaylist(statePlaylist);
-      setIsLoading(false);
-      return;
-    }
+    const loadPlaylistData = async () => {
+      setIsLoading(true);
+      try {
+        // First try to get playlist from navigation state
+        const statePlaylist = location.state?.playlist as Playlist | undefined;
+        if (statePlaylist) {
+          setPlaylist(statePlaylist);
+          setIsLoading(false);
+          return;
+        }
 
-    // Fall back to localStorage if no state data
-    const savedPlaylists = localStorage.getItem('youtubePlaylists');
-    if (savedPlaylists) {
-      const playlists: Playlist[] = JSON.parse(savedPlaylists);
-      const found = playlists.find(p => p.id === id);
-      if (found) {
-        setPlaylist(found);
-      } else {
-        // If playlist not found, redirect to home
+        // Fall back to localStorage if no state data
+        const savedPlaylists = localStorage.getItem('youtubePlaylists');
+        if (savedPlaylists) {
+          const playlists: Playlist[] = JSON.parse(savedPlaylists);
+          const found = playlists.find(p => p.id === id);
+          if (found) {
+            setPlaylist(found);
+            // Save to state to prevent loss on refresh
+            window.history.replaceState(
+              { playlist: found },
+              '',
+              window.location.href
+            );
+          } else {
+            navigate('/');
+            toast.error('Playlist not found');
+          }
+        } else {
+          navigate('/');
+          toast.error('No playlists found');
+        }
+      } catch (error) {
+        console.error('Error loading playlist:', error);
+        toast.error('Error loading playlist');
         navigate('/');
-        toast.error('Playlist not found');
+      } finally {
+        setIsLoading(false);
       }
-    } else {
-      // If no playlists exist, redirect to home
-      navigate('/');
-      toast.error('No playlists found');
+    };
+
+    if (!isInitialized) {
+      loadPlaylistData();
+      setIsInitialized(true);
     }
-    setIsLoading(false);
-  }, [id, location.state, navigate]);
+  }, [id, location.state, navigate, isInitialized]);
 
   // Initialize watch time data when video changes
   useEffect(() => {
@@ -301,56 +368,125 @@ const VideoPlayer = () => {
     toast.success('Progress updated!');
   };
 
-  const goToPreviousVideo = () => {
-    if (currentVideoIndex > 0) {
-      setCurrentVideoIndex(currentVideoIndex - 1);
-      navigate(`/playlist/${id}/play?video=${currentVideoIndex - 1}`);
+  const selectVideo = (index: number) => {
+    if (index === currentVideoIndex) return; // Don't reload if same video
+    
+    // Check if there are any uncompleted videos
+    if (uncompletedVideos.length === 0) {
+      setShowCompletionDialog(true);
+      return;
     }
+    
+    // Stop current video playback
+    if (playerRef.current) {
+      playerRef.current.pauseVideo();
+    }
+    
+    // Update URL without triggering a full navigation
+    const newUrl = `/playlist/${id}/play?video=${index}`;
+    window.history.pushState({}, '', newUrl);
+    
+    // Update state
+    setCurrentVideoIndex(index);
+    
+    // Destroy current player instance
+    if (playerRef.current) {
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
+    
+    // Force player reinitialization
+    setIsPlayerReady(false);
+    setTimeout(() => {
+      setIsPlayerReady(true);
+    }, 100);
+    
+    toast.success(`Now playing: ${playlist?.videos[index].title}`);
   };
 
   const goToNextVideo = () => {
     if (playlist && currentVideoIndex < playlist.videos.length - 1) {
-      setCurrentVideoIndex(currentVideoIndex + 1);
-      navigate(`/playlist/${id}/play?video=${currentVideoIndex + 1}`);
-      toast.success('Next video loaded!');
+      if (uncompletedVideos.length === 0) {
+        setShowCompletionDialog(true);
+        return;
+      }
+      selectVideo(currentVideoIndex + 1);
     }
   };
 
-  const selectVideo = (index: number) => {
-    setCurrentVideoIndex(index);
-    navigate(`/playlist/${id}/play?video=${index}`);
-    toast.success(`Now playing: ${playlist?.videos[index].title}`);
+  const goToPreviousVideo = () => {
+    if (currentVideoIndex > 0) {
+      if (uncompletedVideos.length === 0) {
+        setShowCompletionDialog(true);
+        return;
+      }
+      selectVideo(currentVideoIndex - 1);
+    }
   };
 
   const markAsComplete = () => {
     if (playlist && currentVideo) {
-      updateVideoProgress(currentVideo.id, 100);
-      toast.success(`"${currentVideo.title}" marked as complete!`);
-    }
-  };
+      // Create a new array of videos with the updated progress
+      const updatedVideos = playlist.videos.map(video => {
+        if (video.id === currentVideo.id) {
+          return { ...video, progress: 100 };
+        }
+        return video;
+      });
 
-  const markAllAsComplete = () => {
-    if (!playlist) return;
-    
-    playlist.videos.forEach(video => {
-      if (video.progress < 100) {
-        updateVideoProgress(video.id, 100);
+      // Create a new playlist object
+      const updatedPlaylist = {
+        ...playlist,
+        videos: updatedVideos
+      };
+
+      // Update localStorage
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (savedPlaylists) {
+        try {
+          const playlists: Playlist[] = JSON.parse(savedPlaylists);
+          const index = playlists.findIndex(p => p.id === id);
+          if (index !== -1) {
+            playlists[index] = updatedPlaylist;
+            localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+          }
+        } catch (error) {
+          console.error('Error updating localStorage:', error);
+        }
       }
-    });
-    toast.success('All videos marked as complete!');
-  };
 
-  const playNextUnwatched = () => {
-    if (!playlist) return;
-    
-    const nextUnwatched = playlist.videos.findIndex((video, index) => 
-      video.progress < 100 && index > currentVideoIndex
-    );
-    
-    if (nextUnwatched !== -1) {
-      selectVideo(nextUnwatched);
-    } else {
-      toast.info('All remaining videos are completed!');
+      // Update state with the new playlist
+      setPlaylist(updatedPlaylist);
+
+      // Check if this was the last uncompleted video
+      const remainingUncompleted = updatedVideos.filter(v => v.progress < 100).length;
+      if (remainingUncompleted === 0) {
+        // Stop the current video
+        if (playerRef.current) {
+          playerRef.current.pauseVideo();
+          playerRef.current.destroy();
+          playerRef.current = null;
+        }
+        // Show completion dialog
+        setShowCompletionDialog(true);
+        // Reset player ready state to prevent auto-initialization
+        setIsPlayerReady(false);
+      }
+
+      // Show a special toast notification with animation
+      toast.success(
+        <div className="flex items-center gap-2">
+          <CheckCircle className="w-5 h-5 text-green-500" />
+          <span>
+            <span className="font-semibold">{currentVideo.title}</span>
+            {remainingUncompleted === 0 ? ' completed! All videos are now finished!' : ' marked as complete!'}
+          </span>
+        </div>,
+        {
+          duration: 3000,
+          className: "animate-slide-in-right",
+        }
+      );
     }
   };
 
@@ -380,36 +516,34 @@ const VideoPlayer = () => {
   // Update the player initialization effect
   useEffect(() => {
     let playerInstance: YouTubePlayer | null = null;
-    const MAX_ATTEMPTS = 3;
 
     const initializePlayer = () => {
-      console.log('Player initialization effect running...', {
-        isPlayerReady,
-        hasIframeRef: !!iframeRef.current,
-        hasPlaylist: !!playlist,
-        currentVideoIndex,
-        currentVideo: playlist?.videos[currentVideoIndex],
-        attempt: initializationAttemptsRef.current + 1
-      });
-
       if (!isPlayerReady || !iframeRef.current || !playlist) {
-        console.log('Player initialization skipped:', {
-          isPlayerReady,
-          hasIframeRef: !!iframeRef.current,
-          hasPlaylist: !!playlist
-        });
+        return;
+      }
+
+      // Don't initialize player if all videos are completed
+      if (uncompletedVideos.length === 0) {
+        setShowCompletionDialog(true);
         return;
       }
 
       const currentVideo = playlist.videos[currentVideoIndex];
       if (!currentVideo) {
-        console.log('No current video found');
         return;
       }
 
+      // Don't initialize if the current video is completed
+      if (currentVideo.progress >= 100 && uncompletedVideos.length > 0) {
+        // Find the first uncompleted video and switch to it
+        const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+        if (firstUncompletedIndex !== -1) {
+          selectVideo(firstUncompletedIndex);
+          return;
+        }
+      }
+
       const videoId = extractVideoIdFromUrl(currentVideo.url);
-      console.log('Extracted video ID:', videoId, 'from URL:', currentVideo.url);
-      
       if (!videoId) {
         console.error('Could not extract video ID from URL:', currentVideo.url);
         toast.error('Invalid YouTube URL format');
@@ -417,21 +551,16 @@ const VideoPlayer = () => {
       }
 
       try {
-        // Destroy existing player if it exists
+        // Always create a new player instance
         if (playerRef.current) {
           playerRef.current.destroy();
           playerRef.current = null;
         }
 
-        // Clear the iframe container
-        if (iframeRef.current) {
-          iframeRef.current.innerHTML = '';
-        }
-
         const playerOptions = {
           videoId,
           playerVars: {
-            autoplay: 0,
+            autoplay: currentVideo.progress < 100 ? 1 : 0, // Only autoplay uncompleted videos
             controls: 1,
             modestbranding: 1,
             rel: 0,
@@ -441,7 +570,14 @@ const VideoPlayer = () => {
           } as YouTubePlayerVars,
           events: {
             onStateChange: (event: YouTubePlayerEvent) => {
-              console.log('Player state changed:', event.data);
+              // Don't track watch time for completed videos
+              if (currentVideo.progress >= 100) {
+                if (playerRef.current) {
+                  playerRef.current.pauseVideo();
+                }
+                return;
+              }
+
               if (event.data === window.YT.PlayerState.PLAYING) {
                 startWatchTimeTracking();
               } else if (event.data === window.YT.PlayerState.PAUSED || 
@@ -450,22 +586,45 @@ const VideoPlayer = () => {
               }
             },
             onReady: (event: YouTubePlayerEvent) => {
-              console.log('Player ready!');
               playerRef.current = playerInstance;
-              // Get video title when player is ready
               const videoData = event.target.getVideoData();
               setVideoTitle(videoData.title);
               
-              // Resume from last position
-              if (watchTimeData.lastPosition > 0) {
-                playerRef.current?.seekTo(watchTimeData.lastPosition);
+              // Only play if the video is not completed
+              if (currentVideo.progress < 100) {
+                // Resume from last position
+                const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
+                if (savedData) {
+                  try {
+                    const watchData = JSON.parse(savedData) as WatchTimeData;
+                    if (watchData.lastPosition > 0) {
+                      playerRef.current?.seekTo(watchData.lastPosition);
+                    }
+                  } catch (e) {
+                    console.error('Error loading watch time data:', e);
+                  }
+                }
+                
+                // Start playing the video
+                playerRef.current?.playVideo();
+              } else {
+                // Pause the video if it's completed
+                playerRef.current?.pauseVideo();
+                // If there are uncompleted videos, switch to the first one
+                if (uncompletedVideos.length > 0) {
+                  const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+                  if (firstUncompletedIndex !== -1) {
+                    selectVideo(firstUncompletedIndex);
+                  }
+                } else {
+                  setShowCompletionDialog(true);
+                }
               }
             },
             onError: (event: YouTubePlayerEvent) => {
               console.error('YouTube player error:', event.data);
               let errorMessage = 'An error occurred while playing the video.';
               
-              // Handle specific error codes
               switch (event.data) {
                 case 2:
                   errorMessage = 'Invalid video ID. Please check the video URL.';
@@ -483,13 +642,6 @@ const VideoPlayer = () => {
               }
               
               toast.error(errorMessage);
-
-              // Retry initialization if we haven't exceeded max attempts
-              if (initializationAttemptsRef.current < MAX_ATTEMPTS) {
-                initializationAttemptsRef.current++;
-                console.log(`Retrying player initialization (attempt ${initializationAttemptsRef.current})...`);
-                setTimeout(initializePlayer, 1000); // Wait 1 second before retrying
-              }
             }
           } as YouTubePlayerEvents
         };
@@ -498,35 +650,68 @@ const VideoPlayer = () => {
       } catch (error) {
         console.error('Error initializing YouTube player:', error);
         toast.error('Failed to initialize video player. Please try again.');
-
-        // Retry initialization if we haven't exceeded max attempts
-        if (initializationAttemptsRef.current < MAX_ATTEMPTS) {
-          initializationAttemptsRef.current++;
-          console.log(`Retrying player initialization (attempt ${initializationAttemptsRef.current})...`);
-          setTimeout(initializePlayer, 1000); // Wait 1 second before retrying
-        }
       }
     };
 
-    // Reset initialization attempts when dependencies change
-    initializationAttemptsRef.current = 0;
-    
-    // Start initialization
+    // Initialize player
     initializePlayer();
 
-    // Cleanup
     return () => {
       stopWatchTimeTracking();
       if (playerInstance) {
         playerInstance.destroy();
         playerInstance = null;
       }
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
+    };
+  }, [isPlayerReady, playlist, currentVideoIndex, uncompletedVideos.length]);
+
+  // Add an effect to handle completion state changes
+  useEffect(() => {
+    if (uncompletedVideos.length === 0 && playerRef.current) {
+      playerRef.current.pauseVideo();
+      setShowCompletionDialog(true);
+    }
+  }, [uncompletedVideos.length]);
+
+  // Handle browser refresh
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Save current state to sessionStorage
+      if (playlist) {
+        sessionStorage.setItem('currentPlaylist', JSON.stringify({
+          playlist,
+          videoIndex: currentVideoIndex,
+          timestamp: Date.now()
+        }));
       }
     };
-  }, [isPlayerReady, playlist, currentVideoIndex, watchTimeData.lastPosition]);
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Check for saved state on mount
+    const savedState = sessionStorage.getItem('currentPlaylist');
+    if (savedState && !playlist) {
+      try {
+        const { playlist: savedPlaylist, videoIndex: savedIndex, timestamp } = JSON.parse(savedState);
+        // Only restore if the saved state is less than 5 minutes old
+        if (Date.now() - timestamp < 5 * 60 * 1000) {
+          setPlaylist(savedPlaylist);
+          setCurrentVideoIndex(savedIndex);
+          window.history.replaceState(
+            { playlist: savedPlaylist },
+            '',
+            `/playlist/${id}/play?video=${savedIndex}`
+          );
+        }
+      } catch (e) {
+        console.error('Error restoring saved state:', e);
+      }
+    }
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [playlist, currentVideoIndex, id]);
 
   // Update the YouTube API loading effect
   useEffect(() => {
@@ -628,9 +813,6 @@ const VideoPlayer = () => {
     return `${seconds}s ${milliseconds}ms`;
   };
 
-  const uncompletedVideos = playlist.videos.filter(video => video.progress < 100);
-  const completedVideosList = playlist.videos.filter(video => video.progress >= 100);
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-200">
       <div className="container mx-auto px-4 py-8">
@@ -653,7 +835,7 @@ const VideoPlayer = () => {
           </div>
           
           <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 dark:border-slate-700/50">
-            <h1 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">{playlist.title}</h1>
+            
             <p className="text-gray-600 dark:text-slate-300 mb-4">
               Video {currentVideoIndex + 1} of {playlist.videos.length}
             </p>
@@ -671,50 +853,13 @@ const VideoPlayer = () => {
 
             {/* Enhanced Controls */}
             <div className="flex items-center gap-4 flex-wrap">
-              <Select
-                value={currentVideoIndex.toString()}
-                onValueChange={(value) => selectVideo(parseInt(value))}
-              >
-                <SelectTrigger className="w-80 bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent className="bg-white/95 dark:bg-slate-800 dark:border-slate-700">
-                  {playlist.videos.map((video, index) => (
-                    <SelectItem key={video.id} value={index.toString()} className="dark:text-slate-200">
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{index + 1}.</span>
-                        <span className="truncate">{video.title}</span>
-                        {video.progress >= 100 && (
-                          <CheckCircle className="w-3 h-3 text-green-600 dark:text-green-400" />
-                        )}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              
               <Button
                 variant="outline"
                 onClick={() => setShowAllVideos(!showAllVideos)}
                 className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
               >
                 <List className="w-4 h-4 mr-2" />
-                {showAllVideos ? 'Hide' : 'Show'} All Videos
-              </Button>
-
-              <Button
-                onClick={playNextUnwatched}
-                className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
-              >
-                <PlayCircle className="w-4 h-4 mr-2" />
-                Next Unwatched
-              </Button>
-
-              <Button
-                onClick={markAllAsComplete}
-                className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800"
-              >
-                Complete All
+                {showAllVideos ? 'Hide Videos' : 'Show Videos'}
               </Button>
             </div>
           </div>
@@ -757,48 +902,6 @@ const VideoPlayer = () => {
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Progress value={currentVideo.progress} className="h-3 dark:bg-slate-700" />
-                    <div className="flex gap-2 flex-wrap">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateVideoProgress(currentVideo.id, 25)}
-                        disabled={currentVideo.progress >= 25}
-                        className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
-                      >
-                        25%
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateVideoProgress(currentVideo.id, 50)}
-                        disabled={currentVideo.progress >= 50}
-                        className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
-                      >
-                        50%
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={() => updateVideoProgress(currentVideo.id, 75)}
-                        disabled={currentVideo.progress >= 75}
-                        className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
-                      >
-                        75%
-                      </Button>
-                      <Button
-                        size="sm"
-                        onClick={markAsComplete}
-                        disabled={currentVideo.progress >= 100}
-                        className="bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white"
-                      >
-                        <CheckCircle className="w-3 h-3 mr-1" />
-                        Complete
-                      </Button>
-                    </div>
-                  </div>
-
                   <div className="space-y-4 mt-6 bg-gradient-to-br from-blue-50/80 to-indigo-50/80 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-5 border border-blue-100/50 dark:border-blue-800/50 shadow-sm">
                     {/* Main Watch Time Display */}
                     <div className="flex items-center justify-between">
@@ -824,10 +927,23 @@ const VideoPlayer = () => {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
-                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Current Position</div>
-                        <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                          {formatTime(currentVideo.watchTime || 0)}
+                      <div className="flex items-center gap-4">
+                        <Button
+                          onClick={markAsComplete}
+                          className={`transition-all duration-200 ${
+                            currentVideo.progress >= 100
+                              ? 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white'
+                              : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white'
+                          }`}
+                        >
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
+                        </Button>
+                        <div className="text-right bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
+                          <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Current Position</div>
+                          <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                            {formatTime(currentVideo.watchTime || 0)}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -902,98 +1018,81 @@ const VideoPlayer = () => {
           {/* Enhanced Playlist Sidebar */}
           <div className="space-y-4">
             {/* Uncompleted Videos */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Uncompleted Videos</h3>
-                <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                  {uncompletedVideos.length}
-                </Badge>
+            {showAllVideos && (
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Uncompleted Videos</h3>
+                  <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                    {uncompletedVideos.length}
+                  </Badge>
+                </div>
+                {uncompletedVideos.length === 0 ? (
+                  <div className="text-gray-600 dark:text-slate-400 text-sm">No uncompleted videos.</div>
+                ) : (
+                  <div className="space-y-3">
+                    {uncompletedVideos.map((video, index) => (
+                      <Card
+                        key={video.id}
+                        className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-500 hover:shadow-xl cursor-pointer animate-fade-in ${
+                          index === currentVideoIndex 
+                            ? 'ring-2 ring-blue-500 dark:ring-blue-400 bg-blue-50/80 dark:bg-blue-900/20' 
+                            : ''
+                        }`}
+                        onClick={() => selectVideo(index)}
+                      >
+                        <CardContent className="p-4">
+                          <div className="flex items-start gap-3">
+                            <div 
+                              className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
+                                index === currentVideoIndex
+                                  ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                                  : 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
+                              }`}
+                            >
+                              {index === currentVideoIndex ? (
+                                <Play className="w-4 h-4" />
+                              ) : (
+                                index + 1
+                              )}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p 
+                                  className={`text-sm font-medium truncate ${
+                                    index === currentVideoIndex 
+                                      ? 'text-blue-700 dark:text-blue-400'
+                                      : 'text-gray-800 dark:text-slate-200'
+                                  }`}
+                                >
+                                  {video.title}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2 mt-1">
+                                <span className="text-xs text-gray-600 dark:text-slate-400">
+                                  {formatDuration(video.watchTime || 0)}
+                                </span>
+                                <span className="text-xs text-gray-600 dark:text-slate-400">
+                                  {video.progress}% Watched
+                                </span>
+                                {index === currentVideoIndex && (
+                                  <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                                    Now Playing
+                                  </Badge>
+                                )}
+                              </div>
+                              <Progress 
+                                value={video.progress} 
+                                className="h-2 mt-2 dark:bg-slate-700"
+                              />
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
               </div>
-              {uncompletedVideos.length === 0 ? (
-                <div className="text-gray-600 dark:text-slate-400 text-sm">No uncompleted videos.</div>
-              ) : (
-                uncompletedVideos.map((video, index) => (
-                  <Card
-                    key={video.id}
-                    className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-200 hover:shadow-xl ${
-                      index === currentVideoIndex ? 'ring-2 ring-blue-500 dark:ring-blue-400 bg-blue-50/80 dark:bg-blue-900/20' : ''
-                    }`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div 
-                          onClick={() => selectVideo(index)}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
-                            video.progress >= 100 
-                              ? 'bg-green-600 dark:bg-green-700 text-white' 
-                              : index === currentVideoIndex
-                              ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                              : 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
-                          }`}
-                        >
-                          {video.progress >= 100 ? (
-                            <CheckCircle className="w-5 h-5" />
-                          ) : index === currentVideoIndex ? (
-                            <Play className="w-4 h-4" />
-                          ) : (
-                            index + 1
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p 
-                            onClick={() => selectVideo(index)}
-                            className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
-                              index === currentVideoIndex ? 'text-blue-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-200'
-                            }`}
-                          >
-                            {video.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.watchTime || 0)}</span>
-                            <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
-                            {index === currentVideoIndex && (
-                              <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                                Now Playing
-                              </Badge>
-                            )}
-                          </div>
-                          <Progress value={video.progress} className="h-2 mt-2 dark:bg-slate-700" />
-                          
-                          {/* Quick action buttons */}
-                          <div className="flex gap-1 mt-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-xs hover:bg-green-100 dark:hover:bg-green-900/30 dark:text-slate-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateVideoProgress(video.id, 100);
-                              }}
-                              disabled={video.progress >= 100}
-                            >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Done
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-slate-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateVideoProgress(video.id, 0);
-                              }}
-                              disabled={video.progress === 0}
-                            >
-                              Reset
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
-              )}
-            </div>
+            )}
 
             {/* Completed Videos */}
             {completedVideosList.length > 0 && (
@@ -1004,91 +1103,100 @@ const VideoPlayer = () => {
                     {completedVideosList.length}
                   </Badge>
                 </div>
-                {completedVideosList.map((video, index) => (
-                  <Card
-                    key={video.id}
-                    className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-200 hover:shadow-xl opacity-70 ${
-                      index === currentVideoIndex ? 'ring-2 ring-blue-500 dark:ring-blue-400 bg-blue-50/80 dark:bg-blue-900/20' : ''
-                    }`}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-start gap-3">
-                        <div 
-                          onClick={() => selectVideo(index)}
-                          className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
-                            video.progress >= 100 
-                              ? 'bg-green-600 dark:bg-green-700 text-white' 
-                              : index === currentVideoIndex
-                              ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                              : 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
-                          }`}
-                        >
-                          {video.progress >= 100 ? (
-                            <CheckCircle className="w-5 h-5" />
-                          ) : index === currentVideoIndex ? (
-                            <Play className="w-4 h-4" />
-                          ) : (
-                            index + 1
-                          )}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p 
+                <div className="space-y-3">
+                  {completedVideosList.map((video, index) => (
+                    <Card
+                      key={video.id}
+                      className={`bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg transition-all duration-500 hover:shadow-xl opacity-70 animate-slide-in-right ${
+                        index === currentVideoIndex ? 'ring-2 ring-blue-500 dark:ring-blue-400 bg-blue-50/80 dark:bg-blue-900/20' : ''
+                      }`}
+                    >
+                      <CardContent className="p-4">
+                        <div className="flex items-start gap-3">
+                          <div 
                             onClick={() => selectVideo(index)}
-                            className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
-                              index === currentVideoIndex ? 'text-blue-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-200'
+                            className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-semibold transition-all cursor-pointer hover:scale-110 ${
+                              video.progress >= 100 
+                                ? 'bg-green-600 dark:bg-green-700 text-white' 
+                                : index === currentVideoIndex
+                                ? 'bg-blue-600 dark:bg-blue-700 text-white'
+                                : 'bg-gray-200 dark:bg-slate-700 hover:bg-gray-300 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200'
                             }`}
                           >
-                            {video.title}
-                          </p>
-                          <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.watchTime || 0)}</span>
-                            <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
-                            {index === currentVideoIndex && (
-                              <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                                Now Playing
-                              </Badge>
+                            {video.progress >= 100 ? (
+                              <CheckCircle className="w-5 h-5" />
+                            ) : index === currentVideoIndex ? (
+                              <Play className="w-4 h-4" />
+                            ) : (
+                              index + 1
                             )}
                           </div>
-                          <Progress value={video.progress} className="h-2 mt-2 dark:bg-slate-700" />
-                          
-                          {/* Quick action buttons */}
-                          <div className="flex gap-1 mt-2">
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-xs hover:bg-green-100 dark:hover:bg-green-900/30 dark:text-slate-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateVideoProgress(video.id, 100);
-                              }}
-                              disabled={video.progress >= 100}
+                          <div className="flex-1 min-w-0">
+                            <p 
+                              onClick={() => selectVideo(index)}
+                              className={`text-sm font-medium truncate cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors ${
+                                index === currentVideoIndex ? 'text-blue-700 dark:text-blue-400' : 'text-gray-800 dark:text-slate-200'
+                              }`}
                             >
-                              <CheckCircle className="w-3 h-3 mr-1" />
-                              Done
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              className="h-6 px-2 text-xs hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-slate-200"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                updateVideoProgress(video.id, 0);
-                              }}
-                              disabled={video.progress === 0}
-                            >
-                              Reset
-                            </Button>
+                              {video.title}
+                            </p>
+                            <div className="flex items-center gap-2 mt-1">
+                              <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.watchTime || 0)}</span>
+                              <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
+                              {index === currentVideoIndex && (
+                                <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
+                                  Now Playing
+                                </Badge>
+                              )}
+                            </div>
+                            <Progress 
+                              value={video.progress} 
+                              className="h-2 mt-2 dark:bg-slate-700"
+                            />
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* Completion Dialog */}
+      <AlertDialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
+        <AlertDialogContent className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border border-white/20 dark:border-slate-700/50">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+              <CheckCircle className="w-6 h-6 text-green-500" />
+              All Videos Completed!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-slate-300 mt-2">
+              Congratulations! You have completed all videos in this playlist.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="mt-4">
+            <Button
+              onClick={() => {
+                if (playlist?.id) {
+                  navigate(`/playlist/${playlist.id}`);
+                }
+              }}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+            >
+              <List className="w-4 h-4 mr-2" />
+              Return to Playlist
+            </Button>
+          </div>
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200">
+              Close
+            </AlertDialogCancel>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
