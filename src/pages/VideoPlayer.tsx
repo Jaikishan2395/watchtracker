@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,8 +9,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
-// Add YouTube API types
+// Update the YouTube API types at the top of the file
 interface YouTubePlayer {
   destroy: () => void;
   getPlayerState: () => number;
@@ -26,30 +27,38 @@ interface YouTubePlayerEvent {
   target: YouTubePlayer;
 }
 
+interface YouTubePlayerVars {
+  autoplay?: number;
+  controls?: number;
+  modestbranding?: number;
+  rel?: number;
+  origin?: string;
+  enablejsapi?: number;
+  widget_referrer?: string;
+}
+
+interface YouTubePlayerEvents {
+  onStateChange?: (event: YouTubePlayerEvent) => void;
+  onReady?: (event: YouTubePlayerEvent) => void;
+  onError?: (event: YouTubePlayerEvent) => void;
+}
+
 interface YouTubeAPI {
   Player: new (
     elementId: HTMLElement,
     options: {
       videoId: string;
-      playerVars?: {
-        autoplay?: number;
-        controls?: number;
-        modestbranding?: number;
-        rel?: number;
-        origin?: string;
-        enablejsapi?: number;
-      };
-      events?: {
-        onStateChange?: (event: YouTubePlayerEvent) => void;
-        onReady?: (event: YouTubePlayerEvent) => void;
-        onError?: (event: YouTubePlayerEvent) => void;
-      };
+      playerVars?: YouTubePlayerVars;
+      events?: YouTubePlayerEvents;
     }
   ) => YouTubePlayer;
   PlayerState: {
     PLAYING: number;
     PAUSED: number;
     ENDED: number;
+    BUFFERING: number;
+    CUED: number;
+    UNSTARTED: number;
   };
 }
 
@@ -102,6 +111,7 @@ const VideoPlayer = () => {
   const videoIndex = parseInt(searchParams.get('video') || '0');
   
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(videoIndex);
   const [showAllVideos, setShowAllVideos] = useState(false);
   const [watchTimeData, setWatchTimeData] = useState<WatchTimeData>({
@@ -111,23 +121,26 @@ const VideoPlayer = () => {
     sessions: []
   });
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
+  const [isPlayerReady, setIsPlayerReady] = useState(false);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const iframeRef = useRef<HTMLDivElement>(null);
   const updateInterval = useRef<NodeJS.Timeout | null>(null);
   const sessionStartTime = useRef<number | null>(null);
   const lastUpdateTime = useRef<number>(Date.now());
-  const [isPlayerReady, setIsPlayerReady] = useState(false);
+  const initializationAttemptsRef = useRef<number>(0);
 
   // Get current video from playlist
   const currentVideo = playlist?.videos[currentVideoIndex];
 
   // Load playlist data
   useEffect(() => {
+    setIsLoading(true);
     // First try to get playlist from navigation state
     const statePlaylist = location.state?.playlist as Playlist | undefined;
     if (statePlaylist) {
       setPlaylist(statePlaylist);
+      setIsLoading(false);
       return;
     }
 
@@ -138,9 +151,18 @@ const VideoPlayer = () => {
       const found = playlists.find(p => p.id === id);
       if (found) {
         setPlaylist(found);
+      } else {
+        // If playlist not found, redirect to home
+        navigate('/');
+        toast.error('Playlist not found');
       }
+    } else {
+      // If no playlists exist, redirect to home
+      navigate('/');
+      toast.error('No playlists found');
     }
-  }, [id, location.state]);
+    setIsLoading(false);
+  }, [id, location.state, navigate]);
 
   // Initialize watch time data when video changes
   useEffect(() => {
@@ -171,11 +193,11 @@ const VideoPlayer = () => {
 
     return () => {
       // Save watch time data when component unmounts or video changes
-      if (currentVideo) {
+      if (currentVideo && watchTimeData) {
         localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(watchTimeData));
       }
     };
-  }, [currentVideo?.id, watchTimeData]);
+  }, [currentVideo?.id, watchTimeData, playlist]);
 
   // Function to start tracking watch time
   const startWatchTimeTracking = () => {
@@ -338,9 +360,185 @@ const VideoPlayer = () => {
     navigate('/');
   };
 
-  // Load YouTube API
+  // Add this function near the top of the component
+  const extractVideoIdFromUrl = (url: string): string | null => {
+    if (!url) return null;
+    
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/shorts\/([^&\n?#]+)/,
+      /youtube\.com\/v\/([^&\n?#]+)/
+    ];
+
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  // Update the player initialization effect
+  useEffect(() => {
+    let playerInstance: YouTubePlayer | null = null;
+    const MAX_ATTEMPTS = 3;
+
+    const initializePlayer = () => {
+      console.log('Player initialization effect running...', {
+        isPlayerReady,
+        hasIframeRef: !!iframeRef.current,
+        hasPlaylist: !!playlist,
+        currentVideoIndex,
+        currentVideo: playlist?.videos[currentVideoIndex],
+        attempt: initializationAttemptsRef.current + 1
+      });
+
+      if (!isPlayerReady || !iframeRef.current || !playlist) {
+        console.log('Player initialization skipped:', {
+          isPlayerReady,
+          hasIframeRef: !!iframeRef.current,
+          hasPlaylist: !!playlist
+        });
+        return;
+      }
+
+      const currentVideo = playlist.videos[currentVideoIndex];
+      if (!currentVideo) {
+        console.log('No current video found');
+        return;
+      }
+
+      const videoId = extractVideoIdFromUrl(currentVideo.url);
+      console.log('Extracted video ID:', videoId, 'from URL:', currentVideo.url);
+      
+      if (!videoId) {
+        console.error('Could not extract video ID from URL:', currentVideo.url);
+        toast.error('Invalid YouTube URL format');
+        return;
+      }
+
+      try {
+        // Destroy existing player if it exists
+        if (playerRef.current) {
+          playerRef.current.destroy();
+          playerRef.current = null;
+        }
+
+        // Clear the iframe container
+        if (iframeRef.current) {
+          iframeRef.current.innerHTML = '';
+        }
+
+        const playerOptions = {
+          videoId,
+          playerVars: {
+            autoplay: 0,
+            controls: 1,
+            modestbranding: 1,
+            rel: 0,
+            origin: window.location.origin,
+            enablejsapi: 1,
+            widget_referrer: window.location.href
+          } as YouTubePlayerVars,
+          events: {
+            onStateChange: (event: YouTubePlayerEvent) => {
+              console.log('Player state changed:', event.data);
+              if (event.data === window.YT.PlayerState.PLAYING) {
+                startWatchTimeTracking();
+              } else if (event.data === window.YT.PlayerState.PAUSED || 
+                         event.data === window.YT.PlayerState.ENDED) {
+                stopWatchTimeTracking();
+              }
+            },
+            onReady: (event: YouTubePlayerEvent) => {
+              console.log('Player ready!');
+              playerRef.current = playerInstance;
+              // Get video title when player is ready
+              const videoData = event.target.getVideoData();
+              setVideoTitle(videoData.title);
+              
+              // Resume from last position
+              if (watchTimeData.lastPosition > 0) {
+                playerRef.current?.seekTo(watchTimeData.lastPosition);
+              }
+            },
+            onError: (event: YouTubePlayerEvent) => {
+              console.error('YouTube player error:', event.data);
+              let errorMessage = 'An error occurred while playing the video.';
+              
+              // Handle specific error codes
+              switch (event.data) {
+                case 2:
+                  errorMessage = 'Invalid video ID. Please check the video URL.';
+                  break;
+                case 5:
+                  errorMessage = 'HTML5 player error. Please try a different browser.';
+                  break;
+                case 100:
+                  errorMessage = 'Video not found or has been removed.';
+                  break;
+                case 101:
+                case 150:
+                  errorMessage = 'Video embedding is not allowed.';
+                  break;
+              }
+              
+              toast.error(errorMessage);
+
+              // Retry initialization if we haven't exceeded max attempts
+              if (initializationAttemptsRef.current < MAX_ATTEMPTS) {
+                initializationAttemptsRef.current++;
+                console.log(`Retrying player initialization (attempt ${initializationAttemptsRef.current})...`);
+                setTimeout(initializePlayer, 1000); // Wait 1 second before retrying
+              }
+            }
+          } as YouTubePlayerEvents
+        };
+
+        playerInstance = new window.YT.Player(iframeRef.current, playerOptions);
+      } catch (error) {
+        console.error('Error initializing YouTube player:', error);
+        toast.error('Failed to initialize video player. Please try again.');
+
+        // Retry initialization if we haven't exceeded max attempts
+        if (initializationAttemptsRef.current < MAX_ATTEMPTS) {
+          initializationAttemptsRef.current++;
+          console.log(`Retrying player initialization (attempt ${initializationAttemptsRef.current})...`);
+          setTimeout(initializePlayer, 1000); // Wait 1 second before retrying
+        }
+      }
+    };
+
+    // Reset initialization attempts when dependencies change
+    initializationAttemptsRef.current = 0;
+    
+    // Start initialization
+    initializePlayer();
+
+    // Cleanup
+    return () => {
+      stopWatchTimeTracking();
+      if (playerInstance) {
+        playerInstance.destroy();
+        playerInstance = null;
+      }
+      if (playerRef.current) {
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+    };
+  }, [isPlayerReady, playlist, currentVideoIndex, watchTimeData.lastPosition]);
+
+  // Update the YouTube API loading effect
   useEffect(() => {
     console.log('Loading YouTube API...');
+    
+    // Check if API is already loaded
+    if (window.YT && window.YT.Player) {
+      console.log('YouTube API already loaded');
+      setIsPlayerReady(true);
+      return;
+    }
+
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
@@ -355,117 +553,30 @@ const VideoPlayer = () => {
       console.log('Cleaning up YouTube player...');
       if (playerRef.current) {
         playerRef.current.destroy();
+        playerRef.current = null;
       }
     };
   }, []);
-
-  // Update player initialization with new event handlers
-  useEffect(() => {
-    console.log('Player initialization effect running...', {
-      isPlayerReady,
-      hasIframeRef: !!iframeRef.current,
-      hasPlaylist: !!playlist,
-      currentVideoIndex,
-      currentVideo: playlist?.videos[currentVideoIndex]
-    });
-
-    if (!isPlayerReady || !iframeRef.current || !playlist) {
-      console.log('Player initialization skipped:', {
-        isPlayerReady,
-        hasIframeRef: !!iframeRef.current,
-        hasPlaylist: !!playlist
-      });
-      return;
-    }
-
-    const currentVideo = playlist.videos[currentVideoIndex];
-    if (!currentVideo) {
-      console.log('No current video found');
-      return;
-    }
-
-    // Improved video ID extraction
-    let videoId = '';
-    try {
-      // Handle different YouTube URL formats
-      const url = currentVideo.url.replace('@', ''); // Remove @ if present
-      if (url.includes('youtube.com/watch?v=')) {
-        videoId = url.split('v=')[1]?.split('&')[0] || '';
-      } else if (url.includes('youtu.be/')) {
-        videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
-      } else if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
-        // Direct video ID
-        videoId = url;
-      }
-      
-      console.log('Extracted video ID:', videoId, 'from URL:', url);
-      
-      if (!videoId) {
-        console.error('Could not extract video ID from URL:', url);
-        return;
-      }
-    } catch (error) {
-      console.error('Error extracting video ID:', error);
-      return;
-    }
-
-    try {
-      playerRef.current = new window.YT.Player(iframeRef.current, {
-        videoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 1,
-          modestbranding: 1,
-          rel: 0,
-          origin: window.location.origin, // Add origin for security
-          enablejsapi: 1, // Enable JavaScript API
-        },
-        events: {
-          onStateChange: (event: YouTubePlayerEvent) => {
-            console.log('Player state changed:', event.data);
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              startWatchTimeTracking();
-            } else if (event.data === window.YT.PlayerState.PAUSED || 
-                       event.data === window.YT.PlayerState.ENDED) {
-              stopWatchTimeTracking();
-            }
-          },
-          onReady: (event: YouTubePlayerEvent) => {
-            console.log('Player ready!');
-            // Get video title when player is ready
-            const videoData = event.target.getVideoData();
-            setVideoTitle(videoData.title);
-            
-            // Resume from last position
-            if (watchTimeData.lastPosition > 0) {
-              playerRef.current?.seekTo(watchTimeData.lastPosition);
-            }
-          },
-          onError: (event: YouTubePlayerEvent) => {
-            console.error('YouTube player error:', event.data);
-            // Show user-friendly error message
-            toast.error('Failed to load video. Please check the video URL and try again.');
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error initializing YouTube player:', error);
-      toast.error('Failed to initialize video player. Please try again later.');
-    }
-
-    // Cleanup
-    return () => {
-      stopWatchTimeTracking();
-      if (playerRef.current) {
-        playerRef.current.destroy();
-      }
-    };
-  }, [isPlayerReady, playlist, currentVideoIndex]);
 
   // Reset watch time tracking when video changes
   useEffect(() => {
     stopWatchTimeTracking();
   }, [currentVideoIndex]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <Card>
+          <CardContent className="py-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p>Loading playlist...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!playlist) {
     return (
@@ -526,15 +637,19 @@ const VideoPlayer = () => {
         {/* Header */}
         <div className="mb-8 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate(`/playlist/${id}`)}
-              className="hover:bg-white/50 dark:hover:bg-slate-800 dark:text-slate-200"
-            >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Playlist
-            </Button>
-            <div className="text-2xl font-bold text-gray-800 dark:text-white">WatchMap</div>
+            <div className="flex items-center gap-4">
+              {playlist && (
+                <Button
+                  variant="outline"
+                  onClick={() => navigate(`/playlist/${playlist.id}`)}
+                  className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Back to Playlist
+                </Button>
+              )}
+              <div className="text-2xl font-bold text-gray-800 dark:text-white">WatchMap</div>
+            </div>
             <AlertDialog>
               <AlertDialogTrigger asChild>
                 <Button
@@ -738,7 +853,7 @@ const VideoPlayer = () => {
                         </div>
                       </div>
                       <div className="text-right bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
-                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Current Position</div>
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Current Position</div>
                         <div className="text-xl font-semibold text-gray-900 dark:text-white">
                           {formatTime(currentVideo.watchTime || 0)}
                         </div>
