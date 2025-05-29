@@ -3,10 +3,9 @@ import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { CodingQuestion } from '@/types/playlist';
 import { toast } from 'sonner';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AddCodingQuestionModalProps {
   isOpen: boolean;
@@ -16,8 +15,6 @@ interface AddCodingQuestionModalProps {
 
 const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionModalProps) => {
   const [questionContent, setQuestionContent] = useState('');
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('easy');
-  const [category, setCategory] = useState<CodingQuestion['category']>('algorithms');
   const [error, setError] = useState<string | null>(null);
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -43,8 +40,8 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
     const questionData = {
       title,
       description,
-      difficulty,
-      category,
+      difficulty: 'easy' as const,
+      category: 'algorithms' as const,
       tags: [],
       notes: '',
       timeSpent: 0,
@@ -56,8 +53,6 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
     
     // Reset form
     setQuestionContent('');
-    setDifficulty('easy');
-    setCategory('algorithms');
     setError(null);
     
     onClose();
@@ -66,8 +61,6 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
 
   const handleClose = () => {
     setQuestionContent('');
-    setDifficulty('easy');
-    setCategory('algorithms');
     setError(null);
     onClose();
   };
@@ -80,6 +73,9 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
             <Plus className="w-5 h-5" />
             Add Coding Question
           </DialogTitle>
+          <DialogDescription>
+            Add a new coding question to your playlist. Paste the question content below, with the title in the first line.
+          </DialogDescription>
         </DialogHeader>
         
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -102,42 +98,6 @@ const AddCodingQuestionModal = ({ isOpen, onClose, onAdd }: AddCodingQuestionMod
             <p className="text-sm text-gray-500 mt-1">
               Paste the entire question content. The first line will be used as the title.
             </p>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="difficulty">Difficulty</Label>
-              <Select value={difficulty} onValueChange={(value: 'easy' | 'medium' | 'hard') => setDifficulty(value)}>
-                <SelectTrigger id="difficulty">
-                  <SelectValue placeholder="Select difficulty" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="easy">Easy</SelectItem>
-                  <SelectItem value="medium">Medium</SelectItem>
-                  <SelectItem value="hard">Hard</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div>
-              <Label htmlFor="category">Category</Label>
-              <Select value={category} onValueChange={(value: CodingQuestion['category']) => setCategory(value)}>
-                <SelectTrigger id="category">
-                  <SelectValue placeholder="Select category" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="algorithms">Algorithms</SelectItem>
-                  <SelectItem value="data-structures">Data Structures</SelectItem>
-                  <SelectItem value="system-design">System Design</SelectItem>
-                  <SelectItem value="dynamic-programming">Dynamic Programming</SelectItem>
-                  <SelectItem value="graphs">Graphs</SelectItem>
-                  <SelectItem value="arrays">Arrays</SelectItem>
-                  <SelectItem value="strings">Strings</SelectItem>
-                  <SelectItem value="trees">Trees</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
           </div>
           
           <div className="flex gap-2 pt-4">

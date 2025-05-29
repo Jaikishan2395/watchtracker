@@ -67,17 +67,31 @@ const PlaylistDetailWrapper = () => {
   const [playlistType, setPlaylistType] = useState<'video' | 'coding' | null>(null);
 
   useEffect(() => {
+    console.log('PlaylistDetailWrapper: Starting playlist lookup for ID:', playlistId);
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
-      const playlists: Playlist[] = JSON.parse(savedPlaylists);
-      const playlist = playlists.find(p => p.id === playlistId);
-      if (playlist) {
-        setPlaylistType(playlist.type);
+      try {
+        const playlists: Playlist[] = JSON.parse(savedPlaylists);
+        console.log('PlaylistDetailWrapper: Successfully parsed playlists from localStorage:', playlists);
+        const playlist = playlists.find(p => p.id === playlistId);
+        console.log('PlaylistDetailWrapper: Found playlist:', playlist);
+        if (playlist) {
+          console.log('PlaylistDetailWrapper: Setting playlist type to:', playlist.type);
+          setPlaylistType(playlist.type);
+        } else {
+          console.error('PlaylistDetailWrapper: No playlist found with ID:', playlistId);
+          console.log('PlaylistDetailWrapper: Available playlist IDs:', playlists.map(p => p.id));
+        }
+      } catch (error) {
+        console.error('PlaylistDetailWrapper: Error parsing playlists from localStorage:', error);
       }
+    } else {
+      console.error('PlaylistDetailWrapper: No playlists found in localStorage');
     }
   }, [playlistId]);
 
   if (!playlistType) {
+    console.log('PlaylistDetailWrapper: Still loading playlist type...');
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -87,6 +101,7 @@ const PlaylistDetailWrapper = () => {
     );
   }
 
+  console.log('PlaylistDetailWrapper: Rendering component for playlist type:', playlistType);
   return playlistType === 'coding' ? <PlaylistDetailCoding /> : <PlaylistDetail />;
 };
 

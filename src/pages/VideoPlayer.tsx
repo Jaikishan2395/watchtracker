@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, FileText, ChevronDown, ChevronUp, Search, Languages, X, Copy, Download, Share2, Keyboard, FileJson, FileText as FileTextIcon, Clock as ClockIcon, CheckSquare } from 'lucide-react';
+import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -9,10 +9,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 // Add YouTube API types
 interface YouTubePlayer {
@@ -40,10 +36,13 @@ interface YouTubeAPI {
         controls?: number;
         modestbranding?: number;
         rel?: number;
+        origin?: string;
+        enablejsapi?: number;
       };
       events?: {
         onStateChange?: (event: YouTubePlayerEvent) => void;
         onReady?: (event: YouTubePlayerEvent) => void;
+        onError?: (event: YouTubePlayerEvent) => void;
       };
     }
   ) => YouTubePlayer;
@@ -72,38 +71,13 @@ interface WatchTimeData {
   }[];
 }
 
-// Add Transcript type
-interface TranscriptEntry {
-  start: number;
-  duration: number;
-  text: string;
-}
-
-interface Transcript {
-  language: string;
-  transcript: TranscriptEntry[];
-}
-
-interface AvailableLanguage {
-  languageCode: string;
-  languageName: string;
-}
-
-// Add keyboard shortcut type
-interface KeyboardShortcut {
-  key: string;
-  description: string;
-  action: () => void;
-}
-
-// Add export format type
-type ExportFormat = 'txt' | 'json' | 'srt' | 'vtt';
-
-const formatDuration = (duration: { hours: number; minutes: number }) => {
-  if (duration.hours > 0) {
-    return `${duration.hours}h ${duration.minutes}m`;
+const formatDuration = (minutes: number) => {
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${remainingMinutes}m`;
   }
-  return `${duration.minutes}m`;
+  return `${remainingMinutes}m`;
 };
 
 const formatTime = (seconds: number) => {
@@ -123,6 +97,7 @@ const formatTime = (seconds: number) => {
 const VideoPlayer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const videoIndex = parseInt(searchParams.get('video') || '0');
   
@@ -136,15 +111,6 @@ const VideoPlayer = () => {
     sessions: []
   });
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
-  const [transcript, setTranscript] = useState<Transcript | null>(null);
-  const [showTranscript, setShowTranscript] = useState(false);
-  const [isLoadingTranscript, setIsLoadingTranscript] = useState(false);
-  const [transcriptError, setTranscriptError] = useState<string | null>(null);
-  const [availableLanguages, setAvailableLanguages] = useState<AvailableLanguage[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState<string>('en');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [currentTranscriptIndex, setCurrentTranscriptIndex] = useState<number | null>(null);
-  const transcriptContainerRef = useRef<HTMLDivElement>(null);
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const iframeRef = useRef<HTMLDivElement>(null);
@@ -152,19 +118,20 @@ const VideoPlayer = () => {
   const sessionStartTime = useRef<number | null>(null);
   const lastUpdateTime = useRef<number>(Date.now());
   const [isPlayerReady, setIsPlayerReady] = useState(false);
-  const [showKeyboardShortcuts, setShowKeyboardShortcuts] = useState(false);
-  const [copiedToClipboard, setCopiedToClipboard] = useState(false);
-  const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const searchInputRef = useRef<HTMLInputElement>(null);
-  const [selectedText, setSelectedText] = useState<string>('');
-  const [showCopySuccess, setShowCopySuccess] = useState<string | null>(null);
-  const [exportFormat, setExportFormat] = useState<ExportFormat>('txt');
 
   // Get current video from playlist
   const currentVideo = playlist?.videos[currentVideoIndex];
 
   // Load playlist data
   useEffect(() => {
+    // First try to get playlist from navigation state
+    const statePlaylist = location.state?.playlist as Playlist | undefined;
+    if (statePlaylist) {
+      setPlaylist(statePlaylist);
+      return;
+    }
+
+    // Fall back to localStorage if no state data
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
       const playlists: Playlist[] = JSON.parse(savedPlaylists);
@@ -173,7 +140,7 @@ const VideoPlayer = () => {
         setPlaylist(found);
       }
     }
-  }, [id]);
+  }, [id, location.state]);
 
   // Initialize watch time data when video changes
   useEffect(() => {
@@ -373,16 +340,19 @@ const VideoPlayer = () => {
 
   // Load YouTube API
   useEffect(() => {
+    console.log('Loading YouTube API...');
     const tag = document.createElement('script');
     tag.src = 'https://www.youtube.com/iframe_api';
     const firstScriptTag = document.getElementsByTagName('script')[0];
     firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
 
     window.onYouTubeIframeAPIReady = () => {
+      console.log('YouTube API Ready!');
       setIsPlayerReady(true);
     };
 
     return () => {
+      console.log('Cleaning up YouTube player...');
       if (playerRef.current) {
         playerRef.current.destroy();
       }
@@ -391,42 +361,97 @@ const VideoPlayer = () => {
 
   // Update player initialization with new event handlers
   useEffect(() => {
-    if (!isPlayerReady || !iframeRef.current || !playlist) return;
+    console.log('Player initialization effect running...', {
+      isPlayerReady,
+      hasIframeRef: !!iframeRef.current,
+      hasPlaylist: !!playlist,
+      currentVideoIndex,
+      currentVideo: playlist?.videos[currentVideoIndex]
+    });
+
+    if (!isPlayerReady || !iframeRef.current || !playlist) {
+      console.log('Player initialization skipped:', {
+        isPlayerReady,
+        hasIframeRef: !!iframeRef.current,
+        hasPlaylist: !!playlist
+      });
+      return;
+    }
 
     const currentVideo = playlist.videos[currentVideoIndex];
-    if (!currentVideo) return;
+    if (!currentVideo) {
+      console.log('No current video found');
+      return;
+    }
 
-    const videoId = currentVideo.url.split('v=')[1] || currentVideo.url.split('/').pop();
-    
-    playerRef.current = new window.YT.Player(iframeRef.current, {
-      videoId,
-      playerVars: {
-        autoplay: 0,
-        controls: 1,
-        modestbranding: 1,
-        rel: 0,
-      },
-      events: {
-        onStateChange: (event: YouTubePlayerEvent) => {
-          if (event.data === window.YT.PlayerState.PLAYING) {
-            startWatchTimeTracking();
-          } else if (event.data === window.YT.PlayerState.PAUSED || 
-                     event.data === window.YT.PlayerState.ENDED) {
-            stopWatchTimeTracking();
-          }
+    // Improved video ID extraction
+    let videoId = '';
+    try {
+      // Handle different YouTube URL formats
+      const url = currentVideo.url.replace('@', ''); // Remove @ if present
+      if (url.includes('youtube.com/watch?v=')) {
+        videoId = url.split('v=')[1]?.split('&')[0] || '';
+      } else if (url.includes('youtu.be/')) {
+        videoId = url.split('youtu.be/')[1]?.split('?')[0] || '';
+      } else if (url.match(/^[a-zA-Z0-9_-]{11}$/)) {
+        // Direct video ID
+        videoId = url;
+      }
+      
+      console.log('Extracted video ID:', videoId, 'from URL:', url);
+      
+      if (!videoId) {
+        console.error('Could not extract video ID from URL:', url);
+        return;
+      }
+    } catch (error) {
+      console.error('Error extracting video ID:', error);
+      return;
+    }
+
+    try {
+      playerRef.current = new window.YT.Player(iframeRef.current, {
+        videoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 1,
+          modestbranding: 1,
+          rel: 0,
+          origin: window.location.origin, // Add origin for security
+          enablejsapi: 1, // Enable JavaScript API
         },
-        onReady: (event: YouTubePlayerEvent) => {
-          // Get video title when player is ready
-          const videoData = event.target.getVideoData();
-          setVideoTitle(videoData.title);
-          
-          // Resume from last position
-          if (watchTimeData.lastPosition > 0) {
-            playerRef.current?.seekTo(watchTimeData.lastPosition);
+        events: {
+          onStateChange: (event: YouTubePlayerEvent) => {
+            console.log('Player state changed:', event.data);
+            if (event.data === window.YT.PlayerState.PLAYING) {
+              startWatchTimeTracking();
+            } else if (event.data === window.YT.PlayerState.PAUSED || 
+                       event.data === window.YT.PlayerState.ENDED) {
+              stopWatchTimeTracking();
+            }
+          },
+          onReady: (event: YouTubePlayerEvent) => {
+            console.log('Player ready!');
+            // Get video title when player is ready
+            const videoData = event.target.getVideoData();
+            setVideoTitle(videoData.title);
+            
+            // Resume from last position
+            if (watchTimeData.lastPosition > 0) {
+              playerRef.current?.seekTo(watchTimeData.lastPosition);
+            }
+          },
+          onError: (event: YouTubePlayerEvent) => {
+            console.error('YouTube player error:', event.data);
+            // Show user-friendly error message
+            toast.error('Failed to load video. Please check the video URL and try again.');
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.error('Error initializing YouTube player:', error);
+      toast.error('Failed to initialize video player. Please try again later.');
+    }
 
     // Cleanup
     return () => {
@@ -441,171 +466,6 @@ const VideoPlayer = () => {
   useEffect(() => {
     stopWatchTimeTracking();
   }, [currentVideoIndex]);
-
-  // Function to fetch available languages
-  const fetchAvailableLanguages = async (videoId: string) => {
-    try {
-      const response = await fetch(`http://localhost:3001/api/transcript/${videoId}/languages`);
-      if (!response.ok) throw new Error('Failed to fetch languages');
-      const data = await response.json();
-      setAvailableLanguages(data.languages);
-    } catch (error) {
-      console.error('Error fetching languages:', error);
-    }
-  };
-
-  // Keep only the essential transcript functions
-  const fetchTranscript = async (videoId: string) => {
-    if (!videoId) return;
-    
-    setIsLoadingTranscript(true);
-    setTranscriptError(null);
-    
-    try {
-      const response = await fetch(`http://localhost:3001/api/transcript/${videoId}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch transcript');
-      }
-      const data = await response.json();
-      setTranscript(data);
-    } catch (error) {
-      console.error('Error fetching transcript:', error);
-      setTranscriptError(error instanceof Error ? error.message : 'Failed to load transcript');
-    } finally {
-      setIsLoadingTranscript(false);
-    }
-  };
-
-  // Update video change effect to fetch languages
-  useEffect(() => {
-    if (!currentVideo) return;
-    
-    const videoId = currentVideo.url.split('v=')[1] || currentVideo.url.split('/').pop();
-    if (videoId) {
-      fetchAvailableLanguages(videoId);
-      fetchTranscript(videoId);
-    }
-  }, [currentVideo?.id]);
-
-  // Format transcript for export
-  const formatTranscriptForExport = useCallback((format: ExportFormat) => {
-    if (!transcript || !currentVideo) return '';
-
-    switch (format) {
-      case 'json':
-        return JSON.stringify({
-          videoTitle: currentVideo.title,
-          language: transcript.language,
-          transcript: transcript.transcript
-        }, null, 2);
-
-      case 'srt':
-        return transcript.transcript.map((entry, index) => {
-          const start = new Date(entry.start * 1000).toISOString().substr(11, 12).replace('.', ',');
-          const end = new Date((entry.start + entry.duration) * 1000).toISOString().substr(11, 12).replace('.', ',');
-          return `${index + 1}\n${start} --> ${end}\n${entry.text}\n\n`;
-        }).join('');
-
-      case 'vtt':
-        return `WEBVTT\n\n${transcript.transcript.map((entry, index) => {
-          const start = new Date(entry.start * 1000).toISOString().substr(11, 12);
-          const end = new Date((entry.start + entry.duration) * 1000).toISOString().substr(11, 12);
-          return `${index + 1}\n${start} --> ${end}\n${entry.text}\n\n`;
-        }).join('')}`;
-
-      case 'txt':
-      default:
-        return transcript.transcript
-          .map(entry => `[${formatTime(entry.start)}] ${entry.text}`)
-          .join('\n');
-    }
-  }, [transcript, currentVideo]);
-
-  // Download transcript
-  const downloadTranscript = useCallback(() => {
-    if (!transcript || !currentVideo) return;
-
-    const content = formatTranscriptForExport(exportFormat);
-    const mimeTypes = {
-      txt: 'text/plain',
-      json: 'application/json',
-      srt: 'text/plain',
-      vtt: 'text/vtt'
-    };
-    const extensions = {
-      txt: 'txt',
-      json: 'json',
-      srt: 'srt',
-      vtt: 'vtt'
-    };
-
-    const blob = new Blob([content], { type: mimeTypes[exportFormat] });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${currentVideo.title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_transcript.${extensions[exportFormat]}`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  }, [transcript, currentVideo, exportFormat, formatTranscriptForExport]);
-
-  // Share timestamp
-  const shareTimestamp = useCallback(() => {
-    if (!currentVideo || !playerRef.current) return;
-
-    const currentTime = Math.floor(playerRef.current.getCurrentTime());
-    const videoId = currentVideo.url.split('v=')[1] || currentVideo.url.split('/').pop();
-    const url = `${window.location.origin}/playlist/${id}/play?video=${currentVideoIndex}&t=${currentTime}`;
-    
-    setShareUrl(url);
-    navigator.clipboard.writeText(url);
-    toast.success('Share link copied to clipboard!');
-  }, [currentVideo, currentVideoIndex, id]);
-
-  // Highlight search matches
-  const highlightText = (text: string, query: string) => {
-    if (!query) return text;
-    
-    const parts = text.split(new RegExp(`(${query})`, 'gi'));
-    return parts.map((part, i) => 
-      part.toLowerCase() === query.toLowerCase() 
-        ? <mark key={i} className="bg-yellow-200/80 px-0.5 rounded">{part}</mark>
-        : part
-    );
-  };
-
-  // Handle text selection
-  useEffect(() => {
-    const handleSelection = () => {
-      const selection = window.getSelection();
-      if (selection && selection.toString().trim()) {
-        setSelectedText(selection.toString().trim());
-      } else {
-        setSelectedText('');
-      }
-    };
-
-    document.addEventListener('selectionchange', handleSelection);
-    return () => document.removeEventListener('selectionchange', handleSelection);
-  }, []);
-
-  // Copy current timestamp
-  const copyTimestamp = useCallback(() => {
-    if (!playerRef.current) return;
-    const time = formatTime(playerRef.current.getCurrentTime());
-    navigator.clipboard.writeText(time);
-    setShowCopySuccess('Timestamp');
-    setTimeout(() => setShowCopySuccess(null), 2000);
-  }, []);
-
-  // Add seekToTranscript function before the return statement
-  const seekToTranscript = useCallback((time: number) => {
-    if (playerRef.current) {
-      playerRef.current.seekTo(time);
-      playerRef.current.playVideo();
-    }
-  }, []);
 
   if (!playlist) {
     return (
@@ -636,11 +496,6 @@ const VideoPlayer = () => {
       </div>
     );
   }
-
-  const getYouTubeEmbedUrl = (url: string) => {
-    const videoId = url.split('v=')[1] || url.split('/').pop();
-    return `https://www.youtube.com/embed/${videoId}?enablejsapi=1&origin=${window.location.origin}`;
-  };
 
   const completedVideos = playlist.videos.filter(v => v.progress >= 100).length;
   const totalProgress = playlist.videos.reduce((sum, video) => sum + video.progress, 0) / playlist.videos.length;
@@ -698,7 +553,7 @@ const VideoPlayer = () => {
                   </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                  <AlertDialogCancel className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600 dark:hover:bg-slate-600">Cancel</AlertDialogCancel>
+                  <AlertDialogCancel className="dark:bg-slate-700 dark:text-slate-200 dark:border-slate-600">Cancel</AlertDialogCancel>
                   <AlertDialogAction 
                     onClick={resetAllData} 
                     className="bg-red-600 hover:bg-red-700 dark:bg-red-900 dark:hover:bg-red-800"
@@ -808,7 +663,7 @@ const VideoPlayer = () => {
                   <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-slate-300">
                     <div className="flex items-center gap-1">
                       <Clock className="w-4 h-4" />
-                      <span>{formatDuration(currentVideo.duration)}</span>
+                      <span>{formatDuration(currentVideo.watchTime || 0)}</span>
                     </div>
                     <div className="flex items-center gap-1">
                       <span>Progress: {currentVideo.progress}%</span>
@@ -883,7 +738,7 @@ const VideoPlayer = () => {
                         </div>
                       </div>
                       <div className="text-right bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
-                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Current Position</div>
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Current Position</div>
                         <div className="text-xl font-semibold text-gray-900 dark:text-white">
                           {formatTime(currentVideo.watchTime || 0)}
                         </div>
@@ -922,149 +777,6 @@ const VideoPlayer = () => {
                     )}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-
-            {/* Transcript Panel */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
-              <CardHeader>
-                <div className="flex items-center justify-between">
-                  <CardTitle className="text-xl flex items-center gap-2 dark:text-white">
-                    <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-                    Transcript
-                    {transcript && (
-                      <Badge variant="outline" className="ml-2 bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/50">
-                        {transcript.language.toUpperCase()}
-                      </Badge>
-                    )}
-                  </CardTitle>
-                  <div className="flex items-center gap-2">
-                    {availableLanguages.length > 1 && (
-                      <Select
-                        value={selectedLanguage}
-                        onValueChange={(value) => {
-                          setSelectedLanguage(value);
-                          const videoId = currentVideo?.url.split('v=')[1] || currentVideo?.url.split('/').pop();
-                          if (videoId) fetchTranscript(videoId);
-                        }}
-                      >
-                        <SelectTrigger className="w-[180px] bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                          <div className="flex items-center gap-2">
-                            <Languages className="w-4 h-4" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
-                          {availableLanguages.map((lang) => (
-                            <SelectItem key={lang.languageCode} value={lang.languageCode} className="dark:text-slate-200">
-                              {lang.languageName}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    )}
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                {isLoadingTranscript ? (
-                  <div className="text-center py-4 text-gray-600 dark:text-slate-400">
-                    Loading transcript...
-                  </div>
-                ) : transcriptError ? (
-                  <div className="text-center py-4 text-red-600 dark:text-red-400">
-                    {transcriptError}
-                  </div>
-                ) : !transcript ? (
-                  <div className="text-center py-4 text-gray-600 dark:text-slate-400">
-                    No transcript available for this video
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {/* Download Controls */}
-                    <div className="flex items-center gap-4">
-                      <Select
-                        value={exportFormat}
-                        onValueChange={(value: ExportFormat) => setExportFormat(value)}
-                      >
-                        <SelectTrigger className="w-[180px] bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                          <div className="flex items-center gap-2">
-                            <FileTextIcon className="w-4 h-4" />
-                            <SelectValue />
-                          </div>
-                        </SelectTrigger>
-                        <SelectContent className="dark:bg-slate-800 dark:border-slate-700">
-                          <SelectItem value="txt" className="dark:text-slate-200">
-                            <div className="flex items-center gap-2">
-                              <FileTextIcon className="w-4 h-4" />
-                              Text (TXT)
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="json" className="dark:text-slate-200">
-                            <div className="flex items-center gap-2">
-                              <FileJson className="w-4 h-4" />
-                              JSON
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="srt" className="dark:text-slate-200">
-                            <div className="flex items-center gap-2">
-                              <FileTextIcon className="w-4 h-4" />
-                              SubRip (SRT)
-                            </div>
-                          </SelectItem>
-                          <SelectItem value="vtt" className="dark:text-slate-200">
-                            <div className="flex items-center gap-2">
-                              <FileTextIcon className="w-4 h-4" />
-                              WebVTT
-                            </div>
-                          </SelectItem>
-                        </SelectContent>
-                      </Select>
-
-                      <Button
-                        onClick={downloadTranscript}
-                        className="bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        Download Transcript
-                      </Button>
-                    </div>
-
-                    {/* Transcript List */}
-                    <ScrollArea className="h-[400px] pr-4">
-                      <div ref={transcriptContainerRef} className="space-y-2">
-                        {transcript.transcript.map((entry, index) => (
-                          <div
-                            key={index}
-                            onClick={() => seekToTranscript(entry.start)}
-                            className={`p-3 rounded-lg cursor-pointer transition-all group ${
-                              currentTranscriptIndex === index
-                                ? 'bg-blue-100 dark:bg-blue-900/30 border-l-4 border-blue-500 dark:border-blue-400'
-                                : 'hover:bg-blue-50 dark:hover:bg-blue-900/20 border-l-4 border-transparent'
-                            }`}
-                          >
-                            <div className="flex items-start gap-3">
-                              <span className={`text-sm font-medium whitespace-nowrap ${
-                                currentTranscriptIndex === index
-                                  ? 'text-blue-700 dark:text-blue-400'
-                                  : 'text-blue-600 dark:text-blue-500 group-hover:text-blue-700 dark:group-hover:text-blue-400'
-                              }`}>
-                                {formatTime(entry.start)}
-                              </span>
-                              <p className={`${
-                                currentTranscriptIndex === index
-                                  ? 'text-gray-900 dark:text-white'
-                                  : 'text-gray-700 dark:text-slate-300 group-hover:text-gray-900 dark:group-hover:text-white'
-                              }`}>
-                                {entry.text}
-                              </p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
-                  </div>
-                )}
               </CardContent>
             </Card>
 
@@ -1150,7 +862,7 @@ const VideoPlayer = () => {
                             {video.title}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.duration)}</span>
+                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.watchTime || 0)}</span>
                             <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
                             {index === currentVideoIndex && (
                               <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
@@ -1242,7 +954,7 @@ const VideoPlayer = () => {
                             {video.title}
                           </p>
                           <div className="flex items-center gap-2 mt-1">
-                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.duration)}</span>
+                            <span className="text-xs text-gray-600 dark:text-slate-400">{formatDuration(video.watchTime || 0)}</span>
                             <span className="text-xs text-gray-600 dark:text-slate-400">{video.progress}%</span>
                             {index === currentVideoIndex && (
                               <Badge variant="outline" className="text-xs px-1 py-0 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">

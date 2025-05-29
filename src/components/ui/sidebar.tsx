@@ -550,20 +550,19 @@ type ButtonVariant = "default" | "outline" | "icon"
 type ButtonSize = "default" | "sm" | "lg" | "icon"
 
 const sidebarMenuButtonVariants = cva(
-  "peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl p-2 text-left text-sm outline-none ring-sidebar-ring transition-all duration-[--sidebar-animation-duration] hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:scale-[--sidebar-hover-scale] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 aria-disabled:pointer-events-none aria-disabled:opacity-50 data-[active=true]:bg-sidebar-accent data-[active=true]:font-medium data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-sm data-[state=open]:hover:bg-sidebar-accent data-[state=open]:hover:text-sidebar-accent-foreground [&>span:last-child]:truncate [&>svg]:size-6 [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-[--sidebar-animation-duration] hover:[&>svg]:scale-110",
   {
     variants: {
       variant: {
         default: "w-full hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-md",
         outline:
           "w-full bg-background/50 shadow-[0_0_0_1px_hsl(var(--sidebar-border))] hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-[0_0_0_1px_hsl(var(--sidebar-accent))] hover:shadow-md",
-        icon: "h-24 w-24 p-0 justify-center items-center rounded-2xl hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-xl [&>svg]:size-12 hover:[&>svg]:scale-110 data-[active=true]:bg-sidebar-accent/90 data-[active=true]:shadow-xl data-[active=true]:ring-2 data-[active=true]:ring-sidebar-accent/50 [&>span]:hidden transition-all duration-300 ease-in-out hover:translate-y-[-2px] active:translate-y-[1px]",
+        icon: "h-16 w-16 p-0 justify-center items-center rounded-xl hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:shadow-lg [&>svg]:size-8 hover:[&>svg]:scale-110 data-[active=true]:bg-sidebar-accent/90 data-[active=true]:shadow-lg data-[active=true]:ring-2 data-[active=true]:ring-sidebar-accent/50 [&>span]:hidden transition-all duration-300 ease-in-out hover:translate-y-[-2px] active:translate-y-[1px]",
       },
       size: {
-        default: "h-9 w-full text-sm",
-        sm: "h-8 w-full text-xs",
-        lg: "h-12 w-full text-sm",
-        icon: "h-24 w-24 p-0 justify-center items-center rounded-2xl [&>svg]:size-12 [&>span]:hidden",
+        default: "h-8 w-full text-sm",
+        sm: "h-7 w-full text-xs",
+        lg: "h-10 w-full text-sm",
+        icon: "h-16 w-16 p-0 justify-center items-center rounded-xl [&>svg]:size-8 [&>span]:hidden",
       },
     },
     defaultVariants: {

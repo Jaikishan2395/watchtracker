@@ -22,3 +22,17 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Gemini API Key
+GEMINI_API_KEY=AIzaSyDMZB2tVgSRV77PyweR-fOMWV4r2K1lgJA
+
+# Environment
+NODE_ENV=development
+
+# API Configuration
+NEXT_PUBLIC_API_URL=http://localhost:3000/api

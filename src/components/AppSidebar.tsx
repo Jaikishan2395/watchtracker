@@ -51,7 +51,6 @@ export function AppSidebar() {
       </SidebarHeader>
       <SidebarContent>
         <SidebarGroup>
-          
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => (
@@ -60,8 +59,10 @@ export function AppSidebar() {
                     isActive={location.pathname === item.url}
                     onClick={() => navigate(item.url)}
                     className="justify-center w-12 h-16 py-4"
+                    iconOnly={true}
                   >
                     <item.icon className="w-5 h-5" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
@@ -78,16 +79,20 @@ export function AppSidebar() {
                   onClick={() => navigate('/settings')}
                   className="w-12 h-16 py-4 justify-center hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground transition-all duration-200"
                   tooltip="Settings"
+                  iconOnly={true}
                 >
                   <Settings className="w-5 h-5" />
+                  <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate('/login')}
                   className="w-12 h-16 py-4 justify-center bg-gradient-to-r from-blue-600 to-purple-600 text-white hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                  iconOnly={true}
                 >
                   <LogIn className="w-5 h-5" />
+                  <span>Login</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

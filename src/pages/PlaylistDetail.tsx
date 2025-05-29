@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -12,7 +12,7 @@ import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
 
 const PlaylistDetail = () => {
-  const { id } = useParams();
+  const { playlistId } = useParams();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
@@ -21,18 +21,18 @@ const PlaylistDetail = () => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
       const playlists: Playlist[] = JSON.parse(savedPlaylists);
-      const found = playlists.find(p => p.id === id);
+      const found = playlists.find(p => p.id === playlistId);
       if (found) {
         setPlaylist(found);
       }
     }
-  }, [id]);
+  }, [playlistId]);
 
   const updatePlaylist = (updatedPlaylist: Playlist) => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
       const playlists: Playlist[] = JSON.parse(savedPlaylists);
-      const index = playlists.findIndex(p => p.id === id);
+      const index = playlists.findIndex(p => p.id === playlistId);
       if (index !== -1) {
         playlists[index] = updatedPlaylist;
         localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
@@ -67,6 +67,30 @@ const PlaylistDetail = () => {
     updatePlaylist(updatedPlaylist);
   };
 
+  const handleVideoClick = (video: Video) => {
+    navigate(`/playlist/${playlistId}/play?video=${playlist.videos.findIndex(v => v.id === video.id)}`, { 
+      state: { 
+        video,
+        playlist 
+      }
+    });
+  };
+
+  const handlePlayAll = () => {
+    if (!playlist || playlist.videos.length === 0) return;
+    
+    // Find first uncompleted video, or first video if all are completed
+    const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+    const startIndex = firstUncompletedIndex !== -1 ? firstUncompletedIndex : 0;
+    
+    navigate(`/playlist/${playlistId}/play?video=${startIndex}`, {
+      state: {
+        video: playlist.videos[startIndex],
+        playlist
+      }
+    });
+  };
+
   if (!playlist) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 flex items-center justify-center">
@@ -85,15 +109,9 @@ const PlaylistDetail = () => {
   const completedVideos = playlist.videos.filter(v => v.progress >= 100).length;
   const totalProgress = playlist.videos.reduce((sum, video) => sum + video.progress, 0) / playlist.videos.length;
   
-  // Convert duration to total minutes for calculations
-  const getTotalMinutes = (duration: { hours: number; minutes: number }) => {
-    return duration.hours * 60 + duration.minutes;
-  };
-  
-  const totalDuration = playlist.videos.reduce((sum, video) => sum + getTotalMinutes(video.duration), 0);
+  const totalDuration = playlist.videos.reduce((sum, video) => sum + video.watchTime, 0);
   const watchedTime = playlist.videos.reduce((sum, video) => {
-    const videoMinutes = getTotalMinutes(video.duration);
-    return sum + (videoMinutes * video.progress / 100);
+    return sum + (video.watchTime * video.progress / 100);
   }, 0);
 
   const uncompletedVideos = playlist.videos.filter(video => video.progress < 100);
@@ -119,13 +137,22 @@ const PlaylistDetail = () => {
                 <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-50 mb-2 transition-colors duration-200">{playlist.title}</h1>
                 <p className="text-gray-600 dark:text-gray-200 mb-4 transition-colors duration-200">{playlist.description}</p>
               </div>
-              <Button
-                onClick={() => setIsAddVideoModalOpen(true)}
-                className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Add Video
-              </Button>
+              <div className="flex gap-3">
+                <Button
+                  onClick={handlePlayAll}
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-500 dark:to-emerald-500 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <Play className="w-4 h-4 mr-2" />
+                  Play All
+                </Button>
+                <Button
+                  onClick={() => setIsAddVideoModalOpen(true)}
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Video
+                </Button>
+              </div>
             </div>
             
             <div className="flex flex-wrap gap-4 text-sm">
@@ -187,7 +214,8 @@ const PlaylistDetail = () => {
                 uncompletedVideos.map((video, index) => (
                   <div 
                     key={video.id}
-                    className="transform transition-all duration-200 hover:scale-[1.01]"
+                    className="transform transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+                    onClick={() => handleVideoClick(video)}
                   >
                     <VideoCard
                       video={video}
@@ -220,7 +248,8 @@ const PlaylistDetail = () => {
                 {completedVideosList.map((video, index) => (
                   <div 
                     key={video.id}
-                    className="transform transition-all duration-200 hover:scale-[1.01]"
+                    className="transform transition-all duration-200 hover:scale-[1.01] cursor-pointer"
+                    onClick={() => handleVideoClick(video)}
                   >
                     <VideoCard
                       video={video}

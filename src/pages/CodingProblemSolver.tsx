@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -28,6 +28,10 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Progress } from '@/components/ui/progress';
+import { QuestionMetadata } from '@/types/question';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { CodeEditor } from '@/components/CodeEditor';
+import { Timer } from '@/components/Timer';
 
 // Update ExampleCase type to handle different input types
 interface ExampleCase {
@@ -131,49 +135,7 @@ interface QuestionState extends CodingQuestion {
     explanation?: string;
   }>;
   constraints?: string[];
-  metadata?: QuestionMetadata;
-}
-
-// Update QuestionMetadata to match the metadata structure in QuestionState
-interface QuestionMetadata {
-  title: string;
-  difficulty: string;
-  topics: string[];
-  source?: string;
-  description: string;
-  examples: Array<{
-    input: string;
-    output: string;
-    explanation?: string;
-  }>;
-  constraints: string[];
-  videoUrl?: string;
-  visualSteps: Array<{
-    title: string;
-    description: string;
-    visualization: VisualizationData;
-  }>;
-  solutionMethods: {
-    [key: string]: {
-      name: string;
-      description: string;
-      complexity: string;
-      steps: (example: ExampleCase) => Array<{
-        visualization: VisualizationData;
-        explanation: string;
-      }>;
-    };
-  };
-  exampleCases: ExampleCase[];
-  stats?: {
-    totalAccepted: number;
-    totalSubmissions: number;
-    acceptanceRate: number;
-    companies: Array<{
-      name: string;
-      frequency: number;
-    }>;
-  };
+  metadata: QuestionMetadata | null;
 }
 
 // Define question types for better type safety
@@ -236,48 +198,31 @@ const createVisualSteps = (question: LeetCodeQuestion, examples: Array<{ input: 
 };
 
 const createSolutionMethods = (question: LeetCodeQuestion, examples: Array<{ input: string; output: string; explanation?: string }>) => {
-  const methods: QuestionMetadata['solutionMethods'] = {};
+  const methods: Array<{
+    name: string;
+    description: string;
+    timeComplexity: string;
+    spaceComplexity: string;
+    code?: string;
+  }> = [];
 
   if (question.title.toLowerCase().includes('two sum')) {
-    methods['brute-force'] = {
+    methods.push({
       name: 'Brute Force Approach',
       description: 'Check all possible pairs of numbers',
-      complexity: 'O(n²)',
-      steps: (example: ExampleCase) => [
-        {
-          visualization: {
-            type: 'array',
-            values: example.input as number[],
-            target: example.target,
-            method: 'brute-force',
-            currentStep: 'start',
-            explanation: "Let's find two numbers that add up to the target using brute force."
-          },
-          explanation: "We'll check each pair of numbers in the array."
-        }
-      ]
-    };
-  } else if (question.title.toLowerCase().includes('add two numbers')) {
-    methods['iterative'] = {
-      name: 'Iterative Approach',
-      description: 'Process digits one by one',
-      complexity: 'O(max(n,m))',
-      steps: (example: ExampleCase) => [
-        {
-          visualization: {
-            type: 'linked-list',
-            values: (example.input as number[][])[0],
-            target: example.target,
-            method: 'iterative',
-            currentStep: 'start',
-            list1: (example.input as number[][])[0],
-            list2: (example.input as number[][])[1],
-            explanation: "Let's add two numbers represented as linked lists, starting from the least significant digit."
-          },
-          explanation: "We'll process both linked lists simultaneously, adding corresponding digits and handling carry."
-        }
-      ]
-    };
+      timeComplexity: 'O(n²)',
+      spaceComplexity: 'O(1)',
+      code: `function twoSum(nums: number[], target: number): number[] {
+  for (let i = 0; i < nums.length; i++) {
+    for (let j = i + 1; j < nums.length; j++) {
+      if (nums[i] + nums[j] === target) {
+        return [i, j];
+      }
+    }
+  }
+  return [];
+}`
+    });
   }
 
   return methods;
@@ -285,10 +230,9 @@ const createSolutionMethods = (question: LeetCodeQuestion, examples: Array<{ inp
 
 const createExampleCases = (question: LeetCodeQuestion, examples: Array<{ input: string; output: string; explanation?: string }>) => {
   return examples.map(example => ({
-    input: parseInput(example.input),
-    target: parseTarget(example.input),
-    description: `Example ${examples.indexOf(example) + 1}`,
-    expectedOutput: parseOutput(example.output)
+    input: example.input,
+    output: example.output,
+    explanation: example.explanation
   }));
 };
 
@@ -431,7 +375,6 @@ const fetchQuestionData = async (url: string): Promise<QuestionMetadata | null> 
       title: question.title || title, // Use API title if available, fallback to URL-derived title
       difficulty: question.difficulty,
       topics: question.topicTags.map(tag => tag.name),
-      source: 'LeetCode',
       description: question.content,
       examples,
       constraints,
@@ -492,94 +435,65 @@ const parseConstraintsFromContent = (content: string) => {
   return constraints;
 };
 
-// Update the function name to be consistent
-const fetchQuestionMetadata = async (url: string): Promise<QuestionMetadata | null> => {
-  return fetchQuestionData(url);
-};
-
-const fetchMetadata = async (questionState: QuestionState) => {
-  if (!questionState.description) return;
-  
-  setIsFetchingMetadata(true);
+// Update the fetchQuestionMetadata function to remove the source property
+const fetchQuestionMetadata = async (question: CodingQuestion): Promise<QuestionMetadata | null> => {
   try {
-    const loadingToast = toast.loading('Fetching question metadata...');
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-
-    // Create metadata from the existing question data
+    // For now, return a basic metadata structure
     const metadata: QuestionMetadata = {
-      title: questionState.title,
-      difficulty: questionState.difficulty,
-      topics: questionState.topics || [questionState.category],
-      description: questionState.description,
-      examples: questionState.examples || [],
-      constraints: questionState.constraints || [],
-      visualSteps: [],
-      solutionMethods: {
-        'brute-force': {
-          name: 'Brute Force',
-          description: 'Try all possible combinations',
-          complexity: 'O(n²)',
-          steps: (example) => []
-        },
-        'optimized': {
-          name: 'Optimized Solution',
-          description: 'Use efficient data structures and algorithms',
-          complexity: 'O(n)',
-          steps: (example) => []
-        }
-      },
-      exampleCases: exampleCases,
+      title: question.title,
+      difficulty: question.difficulty,
+      topics: question.topics || [],
+      description: question.description,
+      examples: question.examples || [],
+      constraints: question.constraints || [],
       stats: {
-        totalAccepted: Math.floor(Math.random() * 10000),
-        totalSubmissions: Math.floor(Math.random() * 20000),
-        acceptanceRate: Math.random() * 0.5 + 0.3, // Random rate between 30% and 80%
-        companies: [
-          { name: 'Google', frequency: Math.floor(Math.random() * 30) + 10 },
-          { name: 'Amazon', frequency: Math.floor(Math.random() * 30) + 10 },
-          { name: 'Microsoft', frequency: Math.floor(Math.random() * 30) + 10 }
-        ]
+        totalAccepted: 0,
+        totalSubmissions: 0,
+        acceptanceRate: 0,
+        companies: []
+      },
+      visualSteps: [],
+      solutionMethods: [{
+        name: 'Brute Force Approach',
+        description: 'Check all possible pairs of numbers',
+        timeComplexity: 'O(n²)',
+        spaceComplexity: 'O(1)',
+        code: `function twoSum(nums: number[], target: number): number[] {
+  for (let i = 0; i < nums.length; i++) {
+    for (let j = i + 1; j < nums.length; j++) {
+      if (nums[i] + nums[j] === target) {
+        return [i, j];
       }
+    }
+  }
+  return [];
+}`
+      }],
+      exampleCases: question.examples?.map(example => ({
+        input: example.input,
+        output: example.output,
+        explanation: example.explanation
+      })) || []
     };
-
-    // Update the question with the new metadata
-    setQuestion(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        metadata,
-        // Update any other fields that might be derived from metadata
-        topics: metadata.topics,
-        difficulty: metadata.difficulty,
-        examples: metadata.examples,
-        constraints: metadata.constraints
-      };
-    });
-
-    toast.dismiss(loadingToast);
-    toast.success('Metadata fetched successfully!');
+    return metadata;
   } catch (error) {
     console.error('Error fetching metadata:', error);
-    toast.error('Failed to fetch metadata');
-  } finally {
-    setIsFetchingMetadata(false);
+    return null;
   }
 };
 
 const VisualExplanation = () => {
-  const { questionId } = useParams();
+  const { questionId } = useParams<{ questionId: string }>();
   const [metadata, setMetadata] = useState<QuestionMetadata | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [currentMethod, setCurrentMethod] = useState<string>('');
-  const [currentExample, setCurrentExample] = useState(0);
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentMethod, setCurrentMethod] = useState<string>('brute-force');
+  const [currentExample, setCurrentExample] = useState<number>(0);
+  const [currentStep, setCurrentStep] = useState<number>(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
-  const [question, setQuestion] = useState<QuestionState | null>(null);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const playbackIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -589,38 +503,61 @@ const VisualExplanation = () => {
       setIsLoading(true);
       setError(null);
       try {
-        // Extract the LeetCode URL from the question ID
         const savedPlaylists = localStorage.getItem('youtubePlaylists');
         if (!savedPlaylists) {
           throw new Error('No playlists found');
         }
 
         const playlists: Playlist[] = JSON.parse(savedPlaylists);
-        const question = playlists
-          .flatMap(p => p.codingQuestions || [])
-          .find(q => q.id === questionId);
-
-        if (!question) {
-          throw new Error('Question not found in playlists');
+        const foundPlaylist = playlists.find(p => p.id === playlistId);
+        
+        if (!foundPlaylist) {
+          throw new Error('Playlist not found');
         }
 
-        if (!question.solutionUrl) {
-          throw new Error('No solution URL provided for this question');
+        const foundQuestion = foundPlaylist.codingQuestions?.find(q => q.id === questionId);
+
+        if (!foundQuestion) {
+          throw new Error('Question not found in playlist');
         }
 
-        // Fetch question data directly from LeetCode
-        const questionMetadata = await fetchQuestionData(question.solutionUrl);
-        if (!questionMetadata) {
-          throw new Error('Failed to fetch question metadata');
-        }
+        // Set the playlist state
+        setPlaylist(foundPlaylist);
 
-        setMetadata(questionMetadata);
-        const methods = Object.keys(questionMetadata.solutionMethods);
-        if (methods.length > 0) {
-          setCurrentMethod(methods[0]);
+        // Get saved code if any
+        const savedCode = localStorage.getItem(`code_${questionId}`);
+        const savedState = localStorage.getItem(`state_${questionId}`);
+
+        // Set initial question state immediately
+        const initialQuestionState: QuestionState = {
+          ...foundQuestion,
+          code: savedCode || '',
+          output: '',
+          lastSavedCode: savedCode || '',
+          lastSavedTime: savedState ? JSON.parse(savedState).lastSavedTime : Date.now(),
+          isDirty: false,
+          topics: foundQuestion.topics || [],
+          metadata: null,
+        };
+
+        setQuestion(initialQuestionState);
+        setElapsedTime(0);
+
+        // Then load metadata in the background
+        setIsFetchingMetadata(true);
+        try {
+          const metadata = await fetchQuestionMetadata(foundQuestion);
+          if (metadata) {
+            setQuestion(prev => prev ? { ...prev, metadata } : null);
+          }
+        } catch (metadataError) {
+          console.error('Error fetching metadata:', metadataError);
+          // Don't show error toast for metadata, as it's not critical
+        } finally {
+          setIsFetchingMetadata(false);
         }
       } catch (error) {
-        console.error('Error loading question data:', error);
+        console.error('Error loading question:', error);
         setError(error instanceof Error ? error.message : 'Failed to load question data');
         toast.error(error instanceof Error ? error.message : 'Failed to load question data');
       } finally {
@@ -629,7 +566,7 @@ const VisualExplanation = () => {
     };
 
     loadQuestionData();
-  }, [questionId]);
+  }, [playlistId, questionId, navigate]);
 
   // Handle playback controls
   useEffect(() => {
@@ -785,7 +722,7 @@ const VisualExplanation = () => {
                 <div className="flex items-center gap-2">
                   <span>{value.name}</span>
                   <Badge variant="secondary" className="ml-1">
-                    {value.complexity}
+                    {value.timeComplexity}
                   </Badge>
                 </div>
               </Button>
@@ -816,7 +753,7 @@ const VisualExplanation = () => {
                 <div className="flex items-center gap-2">
                   <span>Example {index + 1}</span>
                   <Badge variant="secondary" className="ml-1">
-                    {example.description}
+                    {example.input}
                   </Badge>
                 </div>
               </Button>
@@ -947,7 +884,7 @@ interface PlaylistQuestion {
   id: string;
   title: string;
   difficulty: 'easy' | 'medium' | 'hard';
-  category: 'algorithms' | 'data-structures' | 'arrays' | 'strings' | 'linked-lists' | 'trees' | 'graphs' | 'dynamic-programming' | 'other';
+  category: 'algorithms' | 'data-structures' | 'arrays' | 'strings' | 'linked-lists' | 'trees' | 'graphs' | 'dynamic-programming' | 'other' | 'system-design';
   description: string;
   solutionUrl?: string;
   solved: boolean;
@@ -977,25 +914,133 @@ interface PlaylistData {
   };
 }
 
-const CodingProblemSolver = () => {
-  const { playlistId, questionId } = useParams();
+const CodingProblemSolver: React.FC = () => {
+  const params = useParams<{ playlistId: string; questionId: string }>();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [question, setQuestion] = useState<QuestionState | null>(null);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [isSpeaking, setIsSpeaking] = useState(false);
+  const [elapsedTime, setElapsedTime] = useState<number>(0);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
   const [output, setOutput] = useState('');
-  const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Format time in MM:SS format
-  const formatTime = (seconds: number): string => {
-    const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = seconds % 60;
-    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
-  };
+  const loadQuestionData = useCallback(async () => {
+    if (!params.playlistId || !params.questionId) {
+      setError('Missing playlist or question ID');
+      setIsLoading(false);
+      return;
+    }
+
+    try {
+      // First try to load the question data from localStorage
+      const storedQuestion = localStorage.getItem(`question_${params.questionId}`);
+      if (storedQuestion) {
+        const parsedQuestion = JSON.parse(storedQuestion);
+        setQuestion({
+          ...parsedQuestion,
+          code: localStorage.getItem(`code_${params.questionId}`) || '',
+          output: '',
+          lastSavedCode: localStorage.getItem(`code_${params.questionId}`) || '',
+          lastSavedTime: Date.now(),
+          isDirty: false,
+          metadata: parsedQuestion.metadata || null
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      // If not found in localStorage, load from playlist
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (!savedPlaylists) {
+        throw new Error('No playlists found');
+      }
+
+      const playlists: Playlist[] = JSON.parse(savedPlaylists);
+      const foundPlaylist = playlists.find(p => p.id === params.playlistId);
+      
+      if (!foundPlaylist) {
+        throw new Error('Playlist not found');
+      }
+
+      const foundQuestion = foundPlaylist.codingQuestions?.find(q => q.id === params.questionId);
+
+      if (!foundQuestion) {
+        throw new Error('Question not found in playlist');
+      }
+
+      // Set the playlist state
+      setPlaylist(foundPlaylist);
+
+      // Get saved code if any
+      const savedCode = localStorage.getItem(`code_${params.questionId}`);
+      const savedState = localStorage.getItem(`state_${params.questionId}`);
+
+      // Set initial question state immediately with basic data
+      const initialQuestionState: QuestionState = {
+        ...foundQuestion,
+        code: savedCode || '',
+        output: '',
+        lastSavedCode: savedCode || '',
+        lastSavedTime: savedState ? JSON.parse(savedState).lastSavedTime : Date.now(),
+        isDirty: false,
+        topics: foundQuestion.topics || [],
+        metadata: foundQuestion.metadata || null
+      };
+
+      setQuestion(initialQuestionState);
+      setElapsedTime(0);
+      setIsLoading(false);
+
+      // If the question doesn't have metadata, try to fetch it
+      if (!foundQuestion.metadata) {
+        setIsFetchingMetadata(true);
+        try {
+          const metadata = await fetchQuestionMetadata(foundQuestion);
+          if (metadata) {
+            // Update the question in localStorage with the metadata
+            const updatedQuestion = {
+              ...foundQuestion,
+              metadata
+            };
+            localStorage.setItem(`question_${params.questionId}`, JSON.stringify(updatedQuestion));
+            
+            // Update the question in the playlist
+            const updatedPlaylist = {
+              ...foundPlaylist,
+              codingQuestions: foundPlaylist.codingQuestions?.map(q =>
+                q.id === params.questionId ? updatedQuestion : q
+              )
+            };
+            
+            // Update the playlist in localStorage
+            const updatedPlaylists = playlists.map(p =>
+              p.id === params.playlistId ? updatedPlaylist : p
+            );
+            localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
+            
+            setPlaylist(updatedPlaylist);
+            setQuestion(prev => prev ? { ...prev, metadata } : null);
+          }
+        } catch (metadataError) {
+          console.error('Error fetching metadata:', metadataError);
+        } finally {
+          setIsFetchingMetadata(false);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading question:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load question data');
+      toast.error(error instanceof Error ? error.message : 'Failed to load question data');
+      setIsLoading(false);
+    }
+  }, [params.playlistId, params.questionId, navigate]);
+
+  // Load question data when component mounts
+  useEffect(() => {
+    loadQuestionData();
+  }, [loadQuestionData]);
 
   // Start timer when component mounts
   useEffect(() => {
@@ -1010,101 +1055,12 @@ const CodingProblemSolver = () => {
     };
   }, []);
 
-  // Load question data with metadata
-  useEffect(() => {
-    const loadQuestionData = async () => {
-      try {
-        console.log('Loading question data for playlistId:', playlistId, 'questionId:', questionId);
-        const savedPlaylists = localStorage.getItem('youtubePlaylists');
-        console.log('Saved playlists in localStorage:', savedPlaylists);
-        
-        if (!savedPlaylists) {
-          console.error('No playlists found in localStorage');
-          toast.error('No playlists found');
-          navigate('/');
-          return;
-        }
-
-        const playlists: Playlist[] = JSON.parse(savedPlaylists);
-        console.log('Parsed playlists:', playlists);
-        console.log('Looking for playlist with id:', playlistId);
-        
-        const foundPlaylist = playlists.find(p => p.id === playlistId);
-        console.log('Found playlist:', foundPlaylist);
-        
-        if (!foundPlaylist) {
-          console.error('Playlist not found with id:', playlistId);
-          toast.error('Playlist not found');
-          navigate('/');
-          return;
-        }
-
-        setPlaylist(foundPlaylist);
-        console.log('Looking for question with id:', questionId);
-        const foundQuestion = foundPlaylist.codingQuestions?.find(q => q.id === questionId);
-        console.log('Found question:', foundQuestion);
-        
-        if (!foundQuestion) {
-          console.error('Question not found with id:', questionId);
-          toast.error('Question not found');
-          navigate(`/playlist/${playlistId}`);
-          return;
-        }
-
-        // Load saved code and state
-        const savedCode = localStorage.getItem(`code_${questionId}`);
-        const savedState = localStorage.getItem(`question_state_${questionId}`);
-        console.log('Saved code:', savedCode);
-        console.log('Saved state:', savedState);
-
-        try {
-          // Fetch additional metadata from LeetCode API
-          console.log('Fetching metadata for question:', foundQuestion.title);
-          const metadata = await fetchQuestionMetadata(foundQuestion.title);
-          console.log('Fetched metadata:', metadata);
-          
-          const questionState: QuestionState = {
-            ...foundQuestion,
-            code: savedCode || '',
-            output: '',
-            lastSavedCode: savedCode || '',
-            lastSavedTime: savedState ? JSON.parse(savedState).lastSavedTime : Date.now(),
-            isDirty: false,
-            topics: foundQuestion.topics,
-            metadata: {
-              ...metadata,
-              visualSteps: metadata.visualSteps
-            }
-          };
-
-          setQuestion(questionState);
-          setElapsedTime(0);
-        } catch (fetchError) {
-          console.error('Error fetching question metadata:', fetchError);
-          toast.error(fetchError instanceof Error ? fetchError.message : 'Failed to fetch question metadata');
-          
-          // Still set the question with basic info even if metadata fetch fails
-          const questionState: QuestionState = {
-            ...foundQuestion,
-            code: savedCode || '',
-            output: '',
-            lastSavedCode: savedCode || '',
-            lastSavedTime: savedState ? JSON.parse(savedState).lastSavedTime : Date.now(),
-            isDirty: false,
-            topics: foundQuestion.topics
-          };
-
-          setQuestion(questionState);
-          setElapsedTime(0);
-        }
-      } catch (error) {
-        console.error('Error loading question:', error);
-        toast.error(error instanceof Error ? error.message : 'Failed to load question data');
-      }
-    };
-
-    loadQuestionData();
-  }, [playlistId, questionId, navigate]);
+  // Format time in MM:SS format
+  const formatTime = (seconds: number): string => {
+    const minutes = Math.floor(seconds / 60);
+    const remainingSeconds = seconds % 60;
+    return `${minutes.toString().padStart(2, '0')}:${remainingSeconds.toString().padStart(2, '0')}`;
+  };
 
   // Auto-save code every 30 seconds if there are changes
   useEffect(() => {
@@ -1120,12 +1076,12 @@ const CodingProblemSolver = () => {
   }, [question]);
 
   const saveCode = () => {
-    if (!questionId) return;
+    if (!params.questionId) return;
 
     try {
-      localStorage.setItem(`code_${questionId}`, question.code || '');
+      localStorage.setItem(`code_${params.questionId}`, question.code || '');
       const saveTime = Date.now();
-      localStorage.setItem(`question_state_${questionId}`, JSON.stringify({
+      localStorage.setItem(`state_${params.questionId}`, JSON.stringify({
         lastSavedTime: saveTime,
         lastSavedCode: question.code
       }));
@@ -1152,7 +1108,7 @@ const CodingProblemSolver = () => {
       
       if (savedPlaylists) {
         const playlists: Playlist[] = JSON.parse(savedPlaylists);
-        const index = playlists.findIndex(p => p.id === playlistId);
+        const index = playlists.findIndex(p => p.id === params.playlistId);
         
         if (index !== -1) {
           playlists[index] = updatedPlaylist;
@@ -1205,7 +1161,7 @@ const CodingProblemSolver = () => {
       const savedPlaylists = localStorage.getItem('youtubePlaylists');
       if (savedPlaylists) {
         const playlists: Playlist[] = JSON.parse(savedPlaylists);
-        const index = playlists.findIndex(p => p.id === playlistId);
+        const index = playlists.findIndex(p => p.id === params.playlistId);
         if (index !== -1) {
           playlists[index] = updatedPlaylist;
           localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
@@ -1215,7 +1171,7 @@ const CodingProblemSolver = () => {
       setPlaylist(updatedPlaylist);
       setQuestion(prev => prev ? { ...prev, ...updatedQuestion } : null);
       toast.success('Problem marked as solved!');
-      navigate(`/playlist/${playlistId}/question/${question.id}`);
+      navigate(`/playlist/${params.playlistId}/question/${question.id}`);
     } catch (error) {
       console.error('Error marking question as solved:', error);
       toast.error('Failed to mark question as solved');
@@ -1227,7 +1183,31 @@ const CodingProblemSolver = () => {
     return `${(rate * 100).toFixed(1)}%`;
   };
 
-  if (!playlist || !question) {
+  // Update the example cases display to use input/output
+  const renderExampleCases = (cases: QuestionMetadata['exampleCases']) => {
+    if (!cases) return null;
+    return cases.map((example, index) => (
+      <div key={index} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4">
+        <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          Example {index + 1}
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+          Input: {example.input}
+        </div>
+        <div className="text-sm text-gray-600 dark:text-gray-400">
+          Output: {example.output}
+        </div>
+        {example.explanation && (
+          <div className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+            Explanation: {example.explanation}
+          </div>
+        )}
+      </div>
+    ));
+  };
+
+  // Show loading state
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 flex items-center justify-center">
         <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
@@ -1236,6 +1216,84 @@ const CodingProblemSolver = () => {
             <p className="text-gray-800 dark:text-gray-100">Loading question...</p>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Show error state
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 flex items-center justify-center">
+        <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
+          <CardContent className="py-8 text-center">
+            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+            <Button onClick={() => navigate(-1)}>Back to Playlist</Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show loading metadata state while keeping the question visible
+  if (isFetchingMetadata && question) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950">
+        <div className="container mx-auto px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="flex items-center gap-2"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              Back to Playlist
+            </Button>
+            <div className="flex items-center gap-2">
+              <Loader2 className="w-4 h-4 animate-spin text-blue-600 dark:text-blue-400" />
+              <span className="text-sm text-gray-600 dark:text-gray-300">Loading additional details...</span>
+            </div>
+          </div>
+          {/* Question content will be rendered here */}
+          {question && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Problem Description */}
+              <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800 dark:text-gray-50">Problem Description</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="prose dark:prose-invert max-w-none space-y-6">
+                    <div className="text-gray-600 dark:text-gray-300 whitespace-pre-wrap">
+                      {question.description}
+                    </div>
+                    {question.examples && question.examples.length > 0 && (
+                      <div className="space-y-4">
+                        <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50">Examples:</h3>
+                        {renderExampleCases(question.examples)}
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Code Editor */}
+              <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
+                <CardHeader>
+                  <CardTitle className="text-lg text-gray-800 dark:text-gray-50">Code Editor</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CodeEditor
+                    code={question.code || ''}
+                    onChange={(value) => setQuestion(prev => prev ? { ...prev, code: value || '' } : null)}
+                    language="typescript"
+                    theme="vs-dark"
+                  />
+                </CardContent>
+              </Card>
+            </div>
+          )}
+        </div>
       </div>
     );
   }
@@ -1306,31 +1364,7 @@ const CodingProblemSolver = () => {
                     {question.metadata?.examples && question.metadata.examples.length > 0 && (
                       <div className="space-y-4">
                         <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50">Examples:</h3>
-                        {question.metadata.examples.map((example, index) => (
-                          <div key={index} className="bg-gray-50 dark:bg-gray-800/50 rounded-lg p-4 space-y-4">
-                            <div className="font-medium text-gray-700 dark:text-gray-300">Example {index + 1}:</div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div className="space-y-2">
-                                <div className="text-sm text-gray-500 dark:text-gray-400">Input:</div>
-                                <pre className="text-sm bg-gray-100 dark:bg-gray-900 p-2 rounded">
-                                  {example.input}
-                                </pre>
-                              </div>
-                              <div className="space-y-2">
-                                <div className="text-sm text-gray-500 dark:text-gray-400">Output:</div>
-                                <pre className="text-sm bg-gray-100 dark:bg-gray-900 p-2 rounded">
-                                  {example.output}
-                                </pre>
-                              </div>
-                            </div>
-                            {example.explanation && (
-                              <div className="text-sm text-gray-600 dark:text-gray-400">
-                                <span className="font-medium">Explanation: </span>
-                                {example.explanation}
-                              </div>
-                            )}
-                          </div>
-                        ))}
+                        {renderExampleCases(question.metadata.examples)}
                       </div>
                     )}
 

@@ -4,7 +4,7 @@ export interface Video {
   url: string;
   scheduledTime?: string; // ISO date string for scheduled time
   progress: number; // percentage 0-100
-  watchTime: number; // total watch time in seconds
+  watchTime: number; // Duration in minutes
   thumbnail?: string;
   dateCompleted?: string; // ISO date string when video was completed
   contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'; // Type of video content
@@ -27,6 +27,34 @@ export interface CodingQuestion {
   lastAttemptDate?: string;
   solutionUrl?: string; // Link to solution code
   difficulty_rating?: number; // User's personal difficulty rating 1-5
+  // New fields for parsed question data
+  constraints?: string[];
+  examples?: Array<{
+    input: string;
+    output: string;
+    explanation?: string;
+  }>;
+  metadata?: {
+    title: string;
+    difficulty: string;
+    topics: string[];
+    description: string;
+    examples: Array<{
+      input: string;
+      output: string;
+      explanation?: string;
+    }>;
+    constraints: string[];
+    stats?: {
+      totalAccepted: number;
+      totalSubmissions: number;
+      acceptanceRate: number;
+      companies: Array<{
+        name: string;
+        frequency: number;
+      }>;
+    };
+  };
 }
 
 export interface Playlist {

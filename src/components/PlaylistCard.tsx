@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { Clock, Target, Trash2, Calendar, Play, Code, Flame } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Clock, Target, Trash2, Calendar, Play, Code, Flame, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Playlist } from '@/types/playlist';
+import { Playlist, Video } from '@/types/playlist';
 
 interface PlaylistCardProps {
   playlist: Playlist;
@@ -13,11 +13,14 @@ interface PlaylistCardProps {
   delay: number;
 }
 
-const PlaylistCard = ({ playlist, onDelete, delay }: PlaylistCardProps) => {
+const PlaylistCard = ({ playlist, onDelete, delay = 0 }: PlaylistCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
+  const navigate = useNavigate();
+  console.log('PlaylistCard: Rendering card for playlist:', playlist);
 
   // Different calculations for video vs coding playlists
   const isCodingPlaylist = playlist.type === 'coding';
+  console.log('PlaylistCard: Is coding playlist:', isCodingPlaylist);
   
   let completedItems = 0;
   let totalItems = 0;
@@ -30,19 +33,29 @@ const PlaylistCard = ({ playlist, onDelete, delay }: PlaylistCardProps) => {
     totalProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
     totalDuration = playlist.codingQuestions?.reduce((sum, q) => sum + (q.timeSpent || 0), 0) || 0;
   } else {
-    completedItems = playlist.videos.filter(v => v.progress >= 100).length;
-    totalItems = playlist.videos.length;
-    totalProgress = playlist.videos.length > 0 
-      ? playlist.videos.reduce((sum, video) => sum + video.progress, 0) / playlist.videos.length 
-      : 0;
-    totalDuration = playlist.videos.reduce((sum, video) => sum + video.duration, 0);
+    const videos = playlist.videos;
+    console.log('PlaylistCard: Video playlist videos:', videos);
+    totalItems = videos.length;
+    completedItems = videos.filter((video) => video.progress >= 100).length;
+    totalProgress = totalItems > 0 ? (completedItems / totalItems) * 100 : 0;
+    totalDuration = videos.reduce((acc, video) => acc + video.watchTime, 0);
   }
 
   const handleDelete = () => {
+    console.log('PlaylistCard: Deleting playlist:', playlist.id);
     setIsDeleting(true);
     setTimeout(() => {
       onDelete(playlist.id);
     }, 300);
+  };
+
+  const handleViewClick = () => {
+    console.log('PlaylistCard: Navigating to playlist:', {
+      id: playlist.id,
+      title: playlist.title,
+      type: playlist.type
+    });
+    navigate(`/playlist/${playlist.id}`);
   };
 
   return (
@@ -121,7 +134,10 @@ const PlaylistCard = ({ playlist, onDelete, delay }: PlaylistCardProps) => {
           <span className="text-sm font-semibold text-gray-700">
             {Math.round(totalProgress)}% Complete
           </span>
-          <Link to={`/playlist/${playlist.id}`}>
+          <Link 
+            to={`/playlist/${playlist.id}`}
+            onClick={handleViewClick}
+          >
             <Button 
               size="sm" 
               className={`${

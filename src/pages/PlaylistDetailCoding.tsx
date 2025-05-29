@@ -228,7 +228,6 @@ const PlaylistDetailCoding = () => {
                       <div className="flex justify-between items-start">
                         <div className="flex-1">
                           <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50 mb-2">{question.title}</h3>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{question.description}</p>
                           <div className="flex flex-wrap gap-2 mb-4">
                             <Badge className={getDifficultyColor(question.difficulty)}>
                               {question.difficulty}
@@ -263,17 +262,15 @@ const PlaylistDetailCoding = () => {
                             <CheckCircle2 className="w-4 h-4 mr-1" />
                             Mark Solved
                           </Button>
-                          {question.solutionUrl && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/playlist/${playlistId}/question/${question.id}`)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            >
-                              <Code className="w-4 h-4 mr-1" />
-                              View Solution
-                            </Button>
-                          )}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => navigate(`/playlist/${playlistId}/question/${question.id}`)}
+                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                          >
+                            <Code className="w-4 h-4 mr-1" />
+                            Start Coding
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -341,7 +338,6 @@ const PlaylistDetailCoding = () => {
                             <h3 className="text-lg font-semibold text-gray-800 dark:text-gray-50">{question.title}</h3>
                             <CheckCircle2 className="w-5 h-5 text-green-500" />
                           </div>
-                          <p className="text-sm text-gray-600 dark:text-gray-300 mb-4">{question.description}</p>
                           <div className="flex flex-wrap gap-2 mb-4">
                             <Badge className={getDifficultyColor(question.difficulty)}>
                               {question.difficulty}
@@ -381,7 +377,7 @@ const PlaylistDetailCoding = () => {
                               className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
                             >
                               <Code className="w-4 h-4 mr-1" />
-                              View Solution
+                              Start Coding
                             </Button>
                             <AlertDialog>
                               <AlertDialogTrigger asChild>

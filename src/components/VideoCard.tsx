@@ -57,13 +57,15 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
     }
   };
 
-  const formatDuration = (duration: { hours: number; minutes: number }) => {
+  const formatDuration = (minutes: number) => {
+    const hours = Math.floor(minutes / 60);
+    const remainingMinutes = minutes % 60;
     const parts = [];
-    if (duration.hours > 0) {
-      parts.push(`${duration.hours}h`);
+    if (hours > 0) {
+      parts.push(`${hours}h`);
     }
-    if (duration.minutes > 0) {
-      parts.push(`${duration.minutes}m`);
+    if (remainingMinutes > 0) {
+      parts.push(`${remainingMinutes}m`);
     }
     return parts.join(' ') || '0m';
   };
@@ -131,7 +133,7 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
             <div className="mt-2 flex items-center gap-4 text-sm text-gray-600 dark:text-gray-200">
               <div className="flex items-center gap-1">
                 <Clock className="w-4 h-4 text-gray-500 dark:text-gray-400" />
-                <span>{formatDuration(video.duration)}</span>
+                <span>{formatDuration(video.watchTime)}</span>
               </div>
               
               {isEditing ? (
