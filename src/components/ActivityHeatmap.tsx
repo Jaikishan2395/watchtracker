@@ -34,9 +34,14 @@ interface ActivityHeatmapProps {
   playlists: Playlist[];
 }
 
+interface ActivityData {
+  learningTime: number;
+  problemSolved: boolean;
+}
+
 const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
   const { theme } = useTheme();
-  const [activityData, setActivityData] = useState<Record<string, number>>({});
+  const [activityData, setActivityData] = useState<Record<string, ActivityData>>({});
   const [displayYear, setDisplayYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
   const [selectedWeek, setSelectedWeek] = useState<number | null>(null);
@@ -44,7 +49,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
 
   useEffect(() => {
     const calculateDailyActivity = () => {
-      const data: Record<string, number> = {};
+      const data: Record<string, ActivityData> = {};
       const yearStart = startOfYear(new Date(displayYear, 0, 1));
       const yearEnd = endOfYear(new Date(displayYear, 11, 31));
 
@@ -55,10 +60,14 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
               const completionDate = new Date(video.dateCompleted);
               if (isAfter(completionDate, yearStart) && isBefore(completionDate, yearEnd) || isSameDay(completionDate, yearStart) || isSameDay(completionDate, yearEnd)) {
                 const date = format(completionDate, 'yyyy-MM-dd');
-                const durationInMinutes = typeof video.duration === 'number' 
-                  ? video.duration 
-                  : (video.duration.hours * 60) + video.duration.minutes;
-                data[date] = (data[date] || 0) + durationInMinutes;
+                const durationInMinutes = typeof video.watchTime === 'number' 
+                  ? video.watchTime 
+                  : 0;
+                
+                if (!data[date]) {
+                  data[date] = { learningTime: 0, problemSolved: false };
+                }
+                data[date].learningTime += durationInMinutes;
               }
             }
           });
@@ -69,7 +78,10 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
               const solvedDate = new Date(question.dateSolved);
               if (isAfter(solvedDate, yearStart) && isBefore(solvedDate, yearEnd) || isSameDay(solvedDate, yearStart) || isSameDay(solvedDate, yearEnd)) {
                 const date = format(solvedDate, 'yyyy-MM-dd');
-                data[date] = (data[date] || 0) + (question.timeSpent || 0);
+                if (!data[date]) {
+                  data[date] = { learningTime: 0, problemSolved: false };
+                }
+                data[date].problemSolved = true;
               }
             }
           });
@@ -82,30 +94,40 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
     calculateDailyActivity();
   }, [playlists, displayYear]);
 
-  const getColor = (level: number): string => {
+  const getColor = (date: string): string => {
     const isDark = theme === 'dark';
-    const baseColors = isDark ? {
-      empty: 'bg-gray-800 hover:bg-gray-700 border border-gray-700',
-      level1: 'bg-emerald-900/50 hover:bg-emerald-900 border border-emerald-800/50',
-      level2: 'bg-emerald-800/60 hover:bg-emerald-800 border border-emerald-700/50',
-      level3: 'bg-emerald-700/70 hover:bg-emerald-700 border border-emerald-600/50',
-      level4: 'bg-emerald-600/80 hover:bg-emerald-600 border border-emerald-500/50'
-    } : {
-      empty: 'bg-gray-100 hover:bg-gray-200 border border-gray-200',
-      level1: 'bg-emerald-100 hover:bg-emerald-200 border border-emerald-200',
-      level2: 'bg-emerald-300 hover:bg-emerald-400 border border-emerald-400',
-      level3: 'bg-emerald-500 hover:bg-emerald-600 border border-emerald-600',
-      level4: 'bg-emerald-700 hover:bg-emerald-800 border border-emerald-800'
-    };
-
-    switch (level) {
-      case 0: return baseColors.empty;
-      case 1: return baseColors.level1;
-      case 2: return baseColors.level2;
-      case 3: return baseColors.level3;
-      case 4: return baseColors.level4;
-      default: return baseColors.empty;
+    const activity = activityData[date];
+    
+    if (!activity) {
+      return isDark ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-gray-100 hover:bg-gray-200 border border-gray-200';
     }
+
+    // If both learning and problem solving occurred
+    if (activity.learningTime > 0 && activity.problemSolved) {
+      return isDark 
+        ? 'bg-gradient-to-br from-emerald-600 to-blue-600 hover:from-emerald-500 hover:to-blue-500 border border-emerald-500/50' 
+        : 'bg-gradient-to-br from-emerald-400 to-blue-400 hover:from-emerald-300 hover:to-blue-300 border border-emerald-300/50';
+    }
+    
+    // If only learning occurred
+    if (activity.learningTime > 0) {
+      const level = activity.learningTime < 15 ? 1 : 
+                   activity.learningTime < 30 ? 2 : 
+                   activity.learningTime < 60 ? 3 : 4;
+      
+      return isDark 
+        ? `bg-emerald-${700 + level * 100}/70 hover:bg-emerald-${600 + level * 100} border border-emerald-${500 + level * 100}/50`
+        : `bg-emerald-${100 + level * 100} hover:bg-emerald-${200 + level * 100} border border-emerald-${200 + level * 100}`;
+    }
+    
+    // If only problem solving occurred
+    if (activity.problemSolved) {
+      return isDark 
+        ? 'bg-blue-600/70 hover:bg-blue-500 border border-blue-500/50' 
+        : 'bg-blue-400 hover:bg-blue-300 border border-blue-300/50';
+    }
+
+    return isDark ? 'bg-gray-800 hover:bg-gray-700 border border-gray-700' : 'bg-gray-100 hover:bg-gray-200 border border-gray-200';
   };
 
   const renderMonthLabels = () => {
@@ -293,16 +315,6 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
       weeks.push(currentWeek);
     }
 
-    const activityLevel = (date: Date): number => {
-      const dateString = format(date, 'yyyy-MM-dd');
-      const minutes = activityData[dateString] || 0;
-      if (minutes === 0) return 0;
-      if (minutes < 15) return 1;
-      if (minutes < 30) return 2;
-      if (minutes < 60) return 3;
-      return 4;
-    };
-
     return (
       <TooltipProvider>
         <div className="space-y-4">
@@ -316,8 +328,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
                 >
                   {week.map((day, dayIndex) => {
                     const dateString = format(day, 'yyyy-MM-dd');
-                    const level = activityLevel(day);
-                    const minutes = activityData[dateString] || 0;
+                    const activity = activityData[dateString];
                     const isToday = isSameDay(day, new Date());
                     const isOutsideRange = viewMode === 'month' && selectedMonth !== null && !isSameMonth(day, new Date(displayYear, selectedMonth, 1)) ||
                                          viewMode === 'week' && selectedWeek !== null && getWeek(day, { weekStartsOn: 0 }) !== selectedWeek;
@@ -335,14 +346,26 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
                       <Tooltip key={dayIndex}>
                         <TooltipTrigger>
                           <div
-                            className={`w-3 h-3 rounded-sm transition-colors duration-200 ${getColor(level)} 
+                            className={`w-3 h-3 rounded-sm transition-colors duration-200 ${getColor(dateString)} 
                               ${isToday ? `ring-2 ${isDark ? 'ring-emerald-500' : 'ring-blue-500'} ring-offset-2 ${isDark ? 'ring-offset-gray-800' : 'ring-offset-white'}` : ''}`}
-                            title={`${dateString}: ${minutes} minutes`}
                           />
                         </TooltipTrigger>
                         <TooltipContent className={`${tooltipBg} border ${tooltipBorder} shadow-lg`}>
                           <p className={`font-medium ${tooltipText}`}>{format(new Date(dateString), 'MMMM d, yyyy')}</p>
-                          <p className={`text-sm ${tooltipMuted}`}>{minutes} minutes of activity</p>
+                          {activity && (
+                            <>
+                              {activity.learningTime > 0 && (
+                                <p className={`text-sm ${tooltipMuted}`}>
+                                  {activity.learningTime} minutes of learning
+                                </p>
+                              )}
+                              {activity.problemSolved && (
+                                <p className={`text-sm ${tooltipMuted}`}>
+                                  Solved problems
+                                </p>
+                              )}
+                            </>
+                          )}
                         </TooltipContent>
                       </Tooltip>
                     );

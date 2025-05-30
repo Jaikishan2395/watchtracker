@@ -102,6 +102,7 @@ const CodingProgressDashboard = ({ stats }: CodingProgressDashboardProps) => {
         <Card>
           <CardHeader>
             <CardTitle>Category Progress</CardTitle>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Distribution of solved problems across different categories</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={250}>
@@ -110,8 +111,8 @@ const CodingProgressDashboard = ({ stats }: CodingProgressDashboardProps) => {
                 <XAxis dataKey="name" angle={-45} textAnchor="end" height={80} />
                 <YAxis />
                 <Tooltip />
-                <Bar dataKey="solved" fill="#10b981" />
-                <Bar dataKey="total" fill="#e5e7eb" />
+                <Bar dataKey="solved" fill="#10b981" name="Solved Problems" />
+                <Bar dataKey="total" fill="#e5e7eb" name="Total Problems" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
@@ -120,6 +121,7 @@ const CodingProgressDashboard = ({ stats }: CodingProgressDashboardProps) => {
         <Card>
           <CardHeader>
             <CardTitle>Weekly Activity</CardTitle>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Number of problems solved each day of the week</p>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={200}>
@@ -128,34 +130,12 @@ const CodingProgressDashboard = ({ stats }: CodingProgressDashboardProps) => {
                 <XAxis dataKey="day" />
                 <YAxis />
                 <Tooltip />
-                <Line type="monotone" dataKey="solved" stroke="#3b82f6" strokeWidth={3} />
+                <Line type="monotone" dataKey="solved" stroke="#3b82f6" strokeWidth={3} name="Problems Solved" />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
-
-      {/* Category Details */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Category Breakdown</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            {Object.entries(categoryStats).map(([category, stats]) => (
-              <div key={category} className="space-y-2">
-                <div className="flex justify-between items-center">
-                  <span className="capitalize font-medium">{category.replace('-', ' ')}</span>
-                  <Badge variant="outline">
-                    {stats.solved}/{stats.total} ({Math.round((stats.solved / stats.total) * 100) || 0}%)
-                  </Badge>
-                </div>
-                <Progress value={(stats.solved / stats.total) * 100 || 0} className="h-2" />
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
     </div>
   );
 };

@@ -140,6 +140,7 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
                 <Clock className="w-4 h-4" />
                 Content Progress
               </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Track your video completion and watch time over the selected period</p>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={progressData}>
@@ -160,6 +161,7 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
                 <Code className="w-4 h-4" />
                 Coding Progress
               </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">Monitor your coding activity and time spent solving problems</p>
               <div className="h-[200px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={progressData}>
