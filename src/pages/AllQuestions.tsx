@@ -1,4 +1,4 @@
-import { ArrowLeft, Loader2, Plus, Check, Grid, List, Copy, Save, BarChart2, Filter } from 'lucide-react';
+import { ArrowLeft, Loader2, Plus, Check, Grid, List, Copy, Save, BarChart2, Filter, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { useEffect, useState } from 'react';
@@ -8,12 +8,16 @@ import { questionsData } from '@/assets/questions';
 import { Progress } from '@/components/ui/progress';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
+import { usePlaylists } from '@/context/PlaylistContext';
+import { Playlist } from '@/types/playlist';
+import { RawDifficulty } from '@/types/question';
 
 interface Question {
   id: number;
   topic: string;
   question: string;
   level: 'Easy' | 'Medium' | 'Hard';
+  link: string;
 }
 
 interface QuestionsState {
@@ -28,23 +32,42 @@ interface QuestionsState {
 interface PlaylistState {
   questions: Set<number>;
   name: string;
+  questionDetails: {
+    id: number;
+    topic: string;
+    question: string;
+    level: 'Easy' | 'Medium' | 'Hard';
+    link: string;
+  }[];
 }
 
 const parseQuestions = (text: string): Question[] => {
   try {
-    const lines = text.split('\n').filter(line => line.trim() && !line.startsWith('|-------'));
+    // Skip the header and separator lines
+    const lines = text.split('\n')
+      .filter(line => line.trim() && !line.startsWith('|-------') && !line.startsWith('| Topic'))
+      .slice(1); // Skip the header row
+    
     const questions: Question[] = [];
     let id = 1;
 
     lines.forEach(line => {
-      const [topic, question, level] = line.split('|').map(s => s.trim()).filter(Boolean);
-      if (topic && question && level && ['Easy', 'Medium', 'Hard'].includes(level)) {
-        questions.push({
-          id: id++,
-          topic,
-          question,
-          level: level as 'Easy' | 'Medium' | 'Hard'
-        });
+      // Split by | and remove empty strings and trim whitespace
+      const parts = line.split('|')
+        .map(s => s.trim())
+        .filter(Boolean);
+      
+      if (parts.length >= 3) {
+        const [topic, question, level, link] = parts;
+        if (topic && question && level && ['Easy', 'Medium', 'Hard'].includes(level)) {
+          questions.push({
+            id: id++,
+            topic,
+            question,
+            level: level as 'Easy' | 'Medium' | 'Hard',
+            link: link || ''
+          });
+        }
       }
     });
 
@@ -65,29 +88,51 @@ const AllQuestions = () => {
     sortOrder: 'asc',
     viewMode: 'list'
   });
-  const [playlist, setPlaylist] = useState<PlaylistState>({
-    questions: new Set(),
-    name: 'My Playlist'
+  const [playlist, setPlaylist] = useState<PlaylistState>(() => {
+    // Initialize with empty state
+    return {
+      questions: new Set(),
+      name: 'My Playlist',
+      questionDetails: []
+    };
   });
   const [selectedTopic, setSelectedTopic] = useState<string>('All');
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const { playlists, addPlaylist } = usePlaylists();
 
   useEffect(() => {
     try {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
       const questions = parseQuestions(questionsData);
-      setState({ data: questions, isLoading: false, error: null });
+      setState(prev => ({ 
+        ...prev,
+        data: questions,
+        isLoading: false,
+        error: null
+      }));
     } catch (error) {
       console.error('Error loading questions:', error);
-      setState({
+      setState(prev => ({
+        ...prev,
         data: [],
         isLoading: false,
         error: 'Failed to load questions. Please try again later.'
-      });
+      }));
     }
   }, []);
+
+  useEffect(() => {
+    if (playlist.questions.size > 0) {
+      localStorage.setItem('codingPlaylist', JSON.stringify({
+        ...playlist,
+        questions: Array.from(playlist.questions)
+      }));
+    } else {
+      localStorage.removeItem('codingPlaylist');
+    }
+  }, [playlist]);
 
   const topics = ['All', ...new Set(state.data.map(q => q.topic))];
   const levels = ['All', 'Easy', 'Medium', 'Hard'];
@@ -130,12 +175,28 @@ const AllQuestions = () => {
   const togglePlaylist = (questionId: number) => {
     setPlaylist((prev: PlaylistState) => {
       const newQuestions = new Set(prev.questions);
+      const question = state.data.find(q => q.id === questionId);
+      
       if (newQuestions.has(questionId)) {
         newQuestions.delete(questionId);
+        // Remove from questionDetails
+        const newQuestionDetails = prev.questionDetails.filter(q => q.id !== questionId);
+        return { ...prev, questions: newQuestions, questionDetails: newQuestionDetails };
       } else {
         newQuestions.add(questionId);
+        // Add to questionDetails
+        if (question) {
+          const newQuestionDetails = [...prev.questionDetails, {
+            id: question.id,
+            topic: question.topic,
+            question: question.question,
+            level: question.level,
+            link: question.link
+          }];
+          return { ...prev, questions: newQuestions, questionDetails: newQuestionDetails };
+        }
+        return { ...prev, questions: newQuestions };
       }
-      return { ...prev, questions: newQuestions };
     });
   };
 
@@ -144,13 +205,72 @@ const AllQuestions = () => {
     toast.success('Question copied to clipboard!');
   };
 
+  const openQuestionLink = (link: string) => {
+    if (link) {
+      window.open(link, '_blank');
+    } else {
+      toast.error('No link available for this question');
+    }
+  };
+
   const savePlaylist = () => {
     if (playlist.questions.size === 0) {
       toast.error('Add some questions to your playlist first!');
       return;
     }
-    // Here you would typically save to backend/localStorage
-    toast.success('Playlist saved successfully!');
+    
+    // Find the All Questions playlist
+    const savedPlaylists = localStorage.getItem('youtubePlaylists');
+    if (savedPlaylists) {
+      const playlists: Playlist[] = JSON.parse(savedPlaylists);
+      const allQuestionsPlaylist = playlists.find(p => p.id === 'all-questions');
+      
+      if (allQuestionsPlaylist) {
+        // Add new questions to the All Questions playlist
+        const newQuestions = playlist.questionDetails.map(q => ({
+          id: q.id.toString(),
+          title: q.question,
+          description: '',
+          difficulty: q.level.toLowerCase() as RawDifficulty,
+          category: 'algorithms' as const,
+          topics: [q.topic],
+          solved: false,
+          timeSpent: 0,
+          attempts: 0,
+          dateAdded: new Date().toISOString(),
+          originalLink: q.link
+        }));
+
+        // Filter out any duplicate questions
+        const existingQuestionIds = new Set(allQuestionsPlaylist.codingQuestions.map(q => q.id));
+        const uniqueNewQuestions = newQuestions.filter(q => !existingQuestionIds.has(q.id));
+
+        const updatedPlaylist = {
+          ...allQuestionsPlaylist,
+          codingQuestions: [...allQuestionsPlaylist.codingQuestions, ...uniqueNewQuestions]
+        };
+
+        // Update the playlist in localStorage
+        const updatedPlaylists = playlists.map(p => 
+          p.id === allQuestionsPlaylist.id ? updatedPlaylist : p
+        );
+        localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
+        
+        // Update the playlist in context
+        addPlaylist(updatedPlaylist);
+        toast.success('Questions added to All Questions playlist!');
+      } else {
+        toast.error('All Questions playlist not found!');
+      }
+    }
+    
+    // Clear the temporary playlist and localStorage
+    setPlaylist({
+      questions: new Set(),
+      name: 'My Playlist',
+      questionDetails: []
+    });
+    localStorage.removeItem('codingPlaylist');
   };
 
   if (state.isLoading) {
@@ -401,6 +521,24 @@ const AllQuestions = () => {
                           </TooltipTrigger>
                           <TooltipContent>
                             <p>Copy question</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => openQuestionLink(q.link)}
+                              className="text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400"
+                            >
+                              <ExternalLink className="w-4 h-4" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p>Open in GeeksForGeeks</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>

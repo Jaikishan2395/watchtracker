@@ -49,7 +49,7 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
       const yearEnd = endOfYear(new Date(displayYear, 11, 31));
 
       playlists.forEach(playlist => {
-        if (playlist.type === 'video') {
+        if (playlist.type === 'video' && Array.isArray(playlist.videos)) {
           playlist.videos.forEach(video => {
             if (video.progress >= 100 && video.dateCompleted) {
               const completionDate = new Date(video.dateCompleted);
@@ -62,8 +62,9 @@ const ActivityHeatmap: React.FC<ActivityHeatmapProps> = ({ playlists }) => {
               }
             }
           });
-        } else if (playlist.type === 'coding') {
-          playlist.codingQuestions?.forEach(question => {
+        }
+        if (playlist.type === 'coding' && Array.isArray(playlist.codingQuestions)) {
+          playlist.codingQuestions.forEach(question => {
             if (question.solved && question.dateSolved) {
               const solvedDate = new Date(question.dateSolved);
               if (isAfter(solvedDate, yearStart) && isBefore(solvedDate, yearEnd) || isSameDay(solvedDate, yearStart) || isSameDay(solvedDate, yearEnd)) {

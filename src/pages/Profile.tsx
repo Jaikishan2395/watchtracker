@@ -11,6 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import StreakTracker from '@/components/StreakTracker';
 import { Playlist, Video } from '@/types/playlist';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
+import { usePlaylists } from '@/context/PlaylistContext';
 
 // CSS styles
 const styles = `
@@ -96,6 +97,7 @@ interface Ranking {
 const Profile = () => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
+  const { playlists } = usePlaylists();
   const [mounted, setMounted] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +112,6 @@ const Profile = () => {
     lastActivityDate: new Date().toISOString().split('T')[0]
   });
 
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [rankings, setRankings] = useState<Ranking>({
     branch: 1,
     section: 1,
@@ -268,35 +269,6 @@ const Profile = () => {
         setIsLoading(true);
         setError(null);
 
-        // Initialize default values
-        const defaultStats: UserStats = {
-          daysActive: 0,
-          hoursLearning: 0,
-          problemsSolved: 0,
-          tasksCompleted: 0,
-          joinDate: new Date().toISOString(),
-          currentStreak: 0,
-          longestStreak: 0,
-          lastActivityDate: new Date().toISOString().split('T')[0]
-        };
-
-        // Safely get and parse localStorage data
-        let savedPlaylists: Playlist[] = [];
-        try {
-          const playlistsData = localStorage.getItem('youtubePlaylists');
-          if (playlistsData) {
-            savedPlaylists = JSON.parse(playlistsData);
-            // Validate playlist data structure
-            if (!Array.isArray(savedPlaylists)) {
-              throw new Error('Invalid playlist data format');
-            }
-          }
-        } catch (parseError) {
-          console.error('Error parsing playlists:', parseError);
-          // Initialize with empty playlists if parsing fails
-          savedPlaylists = [];
-        }
-
         // Get or initialize join date
         let joinDate = localStorage.getItem('userJoinDate');
         if (!joinDate) {
@@ -330,30 +302,39 @@ const Profile = () => {
         let completedVideos = 0;
         let totalVideos = 0;
 
-        if (savedPlaylists.length > 0) {
-          // Calculate total hours from video progress
-          const totalMinutes = savedPlaylists.reduce((total: number, playlist: Playlist) => {
-            return total + playlist.videos.reduce((playlistTotal: number, video: Video) => {
-              const durationInMinutes = (video.duration?.hours || 0) * 60 + (video.duration?.minutes || 0);
-              return playlistTotal + (durationInMinutes * (video.progress || 0) / 100);
+        // Ensure playlists is an array and has valid data
+        if (Array.isArray(playlists) && playlists.length > 0) {
+          try {
+            // Calculate total hours from video progress
+            const totalMinutes = playlists.reduce((total: number, playlist: Playlist) => {
+              if (!playlist.videos) return total;
+              return total + playlist.videos.reduce((playlistTotal: number, video: Video) => {
+                if (!video.watchTime || !video.progress) return playlistTotal;
+                return playlistTotal + (video.watchTime * (video.progress || 0) / 100);
+              }, 0);
             }, 0);
-          }, 0);
 
-          hoursLearning = Math.round(totalMinutes / 60 * 10) / 10;
-          completedVideos = savedPlaylists.reduce((total: number, playlist: Playlist) => {
-            return total + playlist.videos.filter((video: Video) => (video.progress || 0) >= 100).length;
-          }, 0);
-          totalVideos = savedPlaylists.reduce((total: number, playlist: Playlist) => {
-            return total + playlist.videos.length;
-          }, 0);
+            hoursLearning = Math.round(totalMinutes / 60 * 10) / 10;
+            completedVideos = playlists.reduce((total: number, playlist: Playlist) => {
+              if (!playlist.videos) return total;
+              return total + playlist.videos.filter((video: Video) => video.progress >= 100).length;
+            }, 0);
+            totalVideos = playlists.reduce((total: number, playlist: Playlist) => {
+              if (!playlist.videos) return total;
+              return total + playlist.videos.length;
+            }, 0);
 
-          // Calculate streaks from playlists
-          savedPlaylists.forEach((playlist: Playlist) => {
-            if (playlist.streakData) {
-              currentStreak = Math.max(currentStreak, playlist.streakData.currentStreak || 0);
-              longestStreak = Math.max(longestStreak, playlist.streakData.longestStreak || 0);
-            }
-          });
+            // Calculate streaks from playlists
+            playlists.forEach((playlist: Playlist) => {
+              if (playlist.streakData) {
+                currentStreak = Math.max(currentStreak, playlist.streakData.currentStreak || 0);
+                longestStreak = Math.max(longestStreak, playlist.streakData.longestStreak || 0);
+              }
+            });
+          } catch (error) {
+            console.error('Error processing playlist data:', error);
+            // Continue with default values if there's an error processing playlists
+          }
         }
 
         // Calculate days active
@@ -385,9 +366,6 @@ const Profile = () => {
           longestStreak,
           lastActivityDate
         });
-
-        // Update playlists state
-        setPlaylists(savedPlaylists);
 
         // Calculate and update rankings
         const userMetrics = {
@@ -454,7 +432,7 @@ const Profile = () => {
     if (mounted) {
       loadUserData();
     }
-  }, [mounted]);
+  }, [mounted, playlists]);
 
   const achievementLevel = userStats.hoursLearning >= 50 ? 'Expert' : 
                           userStats.hoursLearning >= 20 ? 'Advanced' : 
@@ -497,45 +475,31 @@ const Profile = () => {
     shadow-sm
     rounded-lg
     hover:translate-z-10
-    hover:shadow-lg
-    hover:border-primary/20
   `;
 
-  const tooltipStyles = `
-    data-[state=open]:animate-in data-[state=closed]:animate-out
-    data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0
-    data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95
-    data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2
-    data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2
-  `;
-
-  // Show loading state
-  if (!mounted || isLoading) {
+  if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className={`min-h-screen ${bgGradient} flex items-center justify-center`}>
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading profile...</p>
+          <p className="text-foreground">Loading profile...</p>
         </div>
       </div>
     );
   }
 
-  // Show error state
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center p-6 bg-white rounded-lg shadow-lg">
-          <div className="text-red-500 mb-4">
-            <AlertCircle className="w-12 h-12 mx-auto" />
-          </div>
-          <h2 className="text-xl font-semibold text-gray-800 mb-2">Error Loading Profile</h2>
-          <p className="text-gray-600 mb-4">{error}</p>
+      <div className={`min-h-screen ${bgGradient} flex items-center justify-center`}>
+        <div className="text-center">
+          <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-4" />
+          <p className="text-foreground">{error}</p>
           <Button
             onClick={() => window.location.reload()}
-            className="bg-primary text-white hover:bg-primary/90"
+            className="mt-4"
+            variant="outline"
           >
-            Try Again
+            Retry
           </Button>
         </div>
       </div>
@@ -575,7 +539,7 @@ const Profile = () => {
               </Tooltip>
             )}
           </div>
-          
+
           <div className={`${cardBg} rounded-2xl p-8 shadow-xl transition-all duration-300 ${cardHoverEffect} relative overflow-hidden`}>
             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-50" />
             <div className="relative z-10">
@@ -733,7 +697,13 @@ const Profile = () => {
         {/* Activity Heatmap */}
         <div className="mb-8 animate-fade-in" style={{ animationDelay: '350ms' }}>
           <div className={`${cardBg} rounded-2xl shadow-xl p-6 ${cardHoverEffect}`}>
-            <ActivityHeatmap playlists={playlists} />
+            {Array.isArray(playlists) ? (
+              <ActivityHeatmap playlists={playlists} />
+            ) : (
+              <div className="text-center text-muted-foreground">
+                No activity data available
+              </div>
+            )}
           </div>
         </div>
 

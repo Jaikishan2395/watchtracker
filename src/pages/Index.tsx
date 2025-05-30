@@ -19,7 +19,9 @@ const Index = () => {
     solvedQuestions: 0,
     questionsThisWeek: 0,
     averageTimePerQuestion: 0,
-    categoryProgress: {}
+    categoryProgress: {},
+    currentStreak: 0,
+    longestStreak: 0
   });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
 
@@ -44,16 +46,18 @@ const Index = () => {
     const categoryProgress: Record<string, { solved: number; total: number }> = {};
 
     playlistsData.forEach(playlist => {
-      playlist.videos.forEach(video => {
-        totalWatchTime += video.duration;
-        totalVideos++;
-        if (video.progress >= 100) {
-          completedVideos++;
-        }
-        totalProgress += video.progress;
-      });
+      if (Array.isArray(playlist.videos)) {
+        playlist.videos.forEach(video => {
+          totalWatchTime += video.watchTime || 0;
+          totalVideos++;
+          if (video.progress >= 100) {
+            completedVideos++;
+          }
+          totalProgress += video.progress;
+        });
+      }
 
-      if (playlist.codingQuestions) {
+      if (playlist.type === 'coding' && Array.isArray(playlist.codingQuestions)) {
         totalCodingQuestions += playlist.codingQuestions.length;
         solvedQuestions += playlist.codingQuestions.filter(q => q.solved).length;
         
@@ -70,19 +74,21 @@ const Index = () => {
 
         // Calculate category progress
         playlist.codingQuestions.forEach(q => {
-          if (!categoryProgress[q.category]) {
-            categoryProgress[q.category] = { solved: 0, total: 0 };
-          }
-          categoryProgress[q.category].total++;
-          if (q.solved) {
-            categoryProgress[q.category].solved++;
+          if (q.category) {
+            if (!categoryProgress[q.category]) {
+              categoryProgress[q.category] = { solved: 0, total: 0 };
+            }
+            categoryProgress[q.category].total++;
+            if (q.solved) {
+              categoryProgress[q.category].solved++;
+            }
           }
         });
       }
     });
 
     const overallProgress = totalVideos > 0 ? totalProgress / totalVideos : 0;
-    const dailyAverage = 45;
+    const dailyAverage = 45; // This could be calculated based on actual user activity
     const remainingTime = totalWatchTime * (1 - overallProgress / 100);
     const estimatedDays = Math.ceil(remainingTime / dailyAverage);
     
@@ -97,7 +103,9 @@ const Index = () => {
       solvedQuestions,
       questionsThisWeek,
       averageTimePerQuestion: solvedQuestions > 0 ? totalTimePerQuestion / solvedQuestions : 0,
-      categoryProgress
+      categoryProgress,
+      currentStreak: 0, // These could be calculated from streak data
+      longestStreak: 0
     });
   };
 
@@ -118,15 +126,15 @@ const Index = () => {
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatsCard
-            title="Total Content"
-            value={(stats.totalVideos + stats.totalCodingQuestions).toString()}
+            title="Total Videos"
+            value={stats.totalVideos.toString()}
             icon={Play}
             color="blue"
             delay="100"
           />
           <StatsCard
             title="Completed"
-            value={(stats.completedVideos + stats.solvedQuestions).toString()}
+            value={stats.completedVideos.toString()}
             icon={Target}
             color="green"
             delay="200"

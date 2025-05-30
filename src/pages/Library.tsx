@@ -5,30 +5,139 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import PlaylistCard from '@/components/PlaylistCard';
 import AddPlaylistModal from '@/components/AddPlaylistModal';
-import { Playlist } from '@/types/playlist';
 import { useTheme } from 'next-themes';
+import { usePlaylists } from '@/context/PlaylistContext';
+import { Playlist } from '@/types/playlist';
+
+interface WatchTimeData {
+  totalWatchTime: number;  // Total accumulated watch time in milliseconds
+  lastPosition: number;    // Last video position in seconds
+  lastUpdate: number;      // Timestamp of last update
+  sessions: {              // Track individual watch sessions
+    startTime: number;     // Session start timestamp
+    endTime?: number;      // Session end timestamp
+    duration: number;      // Session duration in milliseconds
+  }[];
+}
 
 const Library = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  const { playlists, addPlaylist, deletePlaylist } = usePlaylists();
   const { theme } = useTheme();
 
-  // Load playlists from localStorage on component mount
-  useEffect(() => {
+  // Add refresh functionality
+  const refreshPlaylists = () => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
-      setPlaylists(JSON.parse(savedPlaylists));
+      try {
+        const parsedPlaylists = JSON.parse(savedPlaylists) as Playlist[];
+        // Validate and update playlists in context
+        parsedPlaylists.forEach(playlist => {
+          // Only add if playlist doesn't exist and is valid
+          if (!playlists.find(p => p.id === playlist.id)) {
+            // Validate playlist before adding
+            if (!playlist.id || !playlist.title || !playlist.type) {
+              console.error('Invalid playlist data:', playlist);
+              return;
+            }
+
+            // Additional validation for coding playlists
+            if (playlist.type === 'coding') {
+              if (!Array.isArray(playlist.codingQuestions) || playlist.codingQuestions.length === 0) {
+                console.error('Coding playlist must have at least one question');
+                return;
+              }
+              // Validate each coding question
+              const invalidQuestions = playlist.codingQuestions.filter(q => 
+                !q.id || !q.title || !q.difficulty || !q.category
+              );
+              if (invalidQuestions.length > 0) {
+                console.error('Invalid coding questions found:', invalidQuestions);
+                return;
+              }
+            }
+
+            // Additional validation for video playlists
+            if (playlist.type === 'video') {
+              if (!Array.isArray(playlist.videos) || playlist.videos.length === 0) {
+                console.error('Video playlist must have at least one video');
+                return;
+              }
+            }
+
+            addPlaylist(playlist);
+          }
+        });
+      } catch (error) {
+        console.error('Error refreshing playlists:', error);
+      }
     }
-  }, []);
+  };
+
+  // Add polling effect
+  useEffect(() => {
+    // Initial refresh
+    refreshPlaylists();
+
+    // Set up polling interval
+    const pollInterval = setInterval(refreshPlaylists, 1000);
+
+    // Set up storage event listener
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'youtubePlaylists' || e.key === 'completedVideos') {
+        refreshPlaylists();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [playlists, addPlaylist]);
+
+  // Add visibility change handler
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        refreshPlaylists();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [playlists, addPlaylist]);
+
+  // Add focus handler
+  useEffect(() => {
+    const handleFocus = () => {
+      refreshPlaylists();
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [playlists, addPlaylist]);
 
   // Filter playlists by type
   const videoPlaylists = playlists.filter(playlist => playlist.type === 'video');
   const codingPlaylists = playlists.filter(playlist => playlist.type === 'coding');
 
-  const deletePlaylist = (id: string) => {
-    const updatedPlaylists = playlists.filter(playlist => playlist.id !== id);
-    setPlaylists(updatedPlaylists);
-    localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
+  const markAsComplete = () => {
+    // ... other code ...
+    const videoToStore: CompletedVideo = {
+      id: currentVideo.id,
+      title: currentVideo.title,
+      playlistId: playlist.id,
+      playlistTitle: playlist.title,
+      completedAt: new Date().toISOString(),
+      watchTime: watchTimeData.totalWatchTime  // Store total watch time with completion
+    };
+    // ... other code ...
   };
 
   return (
@@ -187,12 +296,7 @@ const Library = () => {
         <AddPlaylistModal
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
-          onAdd={(newPlaylist) => {
-            const updatedPlaylists = [...playlists, newPlaylist];
-            setPlaylists(updatedPlaylists);
-            localStorage.setItem('youtubePlaylists', JSON.stringify(updatedPlaylists));
-            setIsModalOpen(false);
-          }}
+          onAdd={addPlaylist}
         />
       </div>
     </div>

@@ -63,34 +63,38 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
       // Aggregate progress data
       playlists.forEach(playlist => {
         // Process video progress
-        playlist.videos.forEach(video => {
-          if (video.progress >= 100) {
-            const completionDate = new Date(video.dateCompleted || playlist.createdAt);
-            const daysAgo = Math.floor((now.getTime() - completionDate.getTime()) / (1000 * 60 * 60 * 24));
-            if (daysAgo < daysToShow) {
-              const index = daysToShow - 1 - daysAgo;
-              if (index >= 0 && index < data.length) {
-                data[index].videosCompleted++;
-                data[index].watchTime += video.duration;
+        if (playlist.type === 'video' && Array.isArray(playlist.videos)) {
+          playlist.videos.forEach(video => {
+            if (video.progress >= 100) {
+              const completionDate = new Date(video.dateCompleted || playlist.createdAt);
+              const daysAgo = Math.floor((now.getTime() - completionDate.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysAgo < daysToShow) {
+                const index = daysToShow - 1 - daysAgo;
+                if (index >= 0 && index < data.length) {
+                  data[index].videosCompleted++;
+                  data[index].watchTime += video.duration || 0;
+                }
               }
             }
-          }
-        });
+          });
+        }
 
         // Process coding questions
-        playlist.codingQuestions?.forEach(question => {
-          if (question.solved && question.dateSolved) {
-            const solvedDate = new Date(question.dateSolved);
-            const daysAgo = Math.floor((now.getTime() - solvedDate.getTime()) / (1000 * 60 * 60 * 24));
-            if (daysAgo < daysToShow) {
-              const index = daysToShow - 1 - daysAgo;
-              if (index >= 0 && index < data.length) {
-                data[index].questionsSolved++;
-                data[index].codingTime += question.timeSpent || 0;
+        if (playlist.type === 'coding' && Array.isArray(playlist.codingQuestions)) {
+          playlist.codingQuestions.forEach(question => {
+            if (question.solved && question.dateSolved) {
+              const solvedDate = new Date(question.dateSolved);
+              const daysAgo = Math.floor((now.getTime() - solvedDate.getTime()) / (1000 * 60 * 60 * 24));
+              if (daysAgo < daysToShow) {
+                const index = daysToShow - 1 - daysAgo;
+                if (index >= 0 && index < data.length) {
+                  data[index].questionsSolved++;
+                  data[index].codingTime += question.timeSpent || 0;
+                }
               }
             }
-          }
-        });
+          });
+        }
       });
 
       // For monthly and yearly views, aggregate data by month
@@ -183,7 +187,7 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
             </div>
 
             {/* Summary Stats */}
-            <div className="grid grid-cols-2 gap-4 mt-4">
+            <div className="grid grid-cols-2 gap-4">
               <Card className="bg-white/50">
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">

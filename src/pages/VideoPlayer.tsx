@@ -73,11 +73,18 @@ interface WatchTimeData {
   totalWatchTime: number;  // Total accumulated watch time in milliseconds
   lastPosition: number;    // Last video position in seconds
   lastUpdate: number;      // Timestamp of last update
-  sessions: {              // Track individual watch sessions
-    startTime: number;     // Session start timestamp
-    endTime?: number;      // Session end timestamp
-    duration: number;      // Session duration in milliseconds
-  }[];
+  playCount: number;       // Number of times video was played
+  stopCount: number;       // Number of times video was stopped
+  cumulativeTime: number;  // Total time spent watching the video
+}
+
+interface CompletedVideo {
+  id: string;
+  title: string;
+  playlistId: string;
+  playlistTitle: string;
+  completedAt: string;
+  watchTime: number;
 }
 
 const formatDuration = (minutes: number) => {
@@ -154,7 +161,9 @@ const VideoPlayer = () => {
     totalWatchTime: 0,
     lastPosition: 0,
     lastUpdate: Date.now(),
-    sessions: []
+    playCount: 0,
+    stopCount: 0,
+    cumulativeTime: 0
   });
   const [videoTitle, setVideoTitle] = useState<string | null>(null);
   const [isPlayerReady, setIsPlayerReady] = useState(false);
@@ -164,9 +173,7 @@ const VideoPlayer = () => {
   const playerRef = useRef<YouTubePlayer | null>(null);
   const iframeRef = useRef<HTMLDivElement>(null);
   const updateInterval = useRef<NodeJS.Timeout | null>(null);
-  const sessionStartTime = useRef<number | null>(null);
   const lastUpdateTime = useRef<number>(Date.now());
-  const initializationAttemptsRef = useRef<number>(0);
 
   // Get current video from playlist
   const currentVideo = playlist?.videos[currentVideoIndex];
@@ -182,7 +189,58 @@ const VideoPlayer = () => {
     [playlist?.videos, playlist?.videos.map(v => v.progress)]
   );
 
-  // Load playlist data
+  // Add this effect to handle playlist updates
+  useEffect(() => {
+    const handlePlaylistUpdate = (event: CustomEvent) => {
+      const { playlistId: updatedPlaylistId, updatedPlaylist } = event.detail;
+      if (updatedPlaylistId === id) {
+        // Update the playlist state
+        setPlaylist(updatedPlaylist);
+        
+        // If we're currently playing the last video, update the currentVideoIndex
+        if (currentVideoIndex === playlist?.videos.length - 1) {
+          setCurrentVideoIndex(updatedPlaylist.videos.length - 1);
+        }
+      }
+    };
+
+    // Add event listener for playlist updates
+    window.addEventListener('playlistUpdated', handlePlaylistUpdate as EventListener);
+
+    return () => {
+      window.removeEventListener('playlistUpdated', handlePlaylistUpdate as EventListener);
+    };
+  }, [id, currentVideoIndex, playlist?.videos.length]);
+
+  // Add polling to ensure real-time updates
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (savedPlaylists) {
+        const playlists: Playlist[] = JSON.parse(savedPlaylists);
+        const found = playlists.find(p => p.id === id);
+        if (found && JSON.stringify(found) !== JSON.stringify(playlist)) {
+          // Check completed videos in localStorage to ensure progress is maintained
+          const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+          const updatedVideos = found.videos.map(video => {
+            const completedVideo = completedVideos.find(cv => cv.id === video.id);
+            if (completedVideo) {
+              return { ...video, progress: 100 };
+            }
+            return video;
+          });
+          const updatedPlaylist = { ...found, videos: updatedVideos };
+          setPlaylist(updatedPlaylist);
+        }
+      }
+    }, 1000); // Poll every second
+
+    return () => {
+      clearInterval(pollInterval);
+    };
+  }, [id, playlist]);
+
+  // Update the loadPlaylistData function in the first useEffect
   useEffect(() => {
     const loadPlaylistData = async () => {
       setIsLoading(true);
@@ -190,7 +248,29 @@ const VideoPlayer = () => {
         // First try to get playlist from navigation state
         const statePlaylist = location.state?.playlist as Playlist | undefined;
         if (statePlaylist) {
-          setPlaylist(statePlaylist);
+          // Check completed videos in localStorage to ensure progress is maintained
+          const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+          const updatedVideos = statePlaylist.videos.map(video => {
+            const completedVideo = completedVideos.find(cv => cv.id === video.id);
+            if (completedVideo) {
+              return { ...video, progress: 100 };
+            }
+            return video;
+          });
+          const updatedPlaylist = { ...statePlaylist, videos: updatedVideos };
+          setPlaylist(updatedPlaylist);
+          
+          // Update localStorage to maintain consistency
+          const savedPlaylists = localStorage.getItem('youtubePlaylists');
+          if (savedPlaylists) {
+            const playlists: Playlist[] = JSON.parse(savedPlaylists);
+            const index = playlists.findIndex(p => p.id === id);
+            if (index !== -1) {
+              playlists[index] = updatedPlaylist;
+              localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+            }
+          }
+          
           setIsLoading(false);
           return;
         }
@@ -201,10 +281,20 @@ const VideoPlayer = () => {
           const playlists: Playlist[] = JSON.parse(savedPlaylists);
           const found = playlists.find(p => p.id === id);
           if (found) {
-            setPlaylist(found);
+            // Check completed videos in localStorage to ensure progress is maintained
+            const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+            const updatedVideos = found.videos.map(video => {
+              const completedVideo = completedVideos.find(cv => cv.id === video.id);
+              if (completedVideo) {
+                return { ...video, progress: 100 };
+              }
+              return video;
+            });
+            const updatedPlaylist = { ...found, videos: updatedVideos };
+            setPlaylist(updatedPlaylist);
             // Save to state to prevent loss on refresh
             window.history.replaceState(
-              { playlist: found },
+              { playlist: updatedPlaylist },
               '',
               window.location.href
             );
@@ -231,90 +321,152 @@ const VideoPlayer = () => {
     }
   }, [id, location.state, navigate, isInitialized]);
 
-  // Initialize watch time data when video changes
+  // Add a new effect to sync with completed videos
   useEffect(() => {
-    if (!playlist || !currentVideo) return;
+    if (!playlist) return;
 
-    // Load existing watch time data from localStorage
-    const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
-    if (savedData) {
-      try {
-        const parsedData = JSON.parse(savedData) as WatchTimeData;
-        setWatchTimeData(parsedData);
-      } catch (e) {
-        console.error('Error loading watch time data:', e);
-      }
-    } else {
-      // Initialize new watch time data
-      setWatchTimeData({
-        totalWatchTime: 0,
-        lastPosition: 0,
-        lastUpdate: Date.now(),
-        sessions: []
+    const syncCompletedVideos = () => {
+      const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+      const updatedVideos = playlist.videos.map(video => {
+        const completedVideo = completedVideos.find(cv => cv.id === video.id);
+        if (completedVideo) {
+          return { ...video, progress: 100 };
+        }
+        return video;
       });
-    }
 
-    // Reset session tracking
-    sessionStartTime.current = null;
-    lastUpdateTime.current = Date.now();
-
-    return () => {
-      // Save watch time data when component unmounts or video changes
-      if (currentVideo && watchTimeData) {
-        localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(watchTimeData));
+      // Only update if there are changes
+      if (JSON.stringify(updatedVideos) !== JSON.stringify(playlist.videos)) {
+        const updatedPlaylist = { ...playlist, videos: updatedVideos };
+        setPlaylist(updatedPlaylist);
+        
+        // Update localStorage
+        const savedPlaylists = localStorage.getItem('youtubePlaylists');
+        if (savedPlaylists) {
+          const playlists: Playlist[] = JSON.parse(savedPlaylists);
+          const index = playlists.findIndex(p => p.id === id);
+          if (index !== -1) {
+            playlists[index] = updatedPlaylist;
+            localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+          }
+        }
       }
     };
-  }, [currentVideo?.id, watchTimeData, playlist]);
+
+    // Initial sync
+    syncCompletedVideos();
+
+    // Listen for changes to completedVideos
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'completedVideos') {
+        syncCompletedVideos();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [playlist, id]);
+
+  // Add this effect to handle localStorage sync and auto-refresh
+  useEffect(() => {
+    if (!currentVideo) return;
+
+    // Load initial data from localStorage
+    const loadWatchData = () => {
+      const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
+      if (savedData) {
+        try {
+          const parsedData = JSON.parse(savedData) as WatchTimeData;
+          setWatchTimeData(parsedData);
+        } catch (e) {
+          console.error('Error loading watch time data:', e);
+        }
+      }
+    };
+
+    // Initial load
+    loadWatchData();
+
+    // Set up polling interval for auto-refresh
+    const pollInterval = setInterval(loadWatchData, 1000);
+
+    // Set up storage event listener for cross-tab updates
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === `watchTime_${currentVideo.id}`) {
+        loadWatchData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [currentVideo?.id]);
 
   // Function to start tracking watch time
   const startWatchTimeTracking = () => {
-    if (!playerRef.current || !currentVideo || sessionStartTime.current !== null) return;
+    if (!playerRef.current || !currentVideo) return;
 
     const now = Date.now();
-    sessionStartTime.current = now;
     lastUpdateTime.current = now;
+
+    // Load existing watch time data
+    const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
+    let existingData: WatchTimeData | null = null;
+    if (savedData) {
+      try {
+        existingData = JSON.parse(savedData);
+      } catch (e) {
+        console.error('Error loading watch time data:', e);
+      }
+    }
 
     // Start the update interval
     updateInterval.current = setInterval(() => {
-      if (!playerRef.current || !sessionStartTime.current || !currentVideo) return;
+      if (!playerRef.current || !currentVideo) return;
 
       const currentTime = Date.now();
-      const elapsed = currentTime - lastUpdateTime.current;
+      const elapsed = Math.floor((currentTime - lastUpdateTime.current) / 1000) * 1000; // Round to nearest second
       lastUpdateTime.current = currentTime;
 
       // Update watch time data
       setWatchTimeData(prev => {
-        const currentPosition = Math.floor(playerRef.current!.getCurrentTime());
-        return {
+        const updatedData = {
           ...prev,
           totalWatchTime: prev.totalWatchTime + elapsed,
-          lastPosition: currentPosition,
           lastUpdate: currentTime,
-          sessions: prev.sessions.map((session, index) => 
-            index === prev.sessions.length - 1 && !session.endTime
-              ? { ...session, duration: session.duration + elapsed }
-              : session
-          )
+          cumulativeTime: prev.cumulativeTime + elapsed
         };
-      });
-    }, 100); // Update every 100ms for better precision
 
-    // Add new session
-    setWatchTimeData(prev => ({
-      ...prev,
-      sessions: [...prev.sessions, {
-        startTime: now,
-        duration: 0
-      }]
-    }));
+        // Save to localStorage
+        localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(updatedData));
+        return updatedData;
+      });
+    }, 1000);
+
+    // Increment play count and initialize cumulative time if needed
+    setWatchTimeData(prev => {
+      const updatedData = {
+        ...prev,
+        playCount: prev.playCount + 1,
+        cumulativeTime: existingData?.cumulativeTime || prev.cumulativeTime
+      };
+
+      // Save to localStorage
+      localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(updatedData));
+      return updatedData;
+    });
   };
 
   // Function to stop tracking watch time
   const stopWatchTimeTracking = () => {
-    if (!sessionStartTime.current || !currentVideo) return;
+    if (!currentVideo) return;
 
     const now = Date.now();
-    const sessionDuration = now - sessionStartTime.current;
 
     // Clear the update interval
     if (updateInterval.current) {
@@ -322,27 +474,18 @@ const VideoPlayer = () => {
       updateInterval.current = null;
     }
 
-    // Update the last session and save to localStorage
+    // Update and save to localStorage
     setWatchTimeData(prev => {
-      const updatedSessions = [...prev.sessions];
-      const lastSession = updatedSessions[updatedSessions.length - 1];
-      if (lastSession && !lastSession.endTime) {
-        lastSession.endTime = now;
-        lastSession.duration = sessionDuration;
-      }
-
       const finalData = {
         ...prev,
-        sessions: updatedSessions,
-        lastUpdate: now
+        lastUpdate: now,
+        stopCount: prev.stopCount + 1
       };
 
       // Save to localStorage
       localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(finalData));
       return finalData;
     });
-
-    sessionStartTime.current = null;
   };
 
   const updateVideoProgress = (videoId: string, progress: number) => {
@@ -448,7 +591,7 @@ const VideoPlayer = () => {
         videos: updatedVideos
       };
 
-      // Update localStorage
+      // Update localStorage for playlists
       const savedPlaylists = localStorage.getItem('youtubePlaylists');
       if (savedPlaylists) {
         try {
@@ -462,6 +605,35 @@ const VideoPlayer = () => {
           console.error('Error updating localStorage:', error);
         }
       }
+
+      // Store completed video in localStorage
+      const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+      const videoToStore: CompletedVideo = {
+        id: currentVideo.id,
+        title: currentVideo.title,
+        playlistId: playlist.id,
+        playlistTitle: playlist.title,
+        completedAt: new Date().toISOString(),
+        watchTime: watchTimeData.cumulativeTime
+      };
+
+      // Check if video is already in completed list
+      const existingIndex = completedVideos.findIndex((v: CompletedVideo) => v.id === currentVideo.id);
+      if (existingIndex === -1) {
+        completedVideos.push(videoToStore);
+        localStorage.setItem('completedVideos', JSON.stringify(completedVideos));
+      }
+
+      // Reset watch time data for the completed video
+      localStorage.removeItem(`watchTime_${currentVideo.id}`);
+      setWatchTimeData({
+        totalWatchTime: 0,
+        lastPosition: 0,
+        lastUpdate: Date.now(),
+        playCount: 0,
+        stopCount: 0,
+        cumulativeTime: 0
+      });
 
       // Update state with the new playlist
       setPlaylist(updatedPlaylist);
@@ -479,41 +651,18 @@ const VideoPlayer = () => {
       // Reset player ready state
       setIsPlayerReady(false);
 
+      // Show completion dialog if this was the last video
       if (remainingUncompleted === 0) {
-        // Show completion dialog if all videos are completed
         setShowCompletionDialog(true);
       } else {
-        // Find the next uncompleted video
+        // Find and play the next uncompleted video
         const nextUncompletedIndex = updatedVideos.findIndex(v => v.progress < 100);
         if (nextUncompletedIndex !== -1) {
-          // Update URL and state for the next video
-          const newUrl = `/playlist/${id}/play?video=${nextUncompletedIndex}`;
-          window.history.pushState({}, '', newUrl);
-          setCurrentVideoIndex(nextUncompletedIndex);
-          
-          // Reinitialize player after a short delay
-          setTimeout(() => {
-            setIsPlayerReady(true);
-          }, 100);
+          selectVideo(nextUncompletedIndex);
         }
       }
 
-      // Show a special toast notification with animation
-      toast.success(
-        <div className="flex items-center gap-2">
-          <CheckCircle className="w-5 h-5 text-green-500" />
-          <span>
-            <span className="font-semibold">{currentVideo.title}</span>
-            {remainingUncompleted === 0 
-              ? ' completed! All videos are now finished!' 
-              : ' marked as complete! Moving to next video...'}
-          </span>
-        </div>,
-        {
-          duration: 3000,
-          className: "animate-slide-in-right",
-        }
-      );
+      toast.success('Video marked as complete!');
     }
   };
 
@@ -540,9 +689,10 @@ const VideoPlayer = () => {
     return null;
   };
 
-  // Update the player initialization effect
+  // Update the player initialization to handle play/stop counts
   useEffect(() => {
     let playerInstance: YouTubePlayer | null = null;
+    let lastState: number | null = null;
 
     const initializePlayer = () => {
       if (!isPlayerReady || !iframeRef.current || !playlist) {
@@ -584,7 +734,7 @@ const VideoPlayer = () => {
         const playerOptions = {
           videoId,
           playerVars: {
-            autoplay: 1, // Enable autoplay for uncompleted videos
+            autoplay: 1,
             controls: 1,
             modestbranding: 1,
             rel: 0,
@@ -601,11 +751,15 @@ const VideoPlayer = () => {
                 return;
               }
 
-              if (event.data === window.YT.PlayerState.PLAYING) {
-                startWatchTimeTracking();
-              } else if (event.data === window.YT.PlayerState.PAUSED || 
-                         event.data === window.YT.PlayerState.ENDED) {
-                stopWatchTimeTracking();
+              // Only trigger play/stop when state actually changes
+              if (event.data !== lastState) {
+                if (event.data === window.YT.PlayerState.PLAYING) {
+                  startWatchTimeTracking();
+                } else if (event.data === window.YT.PlayerState.PAUSED || 
+                           event.data === window.YT.PlayerState.ENDED) {
+                  stopWatchTimeTracking();
+                }
+                lastState = event.data;
               }
             },
             onReady: (event: YouTubePlayerEvent) => {
@@ -790,6 +944,154 @@ const VideoPlayer = () => {
     }
   }, [playlist?.videos.map(v => v.progress)]); // Watch for progress changes
 
+  // Add this effect to handle page changes
+  useEffect(() => {
+    return () => {
+      // Clean up when component unmounts
+      if (currentVideo) {
+        // Save watch time data
+        localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(watchTimeData));
+        
+        // If video is completed, ensure it's in the completed list
+        if (currentVideo.progress >= 100) {
+          const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+          const existingIndex = completedVideos.findIndex((v: CompletedVideo) => v.id === currentVideo.id);
+          
+          if (existingIndex === -1) {
+            const videoToStore: CompletedVideo = {
+              id: currentVideo.id,
+              title: currentVideo.title,
+              playlistId: playlist?.id || '',
+              playlistTitle: playlist?.title || '',
+              completedAt: new Date().toISOString(),
+              watchTime: watchTimeData.cumulativeTime
+            };
+            completedVideos.push(videoToStore);
+            localStorage.setItem('completedVideos', JSON.stringify(completedVideos));
+          }
+        }
+      }
+    };
+  }, [currentVideo, watchTimeData, playlist]);
+
+  // Add a comprehensive refresh effect
+  useEffect(() => {
+    const refreshAllData = () => {
+      // Refresh playlist data
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (savedPlaylists) {
+        const playlists: Playlist[] = JSON.parse(savedPlaylists);
+        const found = playlists.find(p => p.id === id);
+        if (found) {
+          // Check completed videos
+          const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+          const updatedVideos = found.videos.map(video => {
+            const completedVideo = completedVideos.find(cv => cv.id === video.id);
+            if (completedVideo) {
+              return { ...video, progress: 100 };
+            }
+            return video;
+          });
+          const updatedPlaylist = { ...found, videos: updatedVideos };
+          setPlaylist(updatedPlaylist);
+        }
+      }
+
+      // Refresh watch time data for current video
+      if (currentVideo) {
+        const savedWatchTime = localStorage.getItem(`watchTime_${currentVideo.id}`);
+        if (savedWatchTime) {
+          try {
+            const watchData = JSON.parse(savedWatchTime) as WatchTimeData;
+            setWatchTimeData(watchData);
+          } catch (e) {
+            console.error('Error loading watch time data:', e);
+          }
+        }
+      }
+    };
+
+    // Initial refresh
+    refreshAllData();
+
+    // Set up polling interval
+    const pollInterval = setInterval(refreshAllData, 1000);
+
+    // Set up storage event listener
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'youtubePlaylists' || e.key === 'completedVideos' || e.key?.startsWith('watchTime_')) {
+        refreshAllData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      clearInterval(pollInterval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [id, currentVideo?.id]);
+
+  // Add a visibility change handler to refresh when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Refresh all data when tab becomes visible
+        const savedPlaylists = localStorage.getItem('youtubePlaylists');
+        if (savedPlaylists) {
+          const playlists: Playlist[] = JSON.parse(savedPlaylists);
+          const found = playlists.find(p => p.id === id);
+          if (found) {
+            const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+            const updatedVideos = found.videos.map(video => {
+              const completedVideo = completedVideos.find(cv => cv.id === video.id);
+              if (completedVideo) {
+                return { ...video, progress: 100 };
+              }
+              return video;
+            });
+            const updatedPlaylist = { ...found, videos: updatedVideos };
+            setPlaylist(updatedPlaylist);
+          }
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [id]);
+
+  // Add a focus handler to refresh when window regains focus
+  useEffect(() => {
+    const handleFocus = () => {
+      // Refresh all data when window regains focus
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (savedPlaylists) {
+        const playlists: Playlist[] = JSON.parse(savedPlaylists);
+        const found = playlists.find(p => p.id === id);
+        if (found) {
+          const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+          const updatedVideos = found.videos.map(video => {
+            const completedVideo = completedVideos.find(cv => cv.id === video.id);
+            if (completedVideo) {
+              return { ...video, progress: 100 };
+            }
+            return video;
+          });
+          const updatedPlaylist = { ...found, videos: updatedVideos };
+          setPlaylist(updatedPlaylist);
+        }
+      }
+    };
+
+    window.addEventListener('focus', handleFocus);
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, [id]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -838,21 +1140,20 @@ const VideoPlayer = () => {
   const completedVideos = playlist.videos.filter(v => v.progress >= 100).length;
   const totalProgress = playlist.videos.reduce((sum, video) => sum + video.progress, 0) / playlist.videos.length;
 
-  // Format time with millisecond precision
+  // Update the formatTimeWithPrecision function to show only seconds
   const formatTimeWithPrecision = (ms: number) => {
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);
     const seconds = totalSeconds % 60;
-    const milliseconds = ms % 1000;
 
     if (hours > 0) {
-      return `${hours}h ${minutes}m ${seconds}s ${milliseconds}ms`;
+      return `${hours}h ${minutes}m ${seconds}s`;
     }
     if (minutes > 0) {
-      return `${minutes}m ${seconds}s ${milliseconds}ms`;
+      return `${minutes}m ${seconds}s`;
     }
-    return `${seconds}s ${milliseconds}ms`;
+    return `${seconds}s`;
   };
 
   return (
@@ -953,19 +1254,8 @@ const VideoPlayer = () => {
                         </div>
                         <div className="space-y-1.5">
                           <div className="text-sm font-medium text-blue-700 dark:text-blue-400">Total Watch Time</div>
-                          <div 
-                            className="text-xl font-semibold text-gray-900 dark:text-white cursor-pointer hover:text-blue-600 dark:hover:text-blue-400 transition-colors flex items-center gap-2 group"
-                            onClick={() => {
-                              if (currentVideo.watchTime) {
-                                playerRef.current?.seekTo(currentVideo.watchTime);
-                              }
-                            }}
-                            title="Click to continue from last watched position"
-                          >
-                            {formatTimeWithPrecision(watchTimeData.totalWatchTime)}
-                            <span className="text-xs text-blue-600 dark:text-blue-400 bg-blue-100/80 dark:bg-blue-900/30 px-2.5 py-1 rounded-full group-hover:bg-blue-200/80 dark:group-hover:bg-blue-800/30 transition-colors">
-                              continue watching
-                            </span>
+                          <div className="text-xl font-semibold text-gray-900 dark:text-white">
+                            {formatTimeWithPrecision(watchTimeData.cumulativeTime)}
                           </div>
                         </div>
                       </div>
@@ -981,45 +1271,27 @@ const VideoPlayer = () => {
                           <CheckCircle className="w-4 h-4 mr-2" />
                           {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
                         </Button>
-                        <div className="text-right bg-white/80 dark:bg-slate-800/80 px-4 py-2 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
-                          <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Current Position</div>
-                          <div className="text-xl font-semibold text-gray-900 dark:text-white">
-                            {formatTime(currentVideo.watchTime || 0)}
-                          </div>
-                        </div>
                       </div>
                     </div>
 
                     {/* Stats Grid */}
                     <div className="grid grid-cols-2 gap-4 pt-4 mt-2 border-t border-blue-100/50 dark:border-blue-800/50">
                       <div className="bg-white/80 dark:bg-slate-800/80 p-3 rounded-lg border border-blue-100/50 dark:border-blue-800/50">
-                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Watch Sessions</div>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className="bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/50">
-                            {watchTimeData.sessions.length} {watchTimeData.sessions.length === 1 ? 'session' : 'sessions'}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="bg-white/80 dark:bg-slate-800/80 p-3 rounded-lg border border-blue-100/50 dark:border-blue-800/50 text-right">
-                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Last Updated</div>
-                        <div className="font-medium text-gray-900 dark:text-white">
-                          {new Date(watchTimeData.lastUpdate).toLocaleTimeString()}
+                        <div className="text-sm font-medium text-blue-700 dark:text-blue-400 mb-1">Watch Stats</div>
+                        <div className="flex flex-col gap-2">
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/50">
+                              Played: {watchTimeData.playCount} times
+                            </Badge>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-blue-50/80 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 border-blue-200/80 dark:border-blue-800/50">
+                              Stopped: {watchTimeData.stopCount} times
+                            </Badge>
+                          </div>
                         </div>
                       </div>
                     </div>
-
-                    {/* Active Session Indicator */}
-                    {sessionStartTime.current && (
-                      <div className="mt-4 bg-blue-100/50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-200/50 dark:border-blue-800/50 animate-pulse">
-                        <div className="flex items-center gap-2 text-blue-700 dark:text-blue-400">
-                          <Timer className="w-4 h-4" />
-                          <span className="font-medium">Current Session</span>
-                        </div>
-                        <div className="mt-1 text-lg font-semibold text-blue-900 dark:text-blue-300">
-                          {formatTimeWithPrecision(Date.now() - sessionStartTime.current)}
-                        </div>
-                      </div>
-                    )}
                   </div>
                 </div>
               </CardContent>

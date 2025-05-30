@@ -50,45 +50,58 @@ const AddCodingPlaylistModal = ({ isOpen, onClose, onAdd }: AddCodingPlaylistMod
       return;
     }
 
+    // Validate each question has required fields
+    const invalidQuestions = questions.filter(q => !q.title || !q.difficulty || !q.category);
+    if (invalidQuestions.length > 0) {
+      toast.error('All questions must have a title, difficulty, and category');
+      return;
+    }
+
     setIsLoading(true);
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
-    const playlist: Playlist = {
-      id: Date.now().toString(),
-      title: title.trim(),
-      description: description.trim(),
-      type: 'coding',
-      createdAt: new Date().toISOString(),
-      videos: [],
-      targetQuestionsPerDay,
-      streakData: {
-        currentStreak: 0,
-        longestStreak: 0,
-        lastActivityDate: '',
-        weeklyGoal,
-        completedThisWeek: 0
-      },
-      codingQuestions: questions.map((question, index) => ({
-        ...question,
-        id: `${Date.now()}-${index}`,
-        solved: false,
-        dateAdded: new Date().toISOString(),
-        attempts: 0
-      }))
-    };
+      const playlist: Playlist = {
+        id: Date.now().toString(),
+        title: title.trim(),
+        description: description.trim(),
+        type: 'coding',
+        createdAt: new Date().toISOString(),
+        videos: [],
+        targetQuestionsPerDay,
+        streakData: {
+          currentStreak: 0,
+          longestStreak: 0,
+          lastActivityDate: '',
+          weeklyGoal,
+          completedThisWeek: 0
+        },
+        codingQuestions: questions.map((question, index) => ({
+          ...question,
+          id: `${Date.now()}-${index}`,
+          solved: false,
+          dateAdded: new Date().toISOString(),
+          attempts: 0
+        }))
+      };
 
-    onAdd(playlist);
-    
-    // Reset form
-    setTitle('');
-    setDescription('');
-    setTargetQuestionsPerDay(2);
-    setWeeklyGoal(10);
-    setQuestions([]);
-    setIsLoading(false);
-    
-    toast.success('Coding playlist created successfully!');
-    onClose();
+      onAdd(playlist);
+      
+      // Reset form
+      setTitle('');
+      setDescription('');
+      setTargetQuestionsPerDay(2);
+      setWeeklyGoal(10);
+      setQuestions([]);
+      
+      toast.success('Coding playlist created successfully!');
+      onClose();
+    } catch (error) {
+      console.error('Error creating playlist:', error);
+      toast.error('Failed to create playlist. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

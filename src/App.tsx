@@ -3,13 +3,12 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, useLocation, useParams } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, useParams } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
 import PlaylistDetail from "./pages/PlaylistDetail";
 import PlaylistDetailCoding from "./pages/PlaylistDetailCoding";
-import CodingProblemSolver from "./pages/CodingProblemSolver";
 import VideoPlayer from "./pages/VideoPlayer";
 import Profile from "./pages/Profile";
 import NotFound from "./pages/NotFound";
@@ -21,12 +20,21 @@ import { SettingsPage } from "./pages/SettingsPage";
 import AllQuestions from "./pages/AllQuestions";
 import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
+import { loadQuestionsFromFile } from './utils/loadQuestions';
+import { PlaylistProvider } from '@/context/PlaylistContext';
 
 const queryClient = new QueryClient();
 
 const AppContent = () => {
   const location = useLocation();
   const isAuthPage = ['/', '/login', '/create-account'].includes(location.pathname);
+
+  useEffect(() => {
+    // Load questions when the app starts
+    loadQuestionsFromFile().catch(error => {
+      console.error('Failed to load questions:', error);
+    });
+  }, []);
 
   return (
     <SidebarProvider>
@@ -49,10 +57,10 @@ const AppContent = () => {
               path="/playlist/:playlistId" 
               element={<PlaylistDetailWrapper />} 
             />
-            <Route path="/playlist/:playlistId/question/:questionId" element={<CodingProblemSolver />} />
             <Route path="/playlist/:playlistId/play" element={<VideoPlayer />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/questions" element={<AllQuestions />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>
@@ -107,15 +115,17 @@ const PlaylistDetailWrapper = () => {
 
 const App = () => (
   <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <AppContent />
-        </BrowserRouter>
-      </TooltipProvider>
-    </QueryClientProvider>
+    <PlaylistProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Router>
+            <AppContent />
+          </Router>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </PlaylistProvider>
   </ThemeProvider>
 );
 

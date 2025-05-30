@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Code, Flame, CheckCircle2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Code, Flame, CheckCircle2, Trash2, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -10,6 +10,7 @@ import { Badge } from '@/components/ui/badge';
 import { Playlist, CodingQuestion } from '@/types/playlist';
 import { toast } from 'sonner';
 import AddCodingQuestionModal from '@/components/AddCodingQuestionModal';
+import { usePlaylists } from '@/context/PlaylistContext';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,7 +29,9 @@ const PlaylistDetailCoding = () => {
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isAddQuestionModalOpen, setIsAddQuestionModalOpen] = useState(false);
   const [editingQuestionId, setEditingQuestionId] = useState<string | null>(null);
+  const { updatePlaylist, updateTotalVideosCount } = usePlaylists();
 
+  // Load playlist data and update counts on mount
   useEffect(() => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
@@ -36,59 +39,137 @@ const PlaylistDetailCoding = () => {
       const found = playlists.find(p => p.id === playlistId);
       if (found) {
         setPlaylist(found);
+        // Update total counts when playlist is loaded
+        updateTotalVideosCount();
       }
     }
-  }, [playlistId]);
+  }, [playlistId, updateTotalVideosCount]);
 
-  const updatePlaylist = (updatedPlaylist: Playlist) => {
-    const savedPlaylists = localStorage.getItem('youtubePlaylists');
-    if (savedPlaylists) {
-      const playlists: Playlist[] = JSON.parse(savedPlaylists);
-      const index = playlists.findIndex(p => p.id === playlistId);
-      if (index !== -1) {
-        playlists[index] = updatedPlaylist;
-        localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
-        setPlaylist(updatedPlaylist);
+  // Update counts whenever playlist changes
+  useEffect(() => {
+    if (playlist) {
+      updateTotalVideosCount();
+    }
+  }, [playlist, updateTotalVideosCount]);
+
+  const updatePlaylistInStorage = (updatedPlaylist: Playlist) => {
+    try {
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (savedPlaylists) {
+        const playlists: Playlist[] = JSON.parse(savedPlaylists);
+        const index = playlists.findIndex(p => p.id === playlistId);
+        if (index !== -1) {
+          playlists[index] = updatedPlaylist;
+          localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+          setPlaylist(updatedPlaylist);
+          // Ensure counts are updated after state change
+          setTimeout(() => updateTotalVideosCount(), 0);
+        }
       }
+    } catch (error) {
+      console.error('Error updating playlist:', error);
+      toast.error('Failed to update playlist');
     }
   };
 
   const updateQuestion = (questionId: string, updates: Partial<CodingQuestion>) => {
     if (!playlist) return;
 
-    const updatedQuestions = playlist.codingQuestions?.map(question =>
-      question.id === questionId ? { ...question, ...updates } : question
-    );
+    try {
+      const updatedQuestions = playlist.codingQuestions?.map(question =>
+        question.id === questionId ? { ...question, ...updates } : question
+      );
 
-    const updatedPlaylist = { ...playlist, codingQuestions: updatedQuestions };
-    updatePlaylist(updatedPlaylist);
-    toast.success('Question updated!');
-    setEditingQuestionId(null);
+      const updatedPlaylist = { ...playlist, codingQuestions: updatedQuestions };
+      updatePlaylistInStorage(updatedPlaylist);
+      toast.success('Question updated!');
+      setEditingQuestionId(null);
+    } catch (error) {
+      console.error('Error updating question:', error);
+      toast.error('Failed to update question');
+    }
   };
 
   const addQuestionToPlaylist = (questionData: Omit<CodingQuestion, 'id' | 'solved' | 'dateAdded' | 'attempts'>) => {
     if (!playlist) return;
 
-    const newQuestion: CodingQuestion = {
-      ...questionData,
-      id: `${Date.now()}`,
-      solved: false,
-      dateAdded: new Date().toISOString(),
-      attempts: 0
-    };
+    try {
+      const newQuestion: CodingQuestion = {
+        ...questionData,
+        id: `${Date.now()}`,
+        solved: false,
+        dateAdded: new Date().toISOString(),
+        attempts: 0
+      };
 
-    const updatedQuestions = [...(playlist.codingQuestions || []), newQuestion];
-    const updatedPlaylist = { ...playlist, codingQuestions: updatedQuestions };
-    updatePlaylist(updatedPlaylist);
+      const updatedQuestions = [...(playlist.codingQuestions || []), newQuestion];
+      const updatedPlaylist = { ...playlist, codingQuestions: updatedQuestions };
+      updatePlaylistInStorage(updatedPlaylist);
+      toast.success('Question added successfully!');
+    } catch (error) {
+      console.error('Error adding question:', error);
+      toast.error('Failed to add question');
+    }
   };
 
   const deleteQuestion = (questionId: string) => {
     if (!playlist) return;
 
-    const updatedQuestions = playlist.codingQuestions?.filter(q => q.id !== questionId);
-    const updatedPlaylist = { ...playlist, codingQuestions: updatedQuestions };
-    updatePlaylist(updatedPlaylist);
-    toast.success('Question deleted successfully!');
+    try {
+      const updatedQuestions = playlist.codingQuestions?.filter(q => q.id !== questionId);
+      const updatedPlaylist = { ...playlist, codingQuestions: updatedQuestions };
+      updatePlaylistInStorage(updatedPlaylist);
+      toast.success('Question deleted successfully!');
+    } catch (error) {
+      console.error('Error deleting question:', error);
+      toast.error('Failed to delete question');
+    }
+  };
+
+  const markQuestionAsSolved = (questionId: string) => {
+    if (!playlist) return;
+
+    // Create a new array of questions with the updated solved status
+    const updatedQuestions = playlist.codingQuestions.map(question => {
+      if (question.id === questionId) {
+        return { 
+          ...question, 
+          solved: true,
+          dateSolved: new Date().toISOString()
+        };
+      }
+      return question;
+    });
+
+    // Create a new playlist object
+    const updatedPlaylist = {
+      ...playlist,
+      codingQuestions: updatedQuestions
+    };
+
+    // Update localStorage
+    const savedPlaylists = localStorage.getItem('youtubePlaylists');
+    if (savedPlaylists) {
+      try {
+        const playlists: Playlist[] = JSON.parse(savedPlaylists);
+        const index = playlists.findIndex(p => p.id === playlistId);
+        if (index !== -1) {
+          playlists[index] = updatedPlaylist;
+          localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+          
+          // Update state
+          setPlaylist(updatedPlaylist);
+          
+          // Update dashboard stats
+          updateTotalVideosCount();
+          
+          toast.success('Question marked as solved!');
+        }
+      } catch (error) {
+        console.error('Error updating localStorage:', error);
+        toast.error('Failed to update question status');
+      }
+    }
   };
 
   if (!playlist) {
@@ -256,21 +337,35 @@ const PlaylistDetailCoding = () => {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => updateQuestion(question.id, { solved: true, dateSolved: new Date().toISOString() })}
+                            onClick={() => markQuestionAsSolved(question.id)}
                             className="text-green-600 hover:text-green-700 hover:bg-green-50 dark:hover:bg-green-900/20"
                           >
                             <CheckCircle2 className="w-4 h-4 mr-1" />
                             Mark Solved
                           </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => navigate(`/playlist/${playlistId}/question/${question.id}`)}
-                            className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                          >
-                            <Code className="w-4 h-4 mr-1" />
-                            Start Coding
-                          </Button>
+                          {playlist.source === 'all-questions' ? (
+                            question.originalLink && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(question.originalLink, '_blank')}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              >
+                                <Code className="w-4 h-4 mr-1" />
+                                Start Coding
+                              </Button>
+                            )
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => window.open(question.originalLink || '', '_blank')}
+                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                            >
+                              <Code className="w-4 h-4 mr-1" />
+                              Start Coding
+                            </Button>
+                          )}
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -370,15 +465,29 @@ const PlaylistDetailCoding = () => {
                         </div>
                         {question.solutionUrl && (
                           <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/playlist/${playlistId}/question/${question.id}`)}
-                              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
-                            >
-                              <Code className="w-4 h-4 mr-1" />
-                              Start Coding
-                            </Button>
+                            {playlist.source === 'all-questions' ? (
+                              question.originalLink && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => window.open(question.originalLink, '_blank')}
+                                  className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                                >
+                                  <Code className="w-4 h-4 mr-1" />
+                                  Start Coding
+                                </Button>
+                              )
+                            ) : (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => window.open(question.originalLink || '', '_blank')}
+                                className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/20"
+                              >
+                                <Code className="w-4 h-4 mr-1" />
+                                Start Coding
+                              </Button>
+                            )}
                             <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button

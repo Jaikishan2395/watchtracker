@@ -10,22 +10,75 @@ import VideoCard from '@/components/VideoCard';
 import AddVideoModal from '@/components/AddVideoModal';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
+import { usePlaylists } from '@/context/PlaylistContext';
+
+interface CompletedVideo {
+  id: string;
+  title: string;
+  playlistId: string;
+  playlistTitle: string;
+  completedAt: string;
+  watchTime: number;
+}
 
 const PlaylistDetail = () => {
   const { playlistId } = useParams();
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
+  const { updateTotalVideosCount } = usePlaylists();
 
-  useEffect(() => {
+  const loadPlaylistData = () => {
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
       const playlists: Playlist[] = JSON.parse(savedPlaylists);
       const found = playlists.find(p => p.id === playlistId);
       if (found) {
-        setPlaylist(found);
+        const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+        const updatedVideos = found.videos.map(video => {
+          const completedVideo = completedVideos.find(cv => cv.id === video.id);
+          if (completedVideo) {
+            return { ...video, progress: 100 };
+          }
+          return video;
+        });
+        const updatedPlaylist = { ...found, videos: updatedVideos };
+        setPlaylist(updatedPlaylist);
+        
+        const index = playlists.findIndex(p => p.id === playlistId);
+        if (index !== -1) {
+          playlists[index] = updatedPlaylist;
+          localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+        }
       }
     }
+  };
+
+  useEffect(() => {
+    loadPlaylistData();
+  }, [playlistId]);
+
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'youtubePlaylists' || e.key === 'completedVideos') {
+        loadPlaylistData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, [playlistId]);
+
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      loadPlaylistData();
+    }, 1000);
+
+    return () => {
+      clearInterval(pollInterval);
+    };
   }, [playlistId]);
 
   const updatePlaylist = (updatedPlaylist: Playlist) => {
@@ -37,6 +90,7 @@ const PlaylistDetail = () => {
         playlists[index] = updatedPlaylist;
         localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
         setPlaylist(updatedPlaylist);
+        updateTotalVideosCount();
       }
     }
   };
@@ -50,6 +104,28 @@ const PlaylistDetail = () => {
 
     const updatedPlaylist = { ...playlist, videos: updatedVideos };
     updatePlaylist(updatedPlaylist);
+
+    if (progress >= 100) {
+      const video = playlist.videos.find(v => v.id === videoId);
+      if (video) {
+        const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+        const videoToStore: CompletedVideo = {
+          id: video.id,
+          title: video.title,
+          playlistId: playlist.id,
+          playlistTitle: playlist.title,
+          completedAt: new Date().toISOString(),
+          watchTime: video.watchTime || 0
+        };
+
+        const existingIndex = completedVideos.findIndex((v: CompletedVideo) => v.id === videoId);
+        if (existingIndex === -1) {
+          completedVideos.push(videoToStore);
+          localStorage.setItem('completedVideos', JSON.stringify(completedVideos));
+        }
+      }
+    }
+
     toast.success('Progress updated!');
   };
 
@@ -64,7 +140,32 @@ const PlaylistDetail = () => {
 
     const updatedVideos = [...playlist.videos, newVideo];
     const updatedPlaylist = { ...playlist, videos: updatedVideos };
-    updatePlaylist(updatedPlaylist);
+    
+    // Update localStorage for playlists
+    const savedPlaylists = localStorage.getItem('youtubePlaylists');
+    if (savedPlaylists) {
+      const playlists: Playlist[] = JSON.parse(savedPlaylists);
+      const index = playlists.findIndex(p => p.id === playlistId);
+      if (index !== -1) {
+        playlists[index] = updatedPlaylist;
+        localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+      }
+    }
+
+    // Update state
+    setPlaylist(updatedPlaylist);
+    updateTotalVideosCount();
+
+    // Dispatch a custom event to notify VideoPlayer about the new video
+    const event = new CustomEvent('playlistUpdated', {
+      detail: {
+        playlistId: playlist.id,
+        updatedPlaylist
+      }
+    });
+    window.dispatchEvent(event);
+
+    toast.success('Video added to playlist');
   };
 
   const deleteVideoFromPlaylist = (videoId: string) => {
@@ -88,7 +189,6 @@ const PlaylistDetail = () => {
   const handlePlayAll = () => {
     if (!playlist || playlist.videos.length === 0) return;
     
-    // Find first uncompleted video, or first video if all are completed
     const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
     const startIndex = firstUncompletedIndex !== -1 ? firstUncompletedIndex : 0;
     
@@ -129,7 +229,6 @@ const PlaylistDetail = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800/95 dark:to-indigo-950/95 transition-colors duration-200">
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
         <div className="mb-8 animate-fade-in">
           <Button
             variant="ghost"
@@ -177,7 +276,6 @@ const PlaylistDetail = () => {
           </div>
         </div>
 
-        {/* Progress Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-lg hover:shadow-xl transition-all duration-200 animate-fade-in">
             <CardHeader>
@@ -208,12 +306,12 @@ const PlaylistDetail = () => {
           </Card>
         </div>
 
-        {/* Videos List */}
         <div className="space-y-8">
-          {/* Uncompleted Videos Section */}
           <div className="space-y-4">
             <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">Uncompleted Videos</h2>
+              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
+                Uncompleted Videos
+              </h2>
               <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
                 {uncompletedVideos.length} {uncompletedVideos.length === 1 ? 'video' : 'videos'}
               </span>
@@ -261,11 +359,12 @@ const PlaylistDetail = () => {
             </div>
           </div>
 
-          {/* Completed Videos Section */}
           {completedVideosList.length > 0 && (
             <div className="space-y-4 mt-8 pt-8 border-t border-gray-200 dark:border-slate-700">
               <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">Completed Videos</h2>
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
+                  Completed Videos
+                </h2>
                 <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
                   {completedVideosList.length} {completedVideosList.length === 1 ? 'video' : 'videos'}
                 </span>

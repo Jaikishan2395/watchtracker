@@ -8,6 +8,7 @@ export interface Video {
   thumbnail?: string;
   dateCompleted?: string; // ISO date string when video was completed
   contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'; // Type of video content
+  completedAt?: string;
 }
 
 export interface CodingQuestion {
@@ -55,6 +56,13 @@ export interface CodingQuestion {
       }>;
     };
   };
+  originalLink?: string;
+}
+
+export interface StreakData {
+  currentStreak: number;
+  longestStreak: number;
+  lastCompletedDate?: string;
 }
 
 export interface Playlist {
@@ -66,14 +74,9 @@ export interface Playlist {
   videos: Video[];
   codingQuestions?: CodingQuestion[];
   createdAt: string;
+  source?: 'all-questions' | 'manual';
   targetQuestionsPerDay?: number; // For accountability
-  streakData?: {
-    currentStreak: number;
-    longestStreak: number;
-    lastActivityDate: string;
-    weeklyGoal: number;
-    completedThisWeek: number;
-  };
+  streakData?: StreakData;
 }
 
 export interface PlaylistData {
@@ -88,4 +91,6 @@ export interface PlaylistData {
   questionsThisWeek: number;
   averageTimePerQuestion: number;
   categoryProgress: { [key: string]: { solved: number; total: number } };
+  currentStreak: number;
+  longestStreak: number;
 }
