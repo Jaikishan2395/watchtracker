@@ -174,12 +174,12 @@ const VideoPlayer = () => {
   // Move these useMemo declarations to the top, before any effects
   const uncompletedVideos = useMemo(() => 
     playlist?.videos.filter(video => video.progress < 100) || [],
-    [playlist?.videos]
+    [playlist?.videos, playlist?.videos.map(v => v.progress)]
   );
 
   const completedVideosList = useMemo(() => 
     playlist?.videos.filter(video => video.progress >= 100) || [],
-    [playlist?.videos]
+    [playlist?.videos, playlist?.videos.map(v => v.progress)]
   );
 
   // Load playlist data
@@ -371,15 +371,21 @@ const VideoPlayer = () => {
   const selectVideo = (index: number) => {
     if (index === currentVideoIndex) return; // Don't reload if same video
     
-    // Check if there are any uncompleted videos
-    if (uncompletedVideos.length === 0) {
-      setShowCompletionDialog(true);
+    // Get the target video
+    const targetVideo = playlist?.videos[index];
+    if (!targetVideo) return;
+
+    // Check if the target video is completed
+    if (targetVideo.progress >= 100) {
+      toast.info('This video is already completed');
       return;
     }
-    
+
     // Stop current video playback
     if (playerRef.current) {
       playerRef.current.pauseVideo();
+      playerRef.current.destroy();
+      playerRef.current = null;
     }
     
     // Update URL without triggering a full navigation
@@ -389,38 +395,40 @@ const VideoPlayer = () => {
     // Update state
     setCurrentVideoIndex(index);
     
-    // Destroy current player instance
-    if (playerRef.current) {
-      playerRef.current.destroy();
-      playerRef.current = null;
-    }
-    
     // Force player reinitialization
     setIsPlayerReady(false);
     setTimeout(() => {
       setIsPlayerReady(true);
     }, 100);
     
-    toast.success(`Now playing: ${playlist?.videos[index].title}`);
+    toast.success(`Now playing: ${targetVideo.title}`);
   };
 
   const goToNextVideo = () => {
     if (playlist && currentVideoIndex < playlist.videos.length - 1) {
-      if (uncompletedVideos.length === 0) {
-        setShowCompletionDialog(true);
-        return;
+      // Find the next uncompleted video
+      const nextUncompletedIndex = playlist.videos.findIndex((v, i) => i > currentVideoIndex && v.progress < 100);
+      if (nextUncompletedIndex !== -1) {
+        selectVideo(nextUncompletedIndex);
+      } else {
+        toast.info('No more uncompleted videos available');
       }
-      selectVideo(currentVideoIndex + 1);
     }
   };
 
   const goToPreviousVideo = () => {
     if (currentVideoIndex > 0) {
-      if (uncompletedVideos.length === 0) {
-        setShowCompletionDialog(true);
-        return;
+      // Find the previous uncompleted video
+      const prevUncompletedIndex = [...playlist?.videos || []]
+        .reverse()
+        .findIndex((v, i) => playlist.videos.length - 1 - i < currentVideoIndex && v.progress < 100);
+      
+      if (prevUncompletedIndex !== -1) {
+        const actualIndex = playlist.videos.length - 1 - prevUncompletedIndex;
+        selectVideo(actualIndex);
+      } else {
+        toast.info('No previous uncompleted videos available');
       }
-      selectVideo(currentVideoIndex - 1);
     }
   };
 
@@ -460,17 +468,34 @@ const VideoPlayer = () => {
 
       // Check if this was the last uncompleted video
       const remainingUncompleted = updatedVideos.filter(v => v.progress < 100).length;
+      
+      // Stop the current video
+      if (playerRef.current) {
+        playerRef.current.pauseVideo();
+        playerRef.current.destroy();
+        playerRef.current = null;
+      }
+
+      // Reset player ready state
+      setIsPlayerReady(false);
+
       if (remainingUncompleted === 0) {
-        // Stop the current video
-        if (playerRef.current) {
-          playerRef.current.pauseVideo();
-          playerRef.current.destroy();
-          playerRef.current = null;
-        }
-        // Show completion dialog
+        // Show completion dialog if all videos are completed
         setShowCompletionDialog(true);
-        // Reset player ready state to prevent auto-initialization
-        setIsPlayerReady(false);
+      } else {
+        // Find the next uncompleted video
+        const nextUncompletedIndex = updatedVideos.findIndex(v => v.progress < 100);
+        if (nextUncompletedIndex !== -1) {
+          // Update URL and state for the next video
+          const newUrl = `/playlist/${id}/play?video=${nextUncompletedIndex}`;
+          window.history.pushState({}, '', newUrl);
+          setCurrentVideoIndex(nextUncompletedIndex);
+          
+          // Reinitialize player after a short delay
+          setTimeout(() => {
+            setIsPlayerReady(true);
+          }, 100);
+        }
       }
 
       // Show a special toast notification with animation
@@ -479,7 +504,9 @@ const VideoPlayer = () => {
           <CheckCircle className="w-5 h-5 text-green-500" />
           <span>
             <span className="font-semibold">{currentVideo.title}</span>
-            {remainingUncompleted === 0 ? ' completed! All videos are now finished!' : ' marked as complete!'}
+            {remainingUncompleted === 0 
+              ? ' completed! All videos are now finished!' 
+              : ' marked as complete! Moving to next video...'}
           </span>
         </div>,
         {
@@ -522,25 +549,22 @@ const VideoPlayer = () => {
         return;
       }
 
-      // Don't initialize player if all videos are completed
-      if (uncompletedVideos.length === 0) {
-        setShowCompletionDialog(true);
-        return;
-      }
-
       const currentVideo = playlist.videos[currentVideoIndex];
       if (!currentVideo) {
         return;
       }
 
-      // Don't initialize if the current video is completed
-      if (currentVideo.progress >= 100 && uncompletedVideos.length > 0) {
-        // Find the first uncompleted video and switch to it
+      // Don't initialize if the video is completed
+      if (currentVideo.progress >= 100) {
+        toast.info('This video is already completed');
+        // Find the first uncompleted video
         const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
         if (firstUncompletedIndex !== -1) {
           selectVideo(firstUncompletedIndex);
-          return;
+        } else {
+          setShowCompletionDialog(true);
         }
+        return;
       }
 
       const videoId = extractVideoIdFromUrl(currentVideo.url);
@@ -560,7 +584,7 @@ const VideoPlayer = () => {
         const playerOptions = {
           videoId,
           playerVars: {
-            autoplay: currentVideo.progress < 100 ? 1 : 0, // Only autoplay uncompleted videos
+            autoplay: 1, // Enable autoplay for uncompleted videos
             controls: 1,
             modestbranding: 1,
             rel: 0,
@@ -570,7 +594,6 @@ const VideoPlayer = () => {
           } as YouTubePlayerVars,
           events: {
             onStateChange: (event: YouTubePlayerEvent) => {
-              // Don't track watch time for completed videos
               if (currentVideo.progress >= 100) {
                 if (playerRef.current) {
                   playerRef.current.pauseVideo();
@@ -590,7 +613,6 @@ const VideoPlayer = () => {
               const videoData = event.target.getVideoData();
               setVideoTitle(videoData.title);
               
-              // Only play if the video is not completed
               if (currentVideo.progress < 100) {
                 // Resume from last position
                 const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
@@ -608,14 +630,10 @@ const VideoPlayer = () => {
                 // Start playing the video
                 playerRef.current?.playVideo();
               } else {
-                // Pause the video if it's completed
-                playerRef.current?.pauseVideo();
-                // If there are uncompleted videos, switch to the first one
-                if (uncompletedVideos.length > 0) {
-                  const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
-                  if (firstUncompletedIndex !== -1) {
-                    selectVideo(firstUncompletedIndex);
-                  }
+                // If somehow we got here with a completed video, find an uncompleted one
+                const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+                if (firstUncompletedIndex !== -1) {
+                  selectVideo(firstUncompletedIndex);
                 } else {
                   setShowCompletionDialog(true);
                 }
@@ -642,6 +660,11 @@ const VideoPlayer = () => {
               }
               
               toast.error(errorMessage);
+              // Try to find another uncompleted video on error
+              const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+              if (firstUncompletedIndex !== -1 && firstUncompletedIndex !== currentVideoIndex) {
+                selectVideo(firstUncompletedIndex);
+              }
             }
           } as YouTubePlayerEvents
         };
@@ -650,6 +673,11 @@ const VideoPlayer = () => {
       } catch (error) {
         console.error('Error initializing YouTube player:', error);
         toast.error('Failed to initialize video player. Please try again.');
+        // Try to find another uncompleted video on error
+        const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+        if (firstUncompletedIndex !== -1 && firstUncompletedIndex !== currentVideoIndex) {
+          selectVideo(firstUncompletedIndex);
+        }
       }
     };
 
@@ -663,7 +691,7 @@ const VideoPlayer = () => {
         playerInstance = null;
       }
     };
-  }, [isPlayerReady, playlist, currentVideoIndex, uncompletedVideos.length]);
+  }, [isPlayerReady, playlist, currentVideoIndex]);
 
   // Add an effect to handle completion state changes
   useEffect(() => {
@@ -747,6 +775,20 @@ const VideoPlayer = () => {
   useEffect(() => {
     stopWatchTimeTracking();
   }, [currentVideoIndex]);
+
+  // Add an effect to handle video completion transitions
+  useEffect(() => {
+    if (playlist) {
+      const currentVideo = playlist.videos[currentVideoIndex];
+      if (currentVideo?.progress >= 100) {
+        // Find the next uncompleted video
+        const nextUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
+        if (nextUncompletedIndex !== -1) {
+          selectVideo(nextUncompletedIndex);
+        }
+      }
+    }
+  }, [playlist?.videos.map(v => v.progress)]); // Watch for progress changes
 
   if (isLoading) {
     return (
@@ -1029,7 +1071,7 @@ const VideoPlayer = () => {
                 {uncompletedVideos.length === 0 ? (
                   <div className="text-gray-600 dark:text-slate-400 text-sm">No uncompleted videos.</div>
                 ) : (
-                  <div className="space-y-3">
+                  <div className="space-y-3 transition-all duration-500">
                     {uncompletedVideos.map((video, index) => (
                       <Card
                         key={video.id}
@@ -1103,7 +1145,7 @@ const VideoPlayer = () => {
                     {completedVideosList.length}
                   </Badge>
                 </div>
-                <div className="space-y-3">
+                <div className="space-y-3 transition-all duration-500">
                   {completedVideosList.map((video, index) => (
                     <Card
                       key={video.id}
