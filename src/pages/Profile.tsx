@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Code, CheckCircle, User, Trophy, Target, Zap, Moon, Sun, TrendingUp, TrendingDown, Star, Crown, Medal, Flame, Rocket, Brain, BookOpen, Award, AlertCircle, Info, Instagram, Facebook, Twitter, MessageCircle, Share2 } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Code, CheckCircle, User, Trophy, Target, Zap, Moon, Sun, TrendingUp, TrendingDown, Star, Crown, Medal, Flame, Rocket, Brain, BookOpen, Award, AlertCircle, Info, Instagram, Facebook, Twitter, MessageCircle, Share2, Globe } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,6 +15,7 @@ import StreakTracker from '@/components/StreakTracker';
 import { Playlist, Video } from '@/types/playlist';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
 import { usePlaylists } from '@/context/PlaylistContext';
+import { app, analytics } from '../firebase';
 
 // CSS styles
 const styles = `
@@ -97,12 +98,6 @@ interface Ranking {
   };
 }
 
-interface SocialMediaAccount {
-  platform: 'instagram' | 'facebook' | 'twitter' | 'whatsapp' | 'tiktok';
-  username: string;
-  url: string;
-}
-
 const Profile = () => {
   const navigate = useNavigate();
   const { theme, setTheme } = useTheme();
@@ -160,17 +155,6 @@ const Profile = () => {
       }
     }
   });
-
-  const [socialAccounts, setSocialAccounts] = useState<SocialMediaAccount[]>([]);
-  const [isSocialDialogOpen, setIsSocialDialogOpen] = useState(false);
-  const [newSocialAccount, setNewSocialAccount] = useState<SocialMediaAccount>({
-    platform: 'instagram',
-    username: '',
-    url: ''
-  });
-  const [urlError, setUrlError] = useState<string | null>(null);
-
-  const [isAwardsDialogOpen, setIsAwardsDialogOpen] = useState(false);
 
   // Mock data for other users - In a real app, this would come from an API
   const mockUsers = [
@@ -256,89 +240,6 @@ const Profile = () => {
     if (trend > 0) return <TrendingUp className="w-3 h-3 text-green-500" />;
     if (trend < 0) return <TrendingDown className="w-3 h-3 text-red-500" />;
     return null;
-  };
-
-  // Add URL validation function
-  const validateSocialMediaUrl = (platform: string, url: string): boolean => {
-    const urlPatterns = {
-      instagram: /^(https?:\/\/)?(www\.)?instagram\.com\/[a-zA-Z0-9_.]+\/?$/,
-      facebook: /^(https?:\/\/)?(www\.)?facebook\.com\/[a-zA-Z0-9.]+\/?$/,
-      twitter: /^(https?:\/\/)?(www\.)?twitter\.com\/[a-zA-Z0-9_]+\/?$/,
-      whatsapp: /^(https?:\/\/)?(www\.)?wa\.me\/[0-9]+$/,
-      tiktok: /^(https?:\/\/)?(www\.)?tiktok\.com\/@[a-zA-Z0-9_.]+\/?$/
-    };
-
-    if (!url) return false;
-    
-    // If URL doesn't start with http/https, add https://
-    const fullUrl = url.startsWith('http') ? url : `https://${url}`;
-    
-    return urlPatterns[platform as keyof typeof urlPatterns].test(fullUrl);
-  };
-
-  const handleAddSocialAccount = () => {
-    if (!newSocialAccount.url.trim()) {
-      setUrlError('Please enter a URL');
-      return;
-    }
-
-    const isValid = validateSocialMediaUrl(newSocialAccount.platform, newSocialAccount.url);
-    if (!isValid) {
-      setUrlError(`Please enter a valid ${newSocialAccount.platform} URL`);
-      return;
-    }
-
-    // Extract username from URL
-    let username = '';
-    const url = newSocialAccount.url.startsWith('http') ? newSocialAccount.url : `https://${newSocialAccount.url}`;
-    
-    try {
-      const urlObj = new URL(url);
-      switch (newSocialAccount.platform) {
-        case 'instagram':
-          username = urlObj.pathname.replace('/', '');
-          break;
-        case 'facebook':
-          username = urlObj.pathname.replace('/', '');
-          break;
-        case 'twitter':
-          username = urlObj.pathname.replace('/', '');
-          break;
-        case 'whatsapp':
-          username = urlObj.pathname.replace('/', '');
-          break;
-        case 'tiktok':
-          username = urlObj.pathname.replace('@', '').replace('/', '');
-          break;
-      }
-    } catch (error) {
-      setUrlError('Invalid URL format');
-      return;
-    }
-
-    setSocialAccounts([...socialAccounts, { ...newSocialAccount, username }]);
-    setNewSocialAccount({ platform: 'instagram', username: '', url: '' });
-    setUrlError(null);
-    setIsSocialDialogOpen(false);
-  };
-
-  const handleRemoveSocialAccount = (platform: SocialMediaAccount['platform']) => {
-    setSocialAccounts(socialAccounts.filter(account => account.platform !== platform));
-  };
-
-  const getSocialIcon = (platform: SocialMediaAccount['platform']) => {
-    switch (platform) {
-      case 'instagram':
-        return <Instagram className="w-4 h-4" />;
-      case 'facebook':
-        return <Facebook className="w-4 h-4" />;
-      case 'twitter':
-        return <Twitter className="w-4 h-4" />;
-      case 'whatsapp':
-        return <MessageCircle className="w-4 h-4" />;
-      case 'tiktok':
-        return <Share2 className="w-4 h-4" />;
-    }
   };
 
   // Add style element to inject CSS
@@ -731,9 +632,9 @@ const Profile = () => {
             <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0" />
             
             <div className="relative z-10">
-              <div className="flex items-center">
-                {/* Profile Section - Centered */}
-                <div className="relative group mr-10 flex flex-col items-center">
+              <div className="flex items-start gap-8">
+                {/* Profile Section - Moved to left */}
+                <div className="relative group flex flex-col items-center">
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300" />
                   <Avatar className="w-32 h-32 ring-2 ring-primary/20 shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:ring-primary/30 relative z-10 mb-4">
                     <AvatarImage src="" />
@@ -745,645 +646,489 @@ const Profile = () => {
                   {/* Profile Name and Member Since */}
                   <div className="mt-6 text-center">
                     <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent mb-2">
-                          Your Profile
-                        </h1>
+                      Your Profile
+                    </h1>
                     <p className={`${textMuted} text-base flex items-center justify-center gap-2 mb-4`}>
                       <Calendar className="w-5 h-5" />
-                          Member since {new Date(userStats.joinDate).toLocaleDateString()}
-                        </p>
+                      Member since {new Date(userStats.joinDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                </div>
 
-                    {/* Social Media Connection - Moved here */}
-                    <div className="flex flex-col items-center gap-3">
-                        <Dialog open={isSocialDialogOpen} onOpenChange={setIsSocialDialogOpen}>
+                {/* Days Active Card */}
+                <div className="w-[360px] ml-[270px]">
+                  <Card 
+                    className={`relative overflow-hidden ${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`}
+                    style={{ animationDelay: '100ms' }}
+                  >
+                    {/* Enhanced Background Effects */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 opacity-50" />
+                    <div className="absolute -right-6 -top-6 w-32 h-32 bg-blue-500/10 rounded-full blur-xl" />
+                    <div className="absolute -left-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-xl" />
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-purple-500/5 rounded-full blur-2xl" />
+                    
+                    <CardHeader className="pb-2 relative z-10">
+                      <div className="flex items-center justify-between">
+                        <CardTitle className={`text-sm font-medium ${textMuted} flex items-center gap-2`}>
+                          <div className={`p-2.5 rounded-xl ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'} transition-transform duration-300 group-hover:scale-110`}>
+                            <Calendar className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
+                          </div>
+                          <span className="bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent font-semibold">
+                            Days Active
+                          </span>
+                        </CardTitle>
+                        <Dialog>
                           <DialogTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                            className="flex items-center gap-2 bg-primary/5 hover:bg-primary/10 border-primary/20 h-8 text-sm"
-                            >
-                            <Share2 className="w-4 h-4" />
-                            Connect Social
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="sm:max-w-[425px]">
-                            <DialogHeader>
-                              <DialogTitle>Connect Social Media</DialogTitle>
-                            </DialogHeader>
-                            <div className="grid gap-4 py-4">
-                              <div className="grid gap-2">
-                                <Label htmlFor="platform">Platform</Label>
-                                <select
-                                  id="platform"
-                                className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                  value={newSocialAccount.platform}
-                                onChange={(e) => {
-                                  setNewSocialAccount({ ...newSocialAccount, platform: e.target.value as SocialMediaAccount['platform'], url: '' });
-                                  setUrlError(null);
-                                }}
-                                >
-                                  <option value="instagram">Instagram</option>
-                                  <option value="facebook">Facebook</option>
-                                  <option value="twitter">Twitter</option>
-                                  <option value="whatsapp">WhatsApp</option>
-                                  <option value="tiktok">TikTok</option>
-                                </select>
-                              </div>
-                              <div className="grid gap-2">
-                              <Label htmlFor="url">Profile URL</Label>
-                              <div className="relative">
-                                <Input
-                                  id="url"
-                                  value={newSocialAccount.url}
-                                  onChange={(e) => {
-                                    setNewSocialAccount({ ...newSocialAccount, url: e.target.value });
-                                    setUrlError(null);
-                                  }}
-                                  placeholder={`Enter your ${newSocialAccount.platform} profile URL`}
-                                  className={urlError ? "border-red-500 focus-visible:ring-red-500" : ""}
-                                />
-                                {urlError && (
-                                  <p className="text-sm text-red-500 mt-1">{urlError}</p>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground">
-                                {newSocialAccount.platform === 'instagram' && 'Example: instagram.com/username'}
-                                {newSocialAccount.platform === 'facebook' && 'Example: facebook.com/username'}
-                                {newSocialAccount.platform === 'twitter' && 'Example: twitter.com/username'}
-                                {newSocialAccount.platform === 'whatsapp' && 'Example: wa.me/1234567890'}
-                                {newSocialAccount.platform === 'tiktok' && 'Example: tiktok.com/@username'}
-                              </p>
-                              </div>
-                            </div>
-                            <div className="flex justify-end">
-                            <Button 
-                              onClick={handleAddSocialAccount}
-                              className="flex items-center gap-2 h-8 text-sm"
-                            >
-                              <CheckCircle className="w-4 h-4" />
-                              Add Account
-                            </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-
-                        {/* Connected Social Media Accounts */}
-                      <div className="flex gap-2">
-                          {socialAccounts.map((account) => (
-                            <Tooltip key={account.platform}>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                className="p-2 h-8 w-8 relative group"
-                                  onClick={() => handleRemoveSocialAccount(account.platform)}
-                                >
-                                  {getSocialIcon(account.platform)}
-                                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-red-500 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p>{account.username}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          ))}
-                      </div>
-                        </div>
-                      </div>
-                    </div>
-
-                <div className="flex-1">
-                  <div className="flex justify-end items-start gap-5">
-                    {/* Theme Toggle */}
-                      {mounted && (
-                        <Tooltip>
-                          <TooltipTrigger asChild>
                             <Button
                               variant="ghost"
                               size="sm"
-                              onClick={() => mounted && setTheme(theme === 'dark' ? 'light' : 'dark')}
-                              className={`rounded-full p-2.5 transition-all duration-300 hover:scale-110 ${
-                                theme === 'dark' 
-                                  ? 'hover:bg-primary/20 text-primary' 
-                                  : 'hover:bg-primary/10 text-primary'
-                              }`}
+                              className="h-8 px-2 hover:bg-blue-500/10"
                             >
-                              {theme === 'dark' ? (
-                                <Sun className="w-7 h-7" />
-                              ) : (
-                                <Moon className="w-7 h-7" />
-                              )}
+                              <Calendar className="w-4 h-4 text-blue-500" />
                             </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            Switch to {theme === 'dark' ? 'light' : 'dark'} theme
-                          </TooltipContent>
-                        </Tooltip>
-                      )}
-
-                    {/* Days Active Card */}
-                    <div className="w-[360px]">
-                      <Card 
-                        className={`relative overflow-hidden ${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`}
-                        style={{ animationDelay: '100ms' }}
-                      >
-                        {/* Enhanced Background Effects */}
-                        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 opacity-50" />
-                        <div className="absolute -right-6 -top-6 w-32 h-32 bg-blue-500/10 rounded-full blur-xl" />
-                        <div className="absolute -left-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-xl" />
-                        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-purple-500/5 rounded-full blur-2xl" />
-                        
-                        <CardHeader className="pb-2 relative z-10">
-                          <div className="flex items-center justify-between">
-                            <CardTitle className={`text-sm font-medium ${textMuted} flex items-center gap-2`}>
-                              <div className={`p-2.5 rounded-xl ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'} transition-transform duration-300 group-hover:scale-110`}>
-                                <Calendar className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
-                              </div>
-                              <span className="bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent font-semibold">
-                                Days Active
-                              </span>
-                            </CardTitle>
-                            <Dialog>
-                              <DialogTrigger asChild>
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-2 hover:bg-blue-500/10"
-                                >
-                                  <Calendar className="w-4 h-4 text-blue-500" />
-                                </Button>
-                              </DialogTrigger>
-                              <DialogContent className="max-w-[90vw]">
-                                <DialogHeader>
-                                  <DialogTitle className="flex items-center gap-2 text-3xl bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
-                                    <Calendar className="w-7 h-7" />
-                                    Activity Overview
-                                  </DialogTitle>
-                                </DialogHeader>
-                                <div className="mt-8">
-                                  {Array.isArray(playlists) ? (
-                                    <div className="w-[1300px] mx-auto">
-                                      <ActivityHeatmap playlists={playlists} />
-                                    </div>
-                                  ) : (
-                                    <div className="text-center text-muted-foreground">
-                                      No activity data available
-                                    </div>
-                                  )}
+                          </DialogTrigger>
+                          <DialogContent className="max-w-[90vw]">
+                            <DialogHeader>
+                              <DialogTitle className="flex items-center gap-2 text-3xl bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                                <Calendar className="w-7 h-7" />
+                                Activity Overview
+                              </DialogTitle>
+                            </DialogHeader>
+                            <div className="mt-8">
+                              {Array.isArray(playlists) ? (
+                                <div className="w-[1300px] mx-auto">
+                                  <ActivityHeatmap playlists={playlists} />
                                 </div>
-                              </DialogContent>
-                            </Dialog>
-                          </div>
-                        </CardHeader>
-                        <CardContent className="relative z-10">
-                          <div className="flex items-center justify-between mb-4">
-                            <div>
-                              <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
-                                {userStats.daysActive}
-                              </div>
-                              <div className="flex items-center gap-2 mt-1">
-                                <p className={`text-sm ${textMuted}`}>
-                                  Consecutive learning days
-                                </p>
-                                {userStats.daysActive >= 7 && (
-                                  <Badge className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' : 'bg-blue-100 text-blue-800 border border-blue-200'} shadow-sm`}>
-                                    Consistent!
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                            <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'} border ${theme === 'dark' ? 'border-blue-500/30' : 'border-blue-500/20'}`}>
-                              <div className="text-center">
-                                <div className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
-                                  {Math.round((userStats.daysActive / 30) * 100)}%
+                              ) : (
+                                <div className="text-center text-muted-foreground">
+                                  No activity data available
                                 </div>
-                                <div className={`text-xs ${textMuted}`}>Monthly Goal</div>
-                              </div>
+                              )}
                             </div>
+                          </DialogContent>
+                        </Dialog>
+                      </div>
+                    </CardHeader>
+                    <CardContent className="relative z-10">
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
+                            {userStats.daysActive}
                           </div>
-                          
-                          {/* Enhanced Daily Activity Display */}
-                          <div className="mt-4 space-y-3">
-                            <div className="flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'} animate-pulse`} />
-                                <span className={`text-sm ${textMuted}`}>Today's Activity</span>
-                              </div>
-                              <span className={`text-sm font-medium ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} flex items-center gap-1.5`}>
-                                {userStats.lastActivityDate === new Date().toISOString().split('T')[0] ? (
-                                  <>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                    Active
-                                  </>
-                                ) : (
-                                  <>
-                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-                                    Not Active
-                                  </>
-                                )}
-                              </span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <p className={`text-sm ${textMuted}`}>
+                              Consecutive learning days
+                            </p>
+                            {userStats.daysActive >= 7 && (
+                              <Badge className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' : 'bg-blue-100 text-blue-800 border border-blue-200'} shadow-sm`}>
+                                Consistent!
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'} border ${theme === 'dark' ? 'border-blue-500/30' : 'border-blue-500/20'}`}>
+                          <div className="text-center">
+                            <div className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                              {Math.round((userStats.daysActive / 30) * 100)}%
                             </div>
+                            <div className={`text-xs ${textMuted}`}>Monthly Goal</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      {/* Enhanced Daily Activity Display */}
+                      <div className="mt-4 space-y-3">
+                        <div className="flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
+                          <div className="flex items-center gap-2">
+                            <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'} animate-pulse`} />
+                            <span className={`text-sm ${textMuted}`}>Today's Activity</span>
+                          </div>
+                          <span className={`text-sm font-medium ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} flex items-center gap-1.5`}>
+                            {userStats.lastActivityDate === new Date().toISOString().split('T')[0] ? (
+                              <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                                Active
+                              </>
+                            ) : (
+                              <>
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
+                                Not Active
+                              </>
+                            )}
+                          </span>
+                        </div>
 
-                            {/* Enhanced Activity Timeline */}
-                            <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                              {[...Array(7)].map((_, index) => {
-                                const date = new Date();
-                                date.setDate(date.getDate() - (6 - index));
-                                const dateStr = date.toISOString().split('T')[0];
-                                const isActive = userStats.lastActivityDate === dateStr;
-                                const isToday = dateStr === new Date().toISOString().split('T')[0];
-                                
-                                return (
-                                  <div 
-                                    key={index}
-                                    className="flex-1 flex flex-col items-center gap-1"
-                                  >
-                                    <div 
-                                      className={`w-full h-8 rounded-lg transition-all duration-300 ${
-                                        isActive 
-                                          ? theme === 'dark'
-                                            ? 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/50'
-                                            : 'bg-gradient-to-b from-blue-500/20 to-indigo-500/20 border border-blue-500/30'
-                                          : theme === 'dark'
-                                            ? 'bg-gray-700/50'
-                                            : 'bg-gray-200/50'
-                                      } ${isToday ? 'ring-2 ring-blue-500/30' : ''}`}
-                                    />
-                                    <span className={`text-[10px] ${textMuted} ${isToday ? 'font-medium text-blue-500' : ''}`}>
-                                      {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-
-                            {/* Enhanced Progress Bar */}
-                            <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                              <div className="flex items-center justify-between mb-2">
-                                <span className={`text-xs ${textMuted}`}>Monthly Progress</span>
-                                <span className={`text-xs font-medium ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
-                                  {Math.round((userStats.daysActive / 30) * 100)}%
+                        {/* Enhanced Activity Timeline */}
+                        <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
+                          {[...Array(7)].map((_, index) => {
+                            const date = new Date();
+                            date.setDate(date.getDate() - (6 - index));
+                            const dateStr = date.toISOString().split('T')[0];
+                            const isActive = userStats.lastActivityDate === dateStr;
+                            const isToday = dateStr === new Date().toISOString().split('T')[0];
+                            
+                            return (
+                              <div 
+                                key={index}
+                                className="flex-1 flex flex-col items-center gap-1"
+                              >
+                                <div 
+                                  className={`w-full h-8 rounded-lg transition-all duration-300 ${
+                                    isActive 
+                                      ? theme === 'dark'
+                                        ? 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/50'
+                                        : 'bg-gradient-to-b from-blue-500/20 to-indigo-500/20 border border-blue-500/30'
+                                      : theme === 'dark'
+                                        ? 'bg-gray-700/50'
+                                        : 'bg-gray-200/50'
+                                  } ${isToday ? 'ring-2 ring-blue-500/30' : ''}`}
+                                />
+                                <span className={`text-[10px] ${textMuted} ${isToday ? 'font-medium text-blue-500' : ''}`}>
+                                  {date.toLocaleDateString('en-US', { weekday: 'short' })}
                                 </span>
                               </div>
-                              <div className={`h-2 w-full rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} overflow-hidden`}>
-                                <div 
-                                  className={`h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500`}
-                                  style={{ width: `${Math.min(100, (userStats.daysActive / 30) * 100)}%` }}
-                                />
+                            );
+                          })}
+                        </div>
+
+                        {/* Enhanced Progress Bar */}
+                        <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className={`text-xs ${textMuted}`}>Monthly Progress</span>
+                            <span className={`text-xs font-medium ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
+                              {Math.round((userStats.daysActive / 30) * 100)}%
+                            </span>
+                          </div>
+                          <div className={`h-2 w-full rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} overflow-hidden`}>
+                            <div 
+                              className={`h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500`}
+                              style={{ width: `${Math.min(100, (userStats.daysActive / 30) * 100)}%` }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Learning Streak Box */}
+                        <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <Flame className={`w-4 h-4 ${theme === 'dark' ? 'text-orange-400' : 'text-orange-500'}`} />
+                              <span className={`text-xs ${textMuted}`}>Learning Streak</span>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <div className="flex items-center gap-1">
+                                <span className={`text-xs font-medium ${theme === 'dark' ? 'text-orange-400' : 'text-orange-500'}`}>
+                                  {userStats.currentStreak} days
+                                </span>
+                                <span className={`text-xs ${textMuted}`}>•</span>
+                                <span className={`text-xs ${textMuted}`}>Best: {userStats.longestStreak}</span>
                               </div>
                             </div>
-
-                            {/* Learning Streak Box */}
-                            <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <Flame className={`w-4 h-4 ${theme === 'dark' ? 'text-orange-400' : 'text-orange-500'}`} />
-                                  <span className={`text-xs ${textMuted}`}>Learning Streak</span>
-                                </div>
-                                <div className="flex items-center gap-3">
-                                  <div className="flex items-center gap-1">
-                                    <span className={`text-xs font-medium ${theme === 'dark' ? 'text-orange-400' : 'text-orange-500'}`}>
-                                      {userStats.currentStreak} days
-                                    </span>
-                                    <span className={`text-xs ${textMuted}`}>•</span>
-                                    <span className={`text-xs ${textMuted}`}>Best: {userStats.longestStreak}</span>
-                                  </div>
-                                </div>
-                              </div>
-                              <div className="flex items-center gap-1.5">
-                                {[...Array(7)].map((_, index) => (
-                                  <div 
-                                    key={index}
-                                    className={`flex-1 h-1.5 rounded-full ${
-                                      index < userStats.currentStreak
-                                        ? theme === 'dark'
-                                          ? 'bg-gradient-to-r from-orange-500 to-orange-400'
-                                          : 'bg-gradient-to-r from-orange-500 to-orange-400'
-                                        : theme === 'dark'
-                                          ? 'bg-gray-700'
-                                          : 'bg-gray-200'
-                                    }`}
-                                  />
-                                ))}
-                              </div>
-                              {userStats.currentStreak > 0 && (
-                                <div className="mt-1.5 text-center">
-                                  <p className={`text-xs ${textMuted}`}>
-                                    {userStats.currentStreak === 1 ? 'First day of streak!' : 
-                                     userStats.currentStreak === 7 ? 'Week streak achieved! 🎉' :
-                                     `Keep going! ${7 - userStats.currentStreak} days until week streak`}
-                                  </p>
-                                  {userStats.currentStreak < userStats.longestStreak && (
-                                    <p className={`text-xs ${textMuted} mt-0.5`}>
-                                      {userStats.longestStreak - userStats.currentStreak} days to beat your best streak!
-                                    </p>
-                                  )}
-                                </div>
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            {[...Array(7)].map((_, index) => (
+                              <div 
+                                key={index}
+                                className={`flex-1 h-1.5 rounded-full ${
+                                  index < userStats.currentStreak
+                                    ? theme === 'dark'
+                                      ? 'bg-gradient-to-r from-orange-500 to-orange-400'
+                                      : 'bg-gradient-to-r from-orange-500 to-orange-400'
+                                    : theme === 'dark'
+                                      ? 'bg-gray-700'
+                                      : 'bg-gray-200'
+                                }`}
+                              />
+                            ))}
+                          </div>
+                          {userStats.currentStreak > 0 && (
+                            <div className="mt-1.5 text-center">
+                              <p className={`text-xs ${textMuted}`}>
+                                {userStats.currentStreak === 1 ? 'First day of streak!' : 
+                                 userStats.currentStreak === 7 ? 'Week streak achieved! 🎉' :
+                                 `Keep going! ${7 - userStats.currentStreak} days until week streak`}
+                              </p>
+                              {userStats.currentStreak < userStats.longestStreak && (
+                                <p className={`text-xs ${textMuted} mt-0.5`}>
+                                  {userStats.longestStreak - userStats.currentStreak} days to beat your best streak!
+                                </p>
                               )}
                             </div>
-                          </div>
-                        </CardContent>
-                      </Card>
-                    </div>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Earnings Section */}
+                <div className="w-[360px]">
+                  <div className={`${cardBg} rounded-lg p-5 shadow-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden`}>
+                    {/* Decorative Background Elements */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-50" />
+                    <div className="absolute -right-6 -top-6 w-20 h-20 bg-green-500/10 rounded-full blur-lg" />
+                    <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-emerald-500/10 rounded-full blur-lg" />
                     
-                      {/* Earnings Section */}
-                      <div className="w-[360px]">
-                        <div className={`${cardBg} rounded-lg p-5 shadow-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden`}>
-                          {/* Decorative Background Elements */}
-                          <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-50" />
-                          <div className="absolute -right-6 -top-6 w-20 h-20 bg-green-500/10 rounded-full blur-lg" />
-                          <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-emerald-500/10 rounded-full blur-lg" />
-                          
-                          <div className="relative z-10">
-                            {/* Header */}
-                            <div className="flex items-center justify-between mb-5">
-                              <div>
-                                <p className={`text-sm font-medium ${textMuted} mb-2 flex items-center gap-2`}>
-                                  <span className="p-2 rounded-lg bg-green-500/10">
-                                    <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                    </svg>
-                                  </span>
-                                  Total Earnings
-                                </p>
-                                <p className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                                  ₹{Math.round(userStats.hoursLearning * 100)}
-                                </p>
-                              </div>
-                              <div className="text-right">
-                                <p className={`text-sm font-medium ${textMuted} mb-1`}>This Month</p>
-                                <p className="text-lg font-semibold text-green-500">+₹{Math.round(userStats.hoursLearning * 20)}</p>
-                              </div>
+                    <div className="relative z-10">
+                      {/* Header */}
+                      <div className="flex items-center justify-between mb-5">
+                        <div>
+                          <p className={`text-sm font-medium ${textMuted} mb-2 flex items-center gap-2`}>
+                            <span className="p-2 rounded-lg bg-green-500/10">
+                              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            </span>
+                            Total Earnings
+                          </p>
+                          <p className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
+                            ₹{Math.round(userStats.hoursLearning * 100)}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-sm font-medium ${textMuted} mb-1`}>This Month</p>
+                          <p className="text-lg font-semibold text-green-500">+₹{Math.round(userStats.hoursLearning * 20)}</p>
+                        </div>
+                      </div>
+                      
+                      {/* Earnings Breakdown */}
+                      <div className="grid grid-cols-2 gap-3">
+                        {[
+                          {
+                            label: 'Streak Bonus',
+                            rate: '₹20/hr',
+                            amount: Math.round(userStats.hoursLearning * (userStats.currentStreak > 0 ? 20 : 0)),
+                            icon: '🔥',
+                            color: 'from-orange-500 to-orange-600',
+                            condition: userStats.currentStreak > 0,
+                            description: 'Active streak'
+                          },
+                          {
+                            label: 'Completion',
+                            rate: '₹30/hr',
+                            amount: Math.round(userStats.hoursLearning * (userStats.problemsSolved > 0 ? 30 : 0)),
+                            icon: '✅',
+                            color: 'from-purple-500 to-purple-600',
+                            condition: userStats.problemsSolved > 0,
+                            description: 'Task reward'
+                          }
+                        ].map((item) => (
+                          <div 
+                            key={item.label}
+                            className={`flex flex-col p-2.5 rounded-lg transition-all duration-300 ${
+                              item.condition === false ? 'opacity-50' : 'hover:bg-primary/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className="text-xl">{item.icon}</span>
+                              <p className={`text-sm font-medium ${textMuted}`}>{item.label}</p>
                             </div>
-                            
-                            {/* Earnings Breakdown */}
-                            <div className="grid grid-cols-2 gap-3">
-                              {[
-                                {
-                                  label: 'Streak Bonus',
-                                  rate: '₹20/hr',
-                                  amount: Math.round(userStats.hoursLearning * (userStats.currentStreak > 0 ? 20 : 0)),
-                                  icon: '🔥',
-                                  color: 'from-orange-500 to-orange-600',
-                                  condition: userStats.currentStreak > 0,
-                                  description: 'Active streak'
-                                },
-                                {
-                                  label: 'Completion',
-                                  rate: '₹30/hr',
-                                  amount: Math.round(userStats.hoursLearning * (userStats.problemsSolved > 0 ? 30 : 0)),
-                                  icon: '✅',
-                                  color: 'from-purple-500 to-purple-600',
-                                  condition: userStats.problemsSolved > 0,
-                                  description: 'Task reward'
-                                }
-                              ].map((item) => (
-                                <div 
-                                  key={item.label}
-                                  className={`flex flex-col p-2.5 rounded-lg transition-all duration-300 ${
-                                    item.condition === false ? 'opacity-50' : 'hover:bg-primary/5'
-                                  }`}
-                                >
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xl">{item.icon}</span>
-                                    <p className={`text-sm font-medium ${textMuted}`}>{item.label}</p>
-                                  </div>
-                                  <div>
-                                    <p className={`text-base font-semibold bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>
-                                      ₹{item.amount}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">{item.rate}</p>
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-
-                            {/* Next Milestone */}
-                            {userStats.hoursLearning < 100 && (
-                              <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                                <div className="flex items-center justify-between mb-2">
-                                  <div className="flex items-center gap-2">
-                                    <span className="text-sm font-medium text-primary">Next Milestone</span>
-                                    <Badge variant="outline" className="h-5 px-2 text-xs border-primary/20">
-                                      +₹{Math.round((100 - userStats.hoursLearning) * 100)}
-                                    </Badge>
-                                  </div>
-                                  <span className="text-sm font-semibold text-primary">
-                                    {Math.round(100 - userStats.hoursLearning)}h to go
-                                  </span>
-                                </div>
-                                <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
-                                  <div 
-                                    className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
-                                    style={{ width: `${Math.min(100, (userStats.hoursLearning / 100) * 100)}%` }}
-                                  />
-                                </div>
-                                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-                                  <span className="p-1 rounded bg-green-500/10">
-                                    <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                    </svg>
-                                  </span>
-                                  Reach ₹10,000 milestone
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Quick Stats */}
-                            <div className="mt-4">
-                              <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                                <p className="text-sm font-medium text-muted-foreground mb-1">Learning Coins</p>
-                                <p className="text-lg font-semibold text-primary">
-                                  🪙{Math.round(userStats.hoursLearning * 100)}
-                                </p>
-                              </div>
+                            <div>
+                              <p className={`text-base font-semibold bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>
+                                ₹{item.amount}
+                              </p>
+                              <p className="text-xs text-muted-foreground">{item.rate}</p>
                             </div>
                           </div>
+                        ))}
+                      </div>
+
+                      {/* Next Milestone */}
+                      {userStats.hoursLearning < 100 && (
+                        <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="flex items-center gap-2">
+                              <span className="text-sm font-medium text-primary">Next Milestone</span>
+                              <Badge variant="outline" className="h-5 px-2 text-xs border-primary/20">
+                                +₹{Math.round((100 - userStats.hoursLearning) * 100)}
+                              </Badge>
+                            </div>
+                            <span className="text-sm font-semibold text-primary">
+                              {Math.round(100 - userStats.hoursLearning)}h to go
+                            </span>
+                          </div>
+                          <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
+                              style={{ width: `${Math.min(100, (userStats.hoursLearning / 100) * 100)}%` }}
+                            />
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                            <span className="p-1 rounded bg-green-500/10">
+                              <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                              </svg>
+                            </span>
+                            Reach ₹10,000 milestone
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Quick Stats */}
+                      <div className="mt-4">
+                        <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
+                          <p className="text-sm font-medium text-muted-foreground mb-1">Learning Coins</p>
+                          <p className="text-lg font-semibold text-primary">
+                            🪙{Math.round(userStats.hoursLearning * 100)}
+                          </p>
                         </div>
                       </div>
                     </div>
                   </div>
-                            </div>
-                          </div>
-                          </div>
-        </div>
-      </div>
-
-      <div className="container mx-auto px-4 py-8">
-        {/* Statistics Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
-        {/* Achievements Section */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Progress Overview */}
-          <Card className={`${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '400ms' }}>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                <Target className="w-6 h-6 text-primary" />
-                Learning Progress
+        {/* Ranking Box */}
+        <div className="container mx-auto px-4 py-6">
+          <Card 
+            className={`relative overflow-hidden ${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`}
+            style={{ animationDelay: '80ms' }}
+          >
+            {/* Enhanced Background Effects */}
+            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-orange-400/10 to-pink-400/10 opacity-50" />
+            <div className="absolute -right-6 -top-6 w-32 h-32 bg-yellow-400/10 rounded-full blur-xl" />
+            <div className="absolute -left-6 -bottom-6 w-32 h-32 bg-pink-400/10 rounded-full blur-xl" />
+            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-orange-400/5 rounded-full blur-2xl" />
+            <CardHeader className="pb-2 relative z-10">
+              <CardTitle className={`text-sm font-medium ${textMuted} flex items-center gap-2`}>
+                <Crown className={`w-5 h-5 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
+                <span className="bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent font-semibold">
+                  Your Rankings
+                </span>
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex justify-between items-center p-4 rounded-xl bg-primary/5 border border-primary/10">
-                <span className={`text-base ${textMuted}`}>Current Level</span>
-                <Badge variant="outline" className="font-semibold border-primary/20 px-4 py-1.5 text-sm">
-                  {achievementLevel}
-                </Badge>
-              </div>
-              <Separator className="bg-border/50" />
-              <div className="space-y-4">
-                {[
-                  { label: 'Learning Streak', value: `${userStats.daysActive} days` },
-                  { label: 'Completion Rate', value: `${userStats.problemsSolved > 0 ? Math.round((userStats.tasksCompleted / userStats.problemsSolved) * 100) : 0}%` },
-                  { label: 'Avg. Daily Learning', value: `${userStats.daysActive > 0 ? `${Math.round((userStats.hoursLearning / userStats.daysActive) * 10) / 10}h` : '0h'}` }
-                ].map((stat) => (
-                  <div key={stat.label} className="flex justify-between items-center p-3 rounded-lg hover:bg-primary/5 transition-colors duration-300">
-                    <span className={`text-base ${textMuted}`}>{stat.label}</span>
-                    <span className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                      {stat.value}
-                    </span>
-                  </div>
-                ))}
+            <CardContent className="relative z-10">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-muted-foreground">Branch</span>
+                  <span className="text-2xl font-bold text-yellow-500 flex items-center gap-1">
+                    <Medal className="w-4 h-4" /> {rankings.branch}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-muted-foreground">Section</span>
+                  <span className="text-2xl font-bold text-orange-500 flex items-center gap-1">
+                    <Flame className="w-4 h-4" /> {rankings.section}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-muted-foreground">College</span>
+                  <span className="text-2xl font-bold text-pink-500 flex items-center gap-1">
+                    <Rocket className="w-4 h-4" /> {rankings.college}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center">
+                  <span className="text-xs text-muted-foreground">Global</span>
+                  <span className="text-2xl font-bold text-purple-500 flex items-center gap-1">
+                    <Globe className="w-4 h-4" /> {rankings.global}
+                  </span>
+                </div>
               </div>
             </CardContent>
           </Card>
+        </div>
 
-          {/* Recent Achievements */}
-          <Card className={`${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '450ms' }}>
-            <CardHeader className="flex flex-row items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                <Zap className="w-6 h-6 text-primary" />
-                Recent Achievements
-              </CardTitle>
-              <Dialog open={isAwardsDialogOpen} onOpenChange={setIsAwardsDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button variant="outline" size="sm" className="flex items-center gap-2">
-                    <Award className="w-4 h-4" />
-                    View All Awards
-                  </Button>
-                </DialogTrigger>
-                <DialogContent className="max-w-3xl max-h-[80vh] overflow-y-auto">
-                  <DialogHeader>
-                    <DialogTitle className="text-2xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                      All Awards & Achievements
-                    </DialogTitle>
-                  </DialogHeader>
-                  <div className="space-y-6">
-                    {allAwards.map((category) => (
-                      <div key={category.category} className="space-y-4">
-                        <h3 className="text-lg font-semibold text-primary">{category.category}</h3>
-                        <div className="grid gap-4">
-                          {category.awards.map((award) => (
-                            <div
-                              key={award.title}
-                              className={`flex items-center gap-4 p-4 rounded-xl ${
-                                award.condition
-                                  ? theme === 'dark'
-                                    ? 'bg-primary/10'
-                                    : 'bg-primary/5'
-                                  : 'bg-muted/50'
-                              } border ${
-                                award.condition ? 'border-primary/10' : 'border-muted'
-                              } transition-all duration-300`}
-                            >
-                              <div className={`p-3 rounded-xl ${
-                                award.condition
-                                  ? theme === 'dark'
-                                    ? 'bg-primary/20'
-                                    : 'bg-primary/10'
-                                  : 'bg-muted'
-                              }`}>
-                                <award.icon className={`w-5 h-5 ${
-                                  award.condition
-                                    ? 'text-primary'
-                                    : 'text-muted-foreground'
-                                }`} />
-                              </div>
-                              <div className="flex-1">
-                                <div className="flex items-center justify-between">
-                                  <p className={`font-semibold text-base ${
-                                    award.condition
-                                      ? 'bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent'
-                                      : 'text-muted-foreground'
-                                  }`}>
-                                    {award.title}
-                                  </p>
-                                  <Badge
-                                    variant="outline"
-                                    className={`${
-                                      award.condition
-                                        ? 'border-primary/20 text-primary'
-                                        : 'border-muted text-muted-foreground'
-                                    }`}
-                                  >
-                                    {award.reward}
-                                  </Badge>
-                                </div>
-                                <p className={`text-sm ${
-                                  award.condition ? textMuted : 'text-muted-foreground/50'
-                                }`}>
-                                  {award.description}
-                                </p>
-                              </div>
-                            </div>
-                          ))}
+        <div className="container mx-auto px-4 py-8">
+          {/* Statistics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
+          </div>
+
+          {/* Achievements Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Progress Overview */}
+            <Card className={`${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '400ms' }}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  <Target className="w-6 h-6 text-primary" />
+                  Learning Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex justify-between items-center p-4 rounded-xl bg-primary/5 border border-primary/10">
+                  <span className={`text-base ${textMuted}`}>Current Level</span>
+                  <Badge variant="outline" className="font-semibold border-primary/20 px-4 py-1.5 text-sm">
+                    {achievementLevel}
+                  </Badge>
+                </div>
+                <Separator className="bg-border/50" />
+                <div className="space-y-4">
+                  {[
+                    { label: 'Learning Streak', value: `${userStats.daysActive} days` },
+                    { label: 'Completion Rate', value: `${userStats.problemsSolved > 0 ? Math.round((userStats.tasksCompleted / userStats.problemsSolved) * 100) : 0}%` },
+                    { label: 'Avg. Daily Learning', value: `${userStats.daysActive > 0 ? `${Math.round((userStats.hoursLearning / userStats.daysActive) * 10) / 10}h` : '0h'}` }
+                  ].map((stat) => (
+                    <div key={stat.label} className="flex justify-between items-center p-3 rounded-lg hover:bg-primary/5 transition-colors duration-300">
+                      <span className={`text-base ${textMuted}`}>{stat.label}</span>
+                      <span className="font-semibold text-lg bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                        {stat.value}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Recent Achievements */}
+            <Card className={`${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '450ms' }}>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle className="flex items-center gap-2 text-2xl bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  <Zap className="w-6 h-6 text-primary" />
+                  Recent Achievements
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  {[
+                    {
+                      condition: userStats.hoursLearning >= 10,
+                      icon: Trophy,
+                      title: 'Dedicated Learner',
+                      description: 'Completed 10+ hours of learning'
+                    },
+                    {
+                      condition: userStats.problemsSolved >= 5,
+                      icon: CheckCircle,
+                      title: 'Goal Crusher',
+                      description: 'Completed 5+ learning goals'
+                    },
+                    {
+                      condition: userStats.daysActive >= 7,
+                      icon: Calendar,
+                      title: 'Consistency Master',
+                      description: '7+ days of active learning'
+                    }
+                  ].map((achievement, index) => (
+                    achievement.condition && (
+                      <div 
+                        key={achievement.title}
+                        className={`flex items-center gap-4 p-4 rounded-xl ${theme === 'dark' ? 'bg-primary/10' : 'bg-primary/5'} border border-primary/10 transition-all duration-300 hover:border-primary/30 hover:bg-primary/10 ${cardHoverEffect}`}
+                        style={{ animationDelay: `${600 + index * 100}ms` }}
+                      >
+                        <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'} transition-transform duration-300 group-hover:scale-110`}>
+                          <achievement.icon className="w-5 h-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-semibold text-base bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                            {achievement.title}
+                          </p>
+                          <p className={`text-sm ${textMuted}`}>
+                            {achievement.description}
+                          </p>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                </DialogContent>
-              </Dialog>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {[
-                  {
-                    condition: userStats.hoursLearning >= 10,
-                    icon: Trophy,
-                    title: 'Dedicated Learner',
-                    description: 'Completed 10+ hours of learning'
-                  },
-                  {
-                    condition: userStats.problemsSolved >= 5,
-                    icon: CheckCircle,
-                    title: 'Goal Crusher',
-                    description: 'Completed 5+ learning goals'
-                  },
-                  {
-                    condition: userStats.daysActive >= 7,
-                    icon: Calendar,
-                    title: 'Consistency Master',
-                    description: '7+ days of active learning'
-                  }
-                ].map((achievement, index) => (
-                  achievement.condition && (
-                    <div 
-                      key={achievement.title}
-                      className={`flex items-center gap-4 p-4 rounded-xl ${theme === 'dark' ? 'bg-primary/10' : 'bg-primary/5'} border border-primary/10 transition-all duration-300 hover:border-primary/30 hover:bg-primary/10 ${cardHoverEffect}`}
-                      style={{ animationDelay: `${600 + index * 100}ms` }}
-                    >
-                      <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'} transition-transform duration-300 group-hover:scale-110`}>
-                        <achievement.icon className="w-5 h-5 text-primary" />
-                      </div>
-                      <div>
-                        <p className="font-semibold text-base bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                          {achievement.title}
-                        </p>
-                        <p className={`text-sm ${textMuted}`}>
-                          {achievement.description}
-                        </p>
-                      </div>
+                    )
+                  ))}
+                  {!userStats.hoursLearning && !userStats.problemsSolved && !userStats.daysActive && (
+                    <div className="text-center py-8 rounded-xl border border-dashed border-primary/20">
+                      <p className={`${textMuted} text-base`}>Keep learning to unlock achievements!</p>
                     </div>
-                  )
-                ))}
-                {!userStats.hoursLearning && !userStats.problemsSolved && !userStats.daysActive && (
-                  <div className="text-center py-8 rounded-xl border border-dashed border-primary/20">
-                    <p className={`${textMuted} text-base`}>Keep learning to unlock achievements!</p>
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </div>
     </div>

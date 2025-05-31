@@ -26,31 +26,69 @@ const PlaylistDetail = () => {
   const navigate = useNavigate();
   const [playlist, setPlaylist] = useState<Playlist | null>(null);
   const [isAddVideoModalOpen, setIsAddVideoModalOpen] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { updateTotalVideosCount } = usePlaylists();
 
   const loadPlaylistData = () => {
-    const savedPlaylists = localStorage.getItem('youtubePlaylists');
-    if (savedPlaylists) {
-      const playlists: Playlist[] = JSON.parse(savedPlaylists);
-      const found = playlists.find(p => p.id === playlistId);
-      if (found) {
-        const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
-        const updatedVideos = found.videos.map(video => {
-          const completedVideo = completedVideos.find(cv => cv.id === video.id);
-          if (completedVideo) {
-            return { ...video, progress: 100 };
-          }
-          return video;
-        });
-        const updatedPlaylist = { ...found, videos: updatedVideos };
-        setPlaylist(updatedPlaylist);
-        
-        const index = playlists.findIndex(p => p.id === playlistId);
-        if (index !== -1) {
-          playlists[index] = updatedPlaylist;
-          localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
-        }
+    try {
+      const savedPlaylists = localStorage.getItem('youtubePlaylists');
+      if (!savedPlaylists) {
+        throw new Error('No playlists found in localStorage');
       }
+
+      const playlists: Playlist[] = JSON.parse(savedPlaylists);
+      if (!Array.isArray(playlists)) {
+        throw new Error('Playlists data is not an array');
+      }
+
+      const found = playlists.find(p => p.id === playlistId);
+      if (!found) {
+        throw new Error(`No playlist found with ID: ${playlistId}`);
+      }
+
+      if (found.type !== 'video') {
+        throw new Error(`Playlist ${playlistId} is not a video playlist`);
+      }
+
+      // Initialize completedVideos as an empty array if not found or invalid
+      let completedVideos: CompletedVideo[] = [];
+      try {
+        const savedCompletedVideos = localStorage.getItem('completedVideos');
+        if (savedCompletedVideos) {
+          const parsed = JSON.parse(savedCompletedVideos);
+          if (Array.isArray(parsed)) {
+            completedVideos = parsed;
+          } else {
+            console.warn('completedVideos in localStorage is not an array, initializing as empty array');
+            localStorage.setItem('completedVideos', '[]');
+          }
+        } else {
+          localStorage.setItem('completedVideos', '[]');
+        }
+      } catch (error) {
+        console.error('Error parsing completedVideos:', error);
+        localStorage.setItem('completedVideos', '[]');
+      }
+
+      const updatedVideos = found.videos.map(video => {
+        const completedVideo = completedVideos.find(cv => cv.id === video.id);
+        if (completedVideo) {
+          return { ...video, progress: 100 };
+        }
+        return video;
+      });
+      const updatedPlaylist = { ...found, videos: updatedVideos };
+      setPlaylist(updatedPlaylist);
+      setError(null);
+      
+      const index = playlists.findIndex(p => p.id === playlistId);
+      if (index !== -1) {
+        playlists[index] = updatedPlaylist;
+        localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+      }
+    } catch (error) {
+      console.error('Error loading playlist:', error);
+      setError(error instanceof Error ? error.message : 'Failed to load playlist');
     }
   };
 
@@ -108,7 +146,26 @@ const PlaylistDetail = () => {
     if (progress >= 100) {
       const video = playlist.videos.find(v => v.id === videoId);
       if (video) {
-        const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+        // Initialize completedVideos as an empty array if not found or invalid
+        let completedVideos: CompletedVideo[] = [];
+        try {
+          const savedCompletedVideos = localStorage.getItem('completedVideos');
+          if (savedCompletedVideos) {
+            const parsed = JSON.parse(savedCompletedVideos);
+            if (Array.isArray(parsed)) {
+              completedVideos = parsed;
+            } else {
+              console.warn('completedVideos in localStorage is not an array, initializing as empty array');
+              localStorage.setItem('completedVideos', '[]');
+            }
+          } else {
+            localStorage.setItem('completedVideos', '[]');
+          }
+        } catch (error) {
+          console.error('Error parsing completedVideos:', error);
+          localStorage.setItem('completedVideos', '[]');
+        }
+
         const videoToStore: CompletedVideo = {
           id: video.id,
           title: video.title,
@@ -200,15 +257,27 @@ const PlaylistDetail = () => {
     });
   };
 
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 flex items-center justify-center">
+        <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
+          <CardContent className="py-8 text-center">
+            <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+            <Button onClick={() => navigate('/library')} className="mt-4">
+              Back to Library
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   if (!playlist) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-indigo-950 flex items-center justify-center">
         <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
           <CardContent className="py-8 text-center">
-            <p className="text-gray-800 dark:text-gray-100">Playlist not found</p>
-            <Button onClick={() => navigate('/library')} className="mt-4">
-              Back to Library
-            </Button>
+            <p className="text-gray-800 dark:text-gray-100">Loading playlist...</p>
           </CardContent>
         </Card>
       </div>

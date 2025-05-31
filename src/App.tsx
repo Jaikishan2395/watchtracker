@@ -3,7 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter as Router, Routes, Route, useLocation, useParams } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, useLocation, useParams, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { AppSidebar } from "@/components/AppSidebar";
 import Index from "./pages/Index";
@@ -22,6 +22,7 @@ import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
 import { loadQuestionsFromFile } from './utils/loadQuestions';
 import { PlaylistProvider } from '@/context/PlaylistContext';
+import { Button } from "@/components/ui/button";
 
 const queryClient = new QueryClient();
 
@@ -73,30 +74,68 @@ const AppContent = () => {
 const PlaylistDetailWrapper = () => {
   const { playlistId } = useParams();
   const [playlistType, setPlaylistType] = useState<'video' | 'coding' | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     console.log('PlaylistDetailWrapper: Starting playlist lookup for ID:', playlistId);
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
-    if (savedPlaylists) {
-      try {
-        const playlists: Playlist[] = JSON.parse(savedPlaylists);
-        console.log('PlaylistDetailWrapper: Successfully parsed playlists from localStorage:', playlists);
-        const playlist = playlists.find(p => p.id === playlistId);
-        console.log('PlaylistDetailWrapper: Found playlist:', playlist);
-        if (playlist) {
-          console.log('PlaylistDetailWrapper: Setting playlist type to:', playlist.type);
-          setPlaylistType(playlist.type);
-        } else {
-          console.error('PlaylistDetailWrapper: No playlist found with ID:', playlistId);
-          console.log('PlaylistDetailWrapper: Available playlist IDs:', playlists.map(p => p.id));
-        }
-      } catch (error) {
-        console.error('PlaylistDetailWrapper: Error parsing playlists from localStorage:', error);
+    
+    if (!savedPlaylists) {
+      const errorMsg = 'No playlists found in localStorage';
+      console.error('PlaylistDetailWrapper:', errorMsg);
+      setError(errorMsg);
+      return;
+    }
+
+    try {
+      const playlists: Playlist[] = JSON.parse(savedPlaylists);
+      console.log('PlaylistDetailWrapper: Successfully parsed playlists from localStorage:', playlists);
+      
+      if (!Array.isArray(playlists)) {
+        throw new Error('Playlists data is not an array');
       }
-    } else {
-      console.error('PlaylistDetailWrapper: No playlists found in localStorage');
+
+      const playlist = playlists.find(p => p.id === playlistId);
+      console.log('PlaylistDetailWrapper: Found playlist:', playlist);
+      
+      if (!playlist) {
+        const errorMsg = `No playlist found with ID: ${playlistId}`;
+        console.error('PlaylistDetailWrapper:', errorMsg);
+        console.log('PlaylistDetailWrapper: Available playlist IDs:', playlists.map(p => p.id));
+        setError(errorMsg);
+        return;
+      }
+
+      if (!playlist.type) {
+        const errorMsg = `Playlist ${playlistId} has no type specified`;
+        console.error('PlaylistDetailWrapper:', errorMsg);
+        setError(errorMsg);
+        return;
+      }
+
+      console.log('PlaylistDetailWrapper: Setting playlist type to:', playlist.type);
+      setPlaylistType(playlist.type);
+      setError(null);
+    } catch (error) {
+      const errorMsg = `Error parsing playlists from localStorage: ${error}`;
+      console.error('PlaylistDetailWrapper:', errorMsg);
+      setError(errorMsg);
     }
   }, [playlistId]);
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
+          <Button onClick={() => navigate('/library')} className="mt-4">
+            Back to Library
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   if (!playlistType) {
     console.log('PlaylistDetailWrapper: Still loading playlist type...');
