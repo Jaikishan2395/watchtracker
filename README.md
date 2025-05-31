@@ -1,73 +1,215 @@
-# Welcome to your Lovable project
+# Watch - Learning Platform
 
-## Project info
+A modern learning platform built with React, TypeScript, and Vite that provides a comprehensive environment for users to learn through video playlists and coding exercises.
 
-**URL**: https://lovable.dev/projects/40f5d777-e06f-4cd0-9096-a90612c44289
+## 🌟 Features
 
-## How can I edit this code?
+### Learning Features
+- Video playlist management
+- Interactive coding exercises
+- Progress tracking and analytics
+- Personalized learning paths
+- Question bank with filtering
+- Task management system
 
-There are several ways of editing your application.
+### User Experience
+- Responsive design
+- Dark/Light theme support
+- Intuitive navigation
+- Real-time progress updates
+- Interactive UI components
+- Accessibility support
 
-**Use Lovable**
+### Technical Features
+- TypeScript for type safety
+- Modern React practices
+- Efficient state management
+- Code splitting
+- Performance optimization
+- Secure authentication
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/40f5d777-e06f-4cd0-9096-a90612c44289) and start prompting.
+## 🛠 Tech Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+### Frontend
+- **Framework**: React 18 with TypeScript
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS with shadcn/ui
+- **State Management**: React Query
+- **Routing**: React Router v6
+- **Forms**: React Hook Form with Zod
+- **UI Components**: Radix UI primitives
+- **Code Editor**: Monaco Editor
+- **Authentication**: Firebase
+- **Theme**: next-themes
 
-**Use your preferred IDE**
+### Development Tools
+- ESLint for code linting
+- TypeScript for type checking
+- PostCSS for CSS processing
+- SWC for fast compilation
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 📁 Project Structure
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```
+watch/
+├── src/
+│   ├── api/          # API integration
+│   ├── assets/       # Static assets
+│   ├── components/   # Reusable components
+│   ├── context/      # React contexts
+│   ├── hooks/        # Custom hooks
+│   ├── lib/          # Utility libraries
+│   ├── pages/        # Route components
+│   ├── services/     # Business logic
+│   ├── types/        # TypeScript types
+│   └── utils/        # Helper functions
+├── public/           # Public assets
+├── server/           # Backend server
+└── asset/           # Additional assets
+```
 
-Follow these steps:
+## 🚀 Getting Started
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+### Prerequisites
+- Node.js (v16 or higher)
+- npm or yarn
+- Git
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+### Installation
 
-# Step 3: Install the necessary dependencies.
-npm i
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/watch.git
+cd watch
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Start the development server:
+```bash
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+4. Build for production:
+```bash
+npm run build
+```
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## 📱 Available Routes
 
-**Use GitHub Codespaces**
+- `/` - Splash page
+- `/login` - Login page
+- `/create-account` - Registration page
+- `/dashboard` - Main dashboard
+- `/library` - Learning library
+- `/all-questions` - Question bank
+- `/todo` - Task management
+- `/playlist/:playlistId` - Playlist details
+- `/playlist/:playlistId/play` - Video player
+- `/profile` - User profile
+- `/settings` - Application settings
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+## 🎯 Key Components
 
-## What technologies are used for this project?
+### Layout Components
+- `AppSidebar` - Main navigation
+- `ProgressTabs` - Progress tracking
+- `StreakTracker` - Learning streak
+- `ActivityHeatmap` - Activity visualization
 
-This project is built with:
+### Learning Components
+- `PlaylistCard` - Playlist display
+- `VideoCard` - Video information
+- `CodingQuestionCard` - Coding exercises
+- `QuestionList` - Question management
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+### UI Components
+- `StatsCard` - Statistics display
+- `Timer` - Time tracking
+- `PrivacySection` - Privacy settings
+- Various shadcn/ui components
 
-## How can I deploy this project?
+## 🔧 Development
 
-Simply open [Lovable](https://lovable.dev/projects/40f5d777-e06f-4cd0-9096-a90612c44289) and click on Share -> Publish.
+### Scripts
+```bash
+npm run dev        # Start development server
+npm run build      # Build for production
+npm run lint       # Run ESLint
+npm run preview    # Preview production build
+```
 
-## Can I connect a custom domain to my Lovable project?
+### Code Style
+- Follow TypeScript best practices
+- Use functional components
+- Implement proper error handling
+- Write clean, documented code
+- Follow accessibility guidelines
 
-Yes, you can!
+### State Management
+- Use React Query for server state
+- Implement React Context for global state
+- Utilize local storage for persistence
+- Follow proper data flow patterns
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🛡 Security
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+### Authentication
+- Firebase authentication
+- Protected routes
+- Session management
+- Secure data handling
+
+### Data Protection
+- Input validation
+- XSS prevention
+- CSRF protection
+- Secure API calls
+
+## 📊 Performance
+
+### Optimization
+- Code splitting
+- Lazy loading
+- Image optimization
+- Bundle size optimization
+- Caching strategy
+
+### Monitoring
+- Performance metrics
+- Error tracking
+- User analytics
+- Load time optimization
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a Pull Request
+
+### Pull Request Process
+1. Update documentation
+2. Add necessary tests
+3. Ensure all tests pass
+4. Follow code style guidelines
+5. Update the README if needed
+
+## 📝 License
+
+This project is private and proprietary. All rights reserved.
+
+## 👥 Authors
+
+- Your Name - Initial work
+
+## 🙏 Acknowledgments
+
+- React team for the amazing framework
+- Vite team for the build tool
+- shadcn/ui for the component library
+- All contributors and supporters

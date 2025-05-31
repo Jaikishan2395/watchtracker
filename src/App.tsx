@@ -18,6 +18,7 @@ import CreateAccount from "./pages/CreateAccount";
 import Library from "./pages/Library";
 import { SettingsPage } from "./pages/SettingsPage";
 import AllQuestions from "./pages/AllQuestions";
+import Todo from "./pages/Todo";
 import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
 import { loadQuestionsFromFile } from './utils/loadQuestions';
@@ -54,6 +55,7 @@ const AppContent = () => {
             <Route path="/dashboard" element={<Index />} />
             <Route path="/library" element={<Library />} />
             <Route path="/all-questions" element={<AllQuestions />} />
+            <Route path="/todo" element={<Todo />} />
             <Route 
               path="/playlist/:playlistId" 
               element={<PlaylistDetailWrapper />} 

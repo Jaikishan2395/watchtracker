@@ -77,6 +77,15 @@ export interface Playlist {
   source?: 'all-questions' | 'manual';
   targetQuestionsPerDay?: number; // For accountability
   streakData?: StreakData;
+  // Invitation related fields
+  invitedUsers?: {
+    email: string;
+    username: string;
+    status: 'pending' | 'accepted' | 'rejected';
+    invitedAt: string;
+  }[];
+  isPublic?: boolean;
+  ownerId?: string;
 }
 
 export interface PlaylistData {

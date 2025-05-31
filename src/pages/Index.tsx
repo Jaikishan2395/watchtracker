@@ -195,53 +195,6 @@ const Index = () => {
         {/* Progress Charts */}
         {(stats.totalVideos > 0 || stats.totalCodingQuestions > 0) && (
           <>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
-                <CardHeader>
-                  <CardTitle>Progress Overview</CardTitle>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Comparison of completed vs total content across different categories</p>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={progressData}>
-                      <CartesianGrid strokeDasharray="3 3" />
-                      <XAxis dataKey="name" />
-                      <YAxis />
-                      <Tooltip />
-                      <Bar dataKey="completed" fill="#10b981" name="Completed" />
-                      <Bar dataKey="total" fill="#e5e7eb" name="Total" />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-
-              <Card className="bg-white/70 backdrop-blur-sm border-0 shadow-lg animate-fade-in">
-                <CardHeader>
-                  <CardTitle>Completion Rate</CardTitle>
-                  <p className="text-sm text-gray-500 dark:text-gray-400">Overall progress distribution between completed and remaining content</p>
-                </CardHeader>
-                <CardContent>
-                  <ResponsiveContainer width="100%" height={200}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={40}
-                        outerRadius={80}
-                        dataKey="value"
-                      >
-                        {pieData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={entry.color} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </CardContent>
-              </Card>
-            </div>
-
             {/* Progress Over Time */}
             <div className="mb-8">
               <ProgressTabs playlists={playlists} />

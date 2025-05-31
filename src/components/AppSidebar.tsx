@@ -1,4 +1,4 @@
-import { Home, User, Code, LogIn, Library, Settings, ListChecks } from 'lucide-react';
+import { Home, User, Code, LogIn, Library, Settings, ListChecks, CheckSquare } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -29,6 +29,11 @@ const menuItems = [
     title: 'All Questions',
     url: '/all-questions',
     icon: ListChecks,
+  },
+  {
+    title: 'To-Do',
+    url: '/todo',
+    icon: CheckSquare,
   },
   {
     title: 'Profile',
