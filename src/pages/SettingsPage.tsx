@@ -80,7 +80,9 @@ export function SettingsPage() {
     instagram: false,
     facebook: false,
     youtube: false,
-  });
+  });   
+      
+
 
   const resetAllData = () => {
     localStorage.removeItem('youtubePlaylists');

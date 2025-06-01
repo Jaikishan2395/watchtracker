@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2 } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -18,6 +18,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
+import Editor from '@monaco-editor/react';
+import * as monaco from 'monaco-editor';
 
 // Update the YouTube API types at the top of the file
 interface YouTubePlayer {
@@ -153,6 +155,21 @@ interface Flashcard {
   noteId: string;
   lastReviewed: number;
   reviewCount: number;
+}
+
+// Add new interfaces for code IDE
+interface CodeFile {
+  id: string;
+  name: string;
+  language: string;
+  content: string;
+  timestamp: number;
+}
+
+interface CodeExecutionResult {
+  output: string;
+  error?: string;
+  executionTime: number;
 }
 
 const formatDuration = (minutes: number) => {
@@ -303,6 +320,9 @@ interface SpeechRecognitionAlternative {
   confidence: number;
 }
 
+// Add this constant at the top of the file after imports
+const PISTON_API_URL = 'https://emkc.org/api/v2/piston/execute';
+
 const VideoPlayer = () => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -378,6 +398,16 @@ const VideoPlayer = () => {
   const [currentFlashcard, setCurrentFlashcard] = useState<Flashcard | null>(null);
   const [isFlipped, setIsFlipped] = useState(false);
   const recognitionRef = useRef<SpeechRecognition | null>(null);
+
+  // Add new state variables for code IDE
+  const [showCodeIDE, setShowCodeIDE] = useState(false);
+  const [codeFiles, setCodeFiles] = useState<CodeFile[]>([]);
+  const [currentFile, setCurrentFile] = useState<CodeFile | null>(null);
+  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
+  const [executionResult, setExecutionResult] = useState<CodeExecutionResult | null>(null);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  const [activeTab, setActiveTab] = useState<'chat' | 'notes' | 'code'>('chat');
 
   // Get current video from playlist
   const currentVideo = playlist?.videos[currentVideoIndex];
@@ -1960,6 +1990,149 @@ const VideoPlayer = () => {
     }
   };
 
+  // Add code execution handler
+  const handleExecuteCode = async () => {
+    if (!currentFile) return;
+
+    setIsExecuting(true);
+    setExecutionResult(null);
+
+    try {
+      const startTime = performance.now();
+      let result: CodeExecutionResult;
+
+      // Handle web languages (HTML, CSS, JavaScript) in iframe
+      if (['html', 'css', 'javascript'].includes(currentFile.language)) {
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        document.body.appendChild(iframe);
+        
+        const doc = iframe.contentDocument || iframe.contentWindow?.document;
+        if (doc) {
+          doc.open();
+          doc.write(currentFile.content);
+          doc.close();
+        }
+
+        result = {
+          output: 'Web code rendered successfully',
+          executionTime: performance.now() - startTime
+        };
+
+        document.body.removeChild(iframe);
+      } else {
+        // Map Monaco editor language IDs to Piston language IDs
+        const languageMap: { [key: string]: string } = {
+          'python': 'python',
+          'java': 'java',
+          'cpp': 'cpp',
+          'csharp': 'csharp',
+          'php': 'php',
+          'ruby': 'ruby',
+          'go': 'go',
+          'rust': 'rust',
+          'sql': 'sql',
+          'typescript': 'typescript'
+        };
+
+        const pistonLanguage = languageMap[currentFile.language];
+        if (!pistonLanguage) {
+          throw new Error(`Language ${currentFile.language} is not supported for execution`);
+        }
+
+        // Prepare the code for execution
+        let code = currentFile.content;
+        let stdin = '';
+
+        // Add specific handling for different languages
+        let classNameMatch: RegExpMatchArray | null = null;
+
+        switch (currentFile.language) {
+          case 'java':
+            // Extract class name from code
+            classNameMatch = code.match(/public\s+class\s+(\w+)/);
+            if (classNameMatch) {
+              const className = classNameMatch[1];
+              // Ensure the file name matches the class name
+              if (currentFile.name !== `${className}.java`) {
+                setCurrentFile({
+                  ...currentFile,
+                  name: `${className}.java`
+                });
+              }
+            }
+            break;
+          case 'cpp':
+            // Add basic input handling for C++
+            if (!code.includes('cin')) {
+              stdin = '5\n'; // Default input if no cin is used
+            }
+            break;
+          case 'python':
+            // Add basic input handling for Python
+            if (code.includes('input(')) {
+              stdin = '5\n'; // Default input if input() is used
+            }
+            break;
+        }
+
+        // Execute code using Piston API
+        const response = await fetch(PISTON_API_URL, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            language: pistonLanguage,
+            version: '*', // Use latest version
+            files: [{
+              name: currentFile.name,
+              content: code
+            }],
+            stdin: stdin
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to execute code');
+        }
+
+        const data = await response.json();
+        
+        result = {
+          output: data.run.output || '',
+          error: data.run.stderr || data.run.error || '',
+          executionTime: performance.now() - startTime
+        };
+      }
+
+      setExecutionResult(result);
+    } catch (error) {
+      setExecutionResult({
+        output: '',
+        error: error instanceof Error ? error.message : 'An error occurred',
+        executionTime: 0
+      });
+    } finally {
+      setIsExecuting(false);
+    }
+  };
+
+  // Add effect to create initial code file
+  useEffect(() => {
+    if (activeTab === 'code' && codeFiles.length === 0) {
+      const initialFile: CodeFile = {
+        id: Date.now().toString(),
+        name: 'main.js',
+        language: 'javascript',
+        content: '// Write your code here\nconsole.log("Hello, World!");',
+        timestamp: Date.now()
+      };
+      setCodeFiles([initialFile]);
+      setCurrentFile(initialFile);
+    }
+  }, [activeTab, codeFiles.length]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -2127,9 +2300,12 @@ const VideoPlayer = () => {
             {/* Toggle Buttons */}
             <div className="fixed bottom-8 right-8 flex gap-4 z-50">
               <Button
-                onClick={() => toggleSection('chat')}
+                onClick={() => {
+                  setActiveTab('chat');
+                  setShowChat(true);
+                }}
                 className={`rounded-full shadow-lg transition-all duration-300 ${
-                  showChat 
+                  activeTab === 'chat'
                     ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
                     : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
                 }`}
@@ -2137,20 +2313,36 @@ const VideoPlayer = () => {
                 <MessageSquare className="w-5 h-5" />
               </Button>
               <Button
-                onClick={() => toggleSection('notes')}
+                onClick={() => {
+                  setActiveTab('notes');
+                  setShowChat(false);
+                }}
                 className={`rounded-full shadow-lg transition-all duration-300 ${
-                  !showChat 
+                  activeTab === 'notes'
                     ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
                     : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
                 }`}
               >
                 <StickyNote className="w-5 h-5" />
               </Button>
+              <Button
+                onClick={() => {
+                  setActiveTab('code');
+                  setShowChat(false);
+                }}
+                className={`rounded-full shadow-lg transition-all duration-300 ${
+                  activeTab === 'code'
+                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                    : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
+                }`}
+              >
+                <Code className="w-5 h-5" />
+              </Button>
             </div>
 
             {/* Chat Room or Notes Section */}
             <div className="xl:col-span-1">
-              {showChat ? (
+              {activeTab === 'chat' && showChat && (
                 <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
                   <CardHeader className="border-b border-gray-200 dark:border-slate-700 pb-4">
                     <div className="flex items-center justify-between">
@@ -2365,7 +2557,8 @@ const VideoPlayer = () => {
                     </div>
                   </CardContent>
                 </Card>
-              ) : (
+              )}
+              {activeTab === 'notes' && !showChat && (
                 <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
                   <CardHeader className="border-b border-gray-200 dark:border-slate-700 pb-4">
                     <div className="flex items-center justify-between">
@@ -2759,6 +2952,205 @@ const VideoPlayer = () => {
                             ))}
                           </div>
                         )}
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+              {activeTab === 'code' && (
+                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
+                  <CardHeader className="border-b border-gray-200 dark:border-slate-700 pb-4">
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-xl dark:text-white flex items-center gap-2">
+                        <Code className="w-5 h-5" />
+                        Code IDE
+                      </CardTitle>
+                      <div className="flex items-center gap-2">
+                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+                          <SelectTrigger className="w-[120px]">
+                            <SelectValue placeholder="Language" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="javascript">JavaScript</SelectItem>
+                            <SelectItem value="typescript">TypeScript</SelectItem>
+                            <SelectItem value="python">Python</SelectItem>
+                            <SelectItem value="java">Java</SelectItem>
+                            <SelectItem value="cpp">C++</SelectItem>
+                            <SelectItem value="csharp">C#</SelectItem>
+                            <SelectItem value="php">PHP</SelectItem>
+                            <SelectItem value="ruby">Ruby</SelectItem>
+                            <SelectItem value="go">Go</SelectItem>
+                            <SelectItem value="rust">Rust</SelectItem>
+                            <SelectItem value="html">HTML</SelectItem>
+                            <SelectItem value="css">CSS</SelectItem>
+                            <SelectItem value="sql">SQL</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Button
+                          onClick={handleExecuteCode}
+                          disabled={isExecuting}
+                          className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600"
+                        >
+                          {isExecuting ? (
+                            <>
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                              Running...
+                            </>
+                          ) : (
+                            <>
+                              <Play className="w-4 h-4 mr-2" />
+                              Run Code
+                            </>
+                          )}
+                        </Button>
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="p-0">
+                    <div className="grid grid-cols-2 gap-4 h-[600px]">
+                      {/* Code Editor */}
+                      <div className="h-full border-r border-gray-200 dark:border-slate-700">
+                        <Editor
+                          height="100%"
+                          defaultLanguage={selectedLanguage}
+                          language={selectedLanguage}
+                          value={currentFile?.content}
+                          onChange={(value) => {
+                            if (currentFile) {
+                              setCurrentFile({
+                                ...currentFile,
+                                content: value || ''
+                              });
+                            }
+                          }}
+                          theme={isDarkMode ? 'vs-dark' : 'light'}
+                          options={{
+                            minimap: { enabled: false },
+                            fontSize: 14,
+                            wordWrap: 'on',
+                            lineNumbers: 'on',
+                            scrollBeyondLastLine: false,
+                            automaticLayout: true
+                          }}
+                          onMount={(editor) => {
+                            editorRef.current = editor;
+                          }}
+                        />
+                      </div>
+                      
+                      {/* Output Panel */}
+                      <div className="h-full p-4 overflow-auto">
+                        <div className="space-y-4">
+                          <div className="flex items-center justify-between">
+                            <h3 className="text-lg font-semibold dark:text-white">Output</h3>
+                            {executionResult && (
+                              <span className="text-sm text-gray-500 dark:text-gray-400">
+                                Execution time: {executionResult.executionTime.toFixed(2)}ms
+                              </span>
+                            )}
+                          </div>
+                          
+                          {executionResult ? (
+                            <div className="space-y-4">
+                              {/* Error Display */}
+                              {executionResult.error && (
+                                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
+                                    <h4 className="font-medium text-red-700 dark:text-red-400">Error</h4>
+                                  </div>
+                                  <pre className="text-red-600 dark:text-red-400 text-sm whitespace-pre-wrap font-mono">
+                                    {executionResult.error}
+                                  </pre>
+                                </div>
+                              )}
+
+                              {/* Console Output */}
+                              {executionResult.output && (
+                                <div className="p-4 bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                    <h4 className="font-medium text-gray-700 dark:text-gray-300">Console Output</h4>
+                                  </div>
+                                  <pre className="text-gray-800 dark:text-gray-200 text-sm whitespace-pre-wrap font-mono">
+                                    {executionResult.output}
+                                  </pre>
+                                </div>
+                              )}
+
+                              {/* Language-specific Output */}
+                              {['python', 'java', 'cpp', 'csharp', 'php', 'ruby', 'go', 'rust', 'sql', 'typescript'].includes(selectedLanguage) && (
+                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                                    <h4 className="font-medium text-blue-700 dark:text-blue-400">Code Execution</h4>
+                                  </div>
+                                  <div className="text-sm text-blue-600 dark:text-blue-400">
+                                    <p>Language: {selectedLanguage}</p>
+                                    <p>File: {currentFile?.name}</p>
+                                    {executionResult.error ? (
+                                      <p className="mt-2">Status: Failed ❌</p>
+                                    ) : (
+                                      <p className="mt-2">Status: Success ✅</p>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Live Preview for Web Code */}
+                              {(selectedLanguage === 'html' || selectedLanguage === 'css' || selectedLanguage === 'javascript') && (
+                                <div className="mt-4">
+                                  <div className="flex items-center gap-2 mb-2">
+                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                                    <h4 className="font-medium text-purple-700 dark:text-purple-400">Live Preview</h4>
+                                  </div>
+                                  <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
+                                    <iframe
+                                      srcDoc={`
+                                        <!DOCTYPE html>
+                                        <html>
+                                          <head>
+                                            <style>
+                                              body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; }
+                                              ${selectedLanguage === 'css' ? currentFile?.content : ''}
+                                            </style>
+                                          </head>
+                                          <body>
+                                            ${selectedLanguage === 'html' ? currentFile?.content : ''}
+                                            <script>
+                                              try {
+                                                ${selectedLanguage === 'javascript' ? currentFile?.content : ''}
+                                              } catch (error) {
+                                                console.error('JavaScript Error:', error);
+                                              }
+                                            </script>
+                                          </body>
+                                        </html>
+                                      `}
+                                      className="w-full h-[300px] bg-white"
+                                      sandbox="allow-scripts"
+                                    />
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ) : (
+                            <div className="flex flex-col items-center justify-center h-[calc(100%-4rem)] text-gray-500 dark:text-gray-400">
+                              <div className="text-4xl mb-4">👨‍💻</div>
+                              <p className="text-center">
+                                Run your code to see the output here
+                                <br />
+                                <span className="text-sm mt-2 block">
+                                  {selectedLanguage === 'html' && 'HTML will be rendered in the preview'}
+                                  {selectedLanguage === 'css' && 'CSS will be applied to the preview'}
+                                  {selectedLanguage === 'javascript' && 'JavaScript will be executed in the preview'}
+                                  {['python', 'java', 'cpp', 'csharp', 'php', 'ruby', 'go', 'rust', 'sql', 'typescript'].includes(selectedLanguage) && 
+                                    'Code will be executed on the server'}
+                                </span>
+                              </p>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
                   </CardContent>

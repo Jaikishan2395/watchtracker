@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Code, CheckCircle, User, Trophy, Target, Zap, Moon, Sun, TrendingUp, TrendingDown, Star, Crown, Medal, Flame, Rocket, Brain, BookOpen, Award, AlertCircle, Info, Instagram, Facebook, Twitter, MessageCircle, Share2, Globe } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Code, CheckCircle, User, Trophy, Target, Zap, Moon, Sun, TrendingUp, TrendingDown, Star, Crown, Medal, Flame, Rocket, Brain, BookOpen, Award, AlertCircle, Info, Instagram, Facebook, Twitter, MessageCircle, Share2, Globe, Download, Share, Bell, Settings, Users } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -15,7 +15,7 @@ import StreakTracker from '@/components/StreakTracker';
 import { Playlist, Video } from '@/types/playlist';
 import ActivityHeatmap from '@/components/ActivityHeatmap';
 import { usePlaylists } from '@/context/PlaylistContext';
-import { app, analytics } from '../firebase';
+import html2canvas from 'html2canvas';
 
 // CSS styles
 const styles = `
@@ -44,6 +44,31 @@ const styles = `
   @keyframes fadeIn {
     from { opacity: 0; transform: translateY(10px); }
     to { opacity: 1; transform: translateY(0); }
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(156, 163, 175, 0.5);
+    border-radius: 3px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(156, 163, 175, 0.7);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(75, 85, 99, 0.5);
+  }
+
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(75, 85, 99, 0.7);
   }
 `;
 
@@ -95,6 +120,31 @@ interface Ranking {
       activeDays: number;
       completionRate: number;
     };
+  };
+}
+
+// Update ProgressCard interface
+interface ProgressCard {
+  platformName: string;
+  totalProgress: {
+    todos: number;
+    watchTime: number;
+    videosCompleted: number;
+    problemsSolved: number;
+    streak: number;
+    coins: number;
+  };
+  monthlyProgress: {
+    todos: number;
+    watchTime: number;
+    videosCompleted: number;
+    problemsSolved: number;
+    streak: number;
+    coins: number;
+  };
+  achievements: {
+    level: string;
+    badges: string[];
   };
 }
 
@@ -153,6 +203,31 @@ const Profile = () => {
         activeDays: 0,
         completionRate: 0
       }
+    }
+  });
+
+  const [showProgressCard, setShowProgressCard] = useState(false);
+  const [progressCard, setProgressCard] = useState<ProgressCard>({
+    platformName: "Learning Platform",
+    totalProgress: {
+      todos: 0,
+      watchTime: 0,
+      videosCompleted: 0,
+      problemsSolved: 0,
+      streak: 0,
+      coins: 0
+    },
+    monthlyProgress: {
+      todos: 0,
+      watchTime: 0,
+      videosCompleted: 0,
+      problemsSolved: 0,
+      streak: 0,
+      coins: 0
+    },
+    achievements: {
+      level: "Beginner",
+      badges: []
     }
   });
 
@@ -482,113 +557,92 @@ const Profile = () => {
     hover:translate-z-10
   `;
 
-  // Add this new array of all possible awards
-  const allAwards = [
+  // Remove the allAwards array and keep only the basic achievements
+  const basicAchievements = [
     {
-      category: 'Learning Milestones',
-      awards: [
-        {
-          condition: userStats.hoursLearning >= 10,
-          icon: Trophy,
-          title: 'Dedicated Learner',
-          description: 'Completed 10+ hours of learning',
-          reward: '100 coins'
-        },
-        {
-          condition: userStats.hoursLearning >= 50,
-          icon: Trophy,
-          title: 'Master Learner',
-          description: 'Completed 50+ hours of learning',
-          reward: '500 coins'
-        },
-        {
-          condition: userStats.hoursLearning >= 100,
-          icon: Trophy,
-          title: 'Grand Master',
-          description: 'Completed 100+ hours of learning',
-          reward: '1000 coins'
-        }
-      ]
+      condition: userStats.hoursLearning >= 10,
+      icon: Trophy,
+      title: 'Dedicated Learner',
+      description: 'Completed 10+ hours of learning'
     },
     {
-      category: 'Goal Achievements',
-      awards: [
-        {
-          condition: userStats.problemsSolved >= 5,
-          icon: CheckCircle,
-          title: 'Goal Crusher',
-          description: 'Completed 5+ learning goals',
-          reward: '50 coins'
-        },
-        {
-          condition: userStats.problemsSolved >= 20,
-          icon: CheckCircle,
-          title: 'Goal Master',
-          description: 'Completed 20+ learning goals',
-          reward: '200 coins'
-        },
-        {
-          condition: userStats.problemsSolved >= 50,
-          icon: CheckCircle,
-          title: 'Goal Legend',
-          description: 'Completed 50+ learning goals',
-          reward: '500 coins'
-        }
-      ]
+      condition: userStats.problemsSolved >= 5,
+      icon: CheckCircle,
+      title: 'Goal Crusher',
+      description: 'Completed 5+ learning goals'
     },
     {
-      category: 'Consistency Awards',
-      awards: [
-        {
-          condition: userStats.daysActive >= 7,
-          icon: Calendar,
-          title: 'Consistency Master',
-          description: '7+ days of active learning',
-          reward: '70 coins'
-        },
-        {
-          condition: userStats.daysActive >= 30,
-          icon: Calendar,
-          title: 'Monthly Warrior',
-          description: '30+ days of active learning',
-          reward: '300 coins'
-        },
-        {
-          condition: userStats.daysActive >= 100,
-          icon: Calendar,
-          title: 'Century Club',
-          description: '100+ days of active learning',
-          reward: '1000 coins'
-        }
-      ]
-    },
-    {
-      category: 'Streak Achievements',
-      awards: [
-        {
-          condition: userStats.currentStreak >= 3,
-          icon: Flame,
-          title: 'Streak Starter',
-          description: 'Maintained a 3-day streak',
-          reward: '30 coins'
-        },
-        {
-          condition: userStats.currentStreak >= 7,
-          icon: Flame,
-          title: 'Week Warrior',
-          description: 'Maintained a 7-day streak',
-          reward: '100 coins'
-        },
-        {
-          condition: userStats.currentStreak >= 30,
-          icon: Flame,
-          title: 'Streak Legend',
-          description: 'Maintained a 30-day streak',
-          reward: '500 coins'
-        }
-      ]
+      condition: userStats.daysActive >= 7,
+      icon: Calendar,
+      title: 'Consistency Master',
+      description: '7+ days of active learning'
     }
   ];
+
+  // Update generateProgressCard function
+  const generateProgressCard = () => {
+    const cardData: ProgressCard = {
+      platformName: "Learning Platform",
+      totalProgress: {
+        todos: userStats.tasksCompleted,
+        watchTime: userStats.hoursLearning,
+        videosCompleted: userStats.problemsSolved,
+        problemsSolved: userStats.problemsSolved,
+        streak: userStats.currentStreak,
+        coins: Math.round(userStats.hoursLearning * 100)
+      },
+      monthlyProgress: {
+        todos: Math.round(userStats.tasksCompleted * 0.3),
+        watchTime: Math.round(userStats.hoursLearning * 0.3),
+        videosCompleted: Math.round(userStats.problemsSolved * 0.3),
+        problemsSolved: Math.round(userStats.problemsSolved * 0.3),
+        streak: Math.min(userStats.currentStreak, 30),
+        coins: Math.round(userStats.hoursLearning * 20)
+      },
+      achievements: {
+        level: achievementLevel,
+        badges: Object.entries(rankings.achievements)
+          .filter(([_, value]) => value)
+          .map(([key]) => key.replace('is', ''))
+      }
+    };
+    setProgressCard(cardData);
+    setShowProgressCard(true);
+  };
+
+  // Update shareProgressCard function
+  const shareProgressCard = async () => {
+    try {
+      const cardElement = document.getElementById('progress-card');
+      if (!cardElement) return;
+
+      const canvas = await html2canvas(cardElement, {
+        scale: 2, // Higher quality
+        backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
+        logging: false,
+        useCORS: true
+      });
+      
+      const image = canvas.toDataURL('image/png');
+      
+      // Create a temporary link to download the image
+      const link = document.createElement('a');
+      link.download = `learning-progress-${new Date().toISOString().split('T')[0]}.png`;
+      link.href = image;
+      link.click();
+
+      // Share on social media
+      if (navigator.share) {
+        await navigator.share({
+          title: 'My Learning Progress',
+          text: `Check out my learning progress on ${progressCard.platformName}! I'm at ${progressCard.achievements.level} level with ${progressCard.totalProgress.coins} coins!`,
+          files: [new File([await (await fetch(image)).blob()], 'learning-progress.png', { type: 'image/png' })]
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing progress card:', error);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -843,7 +897,7 @@ const Profile = () => {
                           {userStats.currentStreak > 0 && (
                             <div className="mt-1.5 text-center">
                               <p className={`text-xs ${textMuted}`}>
-                                {userStats.currentStreak === 1 ? 'First day of streak!' : 
+                                {userStats.currentStreak === 1 ? 'First day of streak! 🎉' : 
                                  userStats.currentStreak === 7 ? 'Week streak achieved! 🎉' :
                                  `Keep going! ${7 - userStats.currentStreak} days until week streak`}
                               </p>
@@ -860,116 +914,298 @@ const Profile = () => {
                   </Card>
                 </div>
 
-                {/* Earnings Section */}
+                {/* Earnings Section with Notification Button */}
                 <div className="w-[360px]">
-                  <div className={`${cardBg} rounded-lg p-5 shadow-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden`}>
-                    {/* Decorative Background Elements */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 opacity-50" />
-                    <div className="absolute -right-6 -top-6 w-20 h-20 bg-green-500/10 rounded-full blur-lg" />
-                    <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-emerald-500/10 rounded-full blur-lg" />
-                    
-                    <div className="relative z-10">
-                      {/* Header */}
-                      <div className="flex items-center justify-between mb-5">
-                        <div>
-                          <p className={`text-sm font-medium ${textMuted} mb-2 flex items-center gap-2`}>
-                            <span className="p-2 rounded-lg bg-green-500/10">
-                              <svg className="w-5 h-5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                            </span>
-                            Total Earnings
-                          </p>
-                          <p className="text-3xl font-bold bg-gradient-to-r from-green-500 to-emerald-500 bg-clip-text text-transparent">
-                            ₹{Math.round(userStats.hoursLearning * 100)}
-                          </p>
+                  <div className="flex flex-col gap-4">
+                    {/* Notification Button */}
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" className="relative gap-2 w-full">
+                          <Bell className="w-4 h-4" />
+                          Notifications
+                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] text-white">
+                            3
+                          </span>
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col p-0 bg-gradient-to-br from-background to-background/95 backdrop-blur-sm border border-border/50 shadow-2xl">
+                        <DialogHeader className="flex-shrink-0 p-6 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-border/50">
+                          <div className="flex items-center justify-between">
+                            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent flex items-center gap-2">
+                              <Bell className="w-5 h-5" />
+                              Notifications
+                            </DialogTitle>
+                            <Badge variant="secondary" className="px-3 py-1">
+                              3 New
+                            </Badge>
+                          </div>
+                        </DialogHeader>
+                        <div className="overflow-y-auto pr-2 custom-scrollbar">
+                          <div className="p-6 space-y-6">
+                            {/* Latest Updates */}
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 rounded-xl blur-xl -z-10" />
+                              <h3 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                                <BookOpen className="w-4 h-4 text-blue-500" />
+                                Latest Updates
+                              </h3>
+                              <div className="space-y-3">
+                                {[
+                                  {
+                                    type: 'update',
+                                    title: 'New Course Available',
+                                    description: 'Introduction to Machine Learning is now available',
+                                    time: '2 hours ago',
+                                    icon: BookOpen,
+                                    color: 'blue'
+                                  },
+                                  {
+                                    type: 'update',
+                                    title: 'System Maintenance',
+                                    description: 'Platform will be down for maintenance on Sunday',
+                                    time: '5 hours ago',
+                                    icon: Settings,
+                                    color: 'purple'
+                                  }
+                                ].map((notification) => (
+                                  <div 
+                                    key={notification.title} 
+                                    className="group flex gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                                  >
+                                    <div className={`p-2.5 rounded-lg bg-${notification.color}-500/10 group-hover:scale-110 transition-transform duration-300`}>
+                                      <notification.icon className={`w-4 h-4 text-${notification.color}-500`} />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm group-hover:text-primary transition-colors duration-300">{notification.title}</p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">{notification.description}</p>
+                                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {notification.time}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Friend Achievements */}
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 via-emerald-500/5 to-teal-500/5 rounded-xl blur-xl -z-10" />
+                              <h3 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                                <Users className="w-4 h-4 text-green-500" />
+                                Friend Achievements
+                              </h3>
+                              <div className="space-y-3">
+                                {[
+                                  {
+                                    type: 'achievement',
+                                    friend: 'Sarah Johnson',
+                                    achievement: 'Master Learner',
+                                    description: 'Completed 50+ hours of learning',
+                                    time: '1 hour ago',
+                                    icon: Trophy,
+                                    color: 'green'
+                                  },
+                                  {
+                                    type: 'achievement',
+                                    friend: 'Mike Chen',
+                                    achievement: 'Streak Legend',
+                                    description: 'Maintained a 30-day streak',
+                                    time: '3 hours ago',
+                                    icon: Flame,
+                                    color: 'orange'
+                                  }
+                                ].map((notification) => (
+                                  <div 
+                                    key={notification.achievement} 
+                                    className="group flex gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                                  >
+                                    <div className={`p-2.5 rounded-lg bg-${notification.color}-500/10 group-hover:scale-110 transition-transform duration-300`}>
+                                      <notification.icon className={`w-4 h-4 text-${notification.color}-500`} />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm group-hover:text-primary transition-colors duration-300">{notification.friend}</p>
+                                      <p className="text-xs text-primary mt-0.5">{notification.achievement}</p>
+                                      <p className="text-xs text-muted-foreground">{notification.description}</p>
+                                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {notification.time}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Class Achievements */}
+                            <div className="relative">
+                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-amber-500/5 to-orange-500/5 rounded-xl blur-xl -z-10" />
+                              <h3 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
+                                <Award className="w-4 h-4 text-yellow-500" />
+                                Class Achievements
+                              </h3>
+                              <div className="space-y-3">
+                                {[
+                                  {
+                                    type: 'class',
+                                    title: 'Class Milestone',
+                                    description: 'Your class completed 1000+ learning hours',
+                                    time: '6 hours ago',
+                                    icon: Users,
+                                    color: 'yellow'
+                                  },
+                                  {
+                                    type: 'class',
+                                    title: 'Top Performer',
+                                    description: 'Your class ranked #1 in weekly performance',
+                                    time: '1 day ago',
+                                    icon: Award,
+                                    color: 'amber'
+                                  }
+                                ].map((notification) => (
+                                  <div 
+                                    key={notification.title} 
+                                    className="group flex gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
+                                  >
+                                    <div className={`p-2.5 rounded-lg bg-${notification.color}-500/10 group-hover:scale-110 transition-transform duration-300`}>
+                                      <notification.icon className={`w-4 h-4 text-${notification.color}-500`} />
+                                    </div>
+                                    <div className="flex-1">
+                                      <p className="font-medium text-sm group-hover:text-primary transition-colors duration-300">{notification.title}</p>
+                                      <p className="text-xs text-muted-foreground mt-0.5">{notification.description}</p>
+                                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                                        <Clock className="w-3 h-3" />
+                                        {notification.time}
+                                      </p>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
                         </div>
-                        <div className="text-right">
-                          <p className={`text-sm font-medium ${textMuted} mb-1`}>This Month</p>
-                          <p className="text-lg font-semibold text-green-500">+₹{Math.round(userStats.hoursLearning * 20)}</p>
-                        </div>
-                      </div>
-                      
-                      {/* Earnings Breakdown */}
-                      <div className="grid grid-cols-2 gap-3">
-                        {[
-                          {
-                            label: 'Streak Bonus',
-                            rate: '₹20/hr',
-                            amount: Math.round(userStats.hoursLearning * (userStats.currentStreak > 0 ? 20 : 0)),
-                            icon: '🔥',
-                            color: 'from-orange-500 to-orange-600',
-                            condition: userStats.currentStreak > 0,
-                            description: 'Active streak'
-                          },
-                          {
-                            label: 'Completion',
-                            rate: '₹30/hr',
-                            amount: Math.round(userStats.hoursLearning * (userStats.problemsSolved > 0 ? 30 : 0)),
-                            icon: '✅',
-                            color: 'from-purple-500 to-purple-600',
-                            condition: userStats.problemsSolved > 0,
-                            description: 'Task reward'
-                          }
-                        ].map((item) => (
-                          <div 
-                            key={item.label}
-                            className={`flex flex-col p-2.5 rounded-lg transition-all duration-300 ${
-                              item.condition === false ? 'opacity-50' : 'hover:bg-primary/5'
-                            }`}
+                        <div className="flex-shrink-0 p-4 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-t border-border/50">
+                          <Button 
+                            variant="ghost" 
+                            className="w-full text-sm text-muted-foreground hover:text-primary transition-colors duration-300 flex items-center justify-center gap-2"
                           >
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className="text-xl">{item.icon}</span>
-                              <p className={`text-sm font-medium ${textMuted}`}>{item.label}</p>
-                            </div>
-                            <div>
-                              <p className={`text-base font-semibold bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>
-                                ₹{item.amount}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{item.rate}</p>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-
-                      {/* Next Milestone */}
-                      {userStats.hoursLearning < 100 && (
-                        <div className="mt-4 p-3 rounded-lg bg-primary/5 border border-primary/10">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="text-sm font-medium text-primary">Next Milestone</span>
-                              <Badge variant="outline" className="h-5 px-2 text-xs border-primary/20">
-                                +₹{Math.round((100 - userStats.hoursLearning) * 100)}
-                              </Badge>
-                            </div>
-                            <span className="text-sm font-semibold text-primary">
-                              {Math.round(100 - userStats.hoursLearning)}h to go
-                            </span>
-                          </div>
-                          <div className="h-2 w-full bg-primary/10 rounded-full overflow-hidden">
-                            <div 
-                              className="h-full bg-gradient-to-r from-green-500 to-emerald-500 rounded-full transition-all duration-500"
-                              style={{ width: `${Math.min(100, (userStats.hoursLearning / 100) * 100)}%` }}
-                            />
-                          </div>
-                          <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-                            <span className="p-1 rounded bg-green-500/10">
-                              <svg className="w-3.5 h-3.5 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                              </svg>
-                            </span>
-                            Reach ₹10,000 milestone
-                          </p>
+                            <CheckCircle className="w-4 h-4" />
+                            Mark all as read
+                          </Button>
                         </div>
-                      )}
+                      </DialogContent>
+                    </Dialog>
 
-                      {/* Quick Stats */}
-                      <div className="mt-4">
-                        <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
-                          <p className="text-sm font-medium text-muted-foreground mb-1">Learning Coins</p>
-                          <p className="text-lg font-semibold text-primary">
-                            🪙{Math.round(userStats.hoursLearning * 100)}
-                          </p>
+                    {/* Earnings Card */}
+                    <div className={`${cardBg} rounded-lg p-5 shadow-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden`}>
+                      {/* Decorative Background Elements */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-amber-500/5 opacity-50" />
+                      <div className="absolute -right-6 -top-6 w-20 h-20 bg-yellow-400/10 rounded-full blur-lg" />
+                      <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-amber-500/10 rounded-full blur-lg" />
+                      
+                      <div className="relative z-10">
+                        {/* Header */}
+                        <div className="flex items-center justify-between mb-5">
+                          <div>
+                            <p className={`text-sm font-medium ${textMuted} mb-2 flex items-center gap-2`}>
+                              <span className="p-2 rounded-lg bg-yellow-500/10">
+                                <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </span>
+                              Total Coins
+                            </p>
+                            <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
+                              🪙 {Math.round(userStats.hoursLearning * 100)}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className={`text-sm font-medium ${textMuted} mb-1`}>This Month</p>
+                            <p className="text-lg font-semibold text-yellow-500">+🪙 {Math.round(userStats.hoursLearning * 20)}</p>
+                          </div>
+                        </div>
+                        
+                        {/* Earnings Breakdown */}
+                        <div className="grid grid-cols-2 gap-3">
+                          {[
+                            {
+                              label: 'Streak Bonus',
+                              rate: '20 coins/hr',
+                              amount: Math.round(userStats.hoursLearning * (userStats.currentStreak > 0 ? 20 : 0)),
+                              icon: '🔥',
+                              color: 'from-orange-500 to-orange-600',
+                              condition: userStats.currentStreak > 0,
+                              description: 'Active streak'
+                            },
+                            {
+                              label: 'Completion',
+                              rate: '30 coins/hr',
+                              amount: Math.round(userStats.hoursLearning * (userStats.problemsSolved > 0 ? 30 : 0)),
+                              icon: '✅',
+                              color: 'from-purple-500 to-purple-600',
+                              condition: userStats.problemsSolved > 0,
+                              description: 'Task reward'
+                            }
+                          ].map((item) => (
+                            <div 
+                              key={item.label}
+                              className={`flex flex-col p-2.5 rounded-lg transition-all duration-300 ${
+                                item.condition === false ? 'opacity-50' : 'hover:bg-primary/5'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className="text-xl">{item.icon}</span>
+                                <p className={`text-sm font-medium ${textMuted}`}>{item.label}</p>
+                              </div>
+                              <div>
+                                <p className={`text-base font-semibold bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>
+                                  🪙 {item.amount}
+                                </p>
+                                <p className="text-xs text-muted-foreground">{item.rate}</p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Next Milestone */}
+                        {userStats.hoursLearning < 100 && (
+                          <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium text-yellow-500">Next Milestone</span>
+                                <Badge variant="outline" className="h-5 px-2 text-xs border-yellow-500/20">
+                                  +🪙 {Math.round((100 - userStats.hoursLearning) * 100)}
+                                </Badge>
+                              </div>
+                              <span className="text-sm font-semibold text-yellow-500">
+                                {Math.round(100 - userStats.hoursLearning)}h to go
+                              </span>
+                            </div>
+                            <div className="h-2 w-full bg-yellow-500/10 rounded-full overflow-hidden">
+                              <div 
+                                className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full transition-all duration-500"
+                                style={{ width: `${Math.min(100, (userStats.hoursLearning / 100) * 100)}%` }}
+                              />
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
+                              <span className="p-1 rounded bg-yellow-500/10">
+                                <svg className="w-3.5 h-3.5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                                </svg>
+                              </span>
+                              Reach 10,000 coins milestone
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Quick Stats */}
+                        <div className="mt-4">
+                          <div className="p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
+                            <p className="text-sm font-medium text-muted-foreground mb-1">Learning Coins</p>
+                            <p className="text-lg font-semibold text-yellow-500">
+                              🪙 {Math.round(userStats.hoursLearning * 100)}
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -1077,60 +1313,356 @@ const Profile = () => {
                   <Zap className="w-6 h-6 text-primary" />
                   Recent Achievements
                 </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {[
-                    {
-                      condition: userStats.hoursLearning >= 10,
-                      icon: Trophy,
-                      title: 'Dedicated Learner',
-                      description: 'Completed 10+ hours of learning'
-                    },
-                    {
-                      condition: userStats.problemsSolved >= 5,
-                      icon: CheckCircle,
-                      title: 'Goal Crusher',
-                      description: 'Completed 5+ learning goals'
-                    },
-                    {
-                      condition: userStats.daysActive >= 7,
-                      icon: Calendar,
-                      title: 'Consistency Master',
-                      description: '7+ days of active learning'
-                    }
-                  ].map((achievement, index) => (
-                    achievement.condition && (
-                      <div 
-                        key={achievement.title}
-                        className={`flex items-center gap-4 p-4 rounded-xl ${theme === 'dark' ? 'bg-primary/10' : 'bg-primary/5'} border border-primary/10 transition-all duration-300 hover:border-primary/30 hover:bg-primary/10 ${cardHoverEffect}`}
-                        style={{ animationDelay: `${600 + index * 100}ms` }}
-                      >
-                        <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-primary/20' : 'bg-primary/10'} transition-transform duration-300 group-hover:scale-110`}>
-                          <achievement.icon className="w-5 h-5 text-primary" />
-                        </div>
+                <Dialog>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" className="gap-2">
+                      <Award className="w-4 h-4" />
+                      View  Awards List
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col p-0">
+                    <DialogHeader className="flex-shrink-0 p-6 bg-gradient-to-r from-primary/5 to-primary/10 border-b border-border/50">
+                      <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                        Your Awards & Rewards
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="overflow-y-auto pr-2 custom-scrollbar">
+                      <div className="p-6 space-y-6">
+                        {/* Learning Milestones */}
                         <div>
-                          <p className="font-semibold text-base bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                            {achievement.title}
-                          </p>
-                          <p className={`text-sm ${textMuted}`}>
-                            {achievement.description}
-                          </p>
+                          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <Trophy className="w-5 h-5 text-yellow-500" />
+                            Learning Milestones
+                          </h3>
+                          <div className="space-y-3">
+                            {[
+                              {
+                                condition: userStats.hoursLearning >= 10,
+                                title: 'Dedicated Learner',
+                                description: 'Completed 10+ hours of learning',
+                                reward: '100 coins'
+                              },
+                              {
+                                condition: userStats.hoursLearning >= 50,
+                                title: 'Master Learner',
+                                description: 'Completed 50+ hours of learning',
+                                reward: '500 coins'
+                              },
+                              {
+                                condition: userStats.hoursLearning >= 100,
+                                title: 'Grand Master',
+                                description: 'Completed 100+ hours of learning',
+                                reward: '1000 coins'
+                              }
+                            ].map((award) => (
+                              <div 
+                                key={award.title}
+                                className={`p-4 rounded-lg border ${award.condition ? 'border-primary/20 bg-primary/5' : 'border-muted/20 bg-muted/5'}`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium">{award.title}</p>
+                                    <p className="text-sm text-muted-foreground">{award.description}</p>
+                                  </div>
+                                  <Badge variant={award.condition ? "default" : "secondary"}>
+                                    {award.reward}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Goal Achievements */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <CheckCircle className="w-5 h-5 text-green-500" />
+                            Goal Achievements
+                          </h3>
+                          <div className="space-y-3">
+                            {[
+                              {
+                                condition: userStats.problemsSolved >= 5,
+                                title: 'Goal Crusher',
+                                description: 'Completed 5+ learning goals',
+                                reward: '50 coins'
+                              },
+                              {
+                                condition: userStats.problemsSolved >= 20,
+                                title: 'Goal Master',
+                                description: 'Completed 20+ learning goals',
+                                reward: '200 coins'
+                              },
+                              {
+                                condition: userStats.problemsSolved >= 50,
+                                title: 'Goal Legend',
+                                description: 'Completed 50+ learning goals',
+                                reward: '500 coins'
+                              }
+                            ].map((award) => (
+                              <div 
+                                key={award.title}
+                                className={`p-4 rounded-lg border ${award.condition ? 'border-primary/20 bg-primary/5' : 'border-muted/20 bg-muted/5'}`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium">{award.title}</p>
+                                    <p className="text-sm text-muted-foreground">{award.description}</p>
+                                  </div>
+                                  <Badge variant={award.condition ? "default" : "secondary"}>
+                                    {award.reward}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Consistency Awards */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <Calendar className="w-5 h-5 text-blue-500" />
+                            Consistency Awards
+                          </h3>
+                          <div className="space-y-3">
+                            {[
+                              {
+                                condition: userStats.daysActive >= 7,
+                                title: 'Consistency Master',
+                                description: '7+ days of active learning',
+                                reward: '70 coins'
+                              },
+                              {
+                                condition: userStats.daysActive >= 30,
+                                title: 'Monthly Warrior',
+                                description: '30+ days of active learning',
+                                reward: '300 coins'
+                              },
+                              {
+                                condition: userStats.daysActive >= 100,
+                                title: 'Century Club',
+                                description: '100+ days of active learning',
+                                reward: '1000 coins'
+                              }
+                            ].map((award) => (
+                              <div 
+                                key={award.title}
+                                className={`p-4 rounded-lg border ${award.condition ? 'border-primary/20 bg-primary/5' : 'border-muted/20 bg-muted/5'}`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium">{award.title}</p>
+                                    <p className="text-sm text-muted-foreground">{award.description}</p>
+                                  </div>
+                                  <Badge variant={award.condition ? "default" : "secondary"}>
+                                    {award.reward}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Streak Achievements */}
+                        <div>
+                          <h3 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <Flame className="w-5 h-5 text-orange-500" />
+                            Streak Achievements
+                          </h3>
+                          <div className="space-y-3">
+                            {[
+                              {
+                                condition: userStats.currentStreak >= 3,
+                                title: 'Streak Starter',
+                                description: 'Maintained a 3-day streak',
+                                reward: '30 coins'
+                              },
+                              {
+                                condition: userStats.currentStreak >= 7,
+                                title: 'Week Warrior',
+                                description: 'Maintained a 7-day streak',
+                                reward: '100 coins'
+                              },
+                              {
+                                condition: userStats.currentStreak >= 30,
+                                title: 'Streak Legend',
+                                description: 'Maintained a 30-day streak',
+                                reward: '500 coins'
+                              }
+                            ].map((award) => (
+                              <div 
+                                key={award.title}
+                                className={`p-4 rounded-lg border ${award.condition ? 'border-primary/20 bg-primary/5' : 'border-muted/20 bg-muted/5'}`}
+                              >
+                                <div className="flex justify-between items-center">
+                                  <div>
+                                    <p className="font-medium">{award.title}</p>
+                                    <p className="text-sm text-muted-foreground">{award.description}</p>
+                                  </div>
+                                  <Badge variant={award.condition ? "default" : "secondary"}>
+                                    {award.reward}
+                                  </Badge>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    )
-                  ))}
-                  {!userStats.hoursLearning && !userStats.problemsSolved && !userStats.daysActive && (
-                    <div className="text-center py-8 rounded-xl border border-dashed border-primary/20">
-                      <p className={`${textMuted} text-base`}>Keep learning to unlock achievements!</p>
                     </div>
-                  )}
-                </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                
               </CardContent>
             </Card>
           </div>
         </div>
       </div>
+
+      {/* Add Progress Card Button */}
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex justify-end">
+          <Button
+            onClick={generateProgressCard}
+            className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 transition-all duration-300"
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            Share Progress
+          </Button>
+        </div>
+      </div>
+
+      {/* Update Progress Card Dialog */}
+      <Dialog open={showProgressCard} onOpenChange={setShowProgressCard}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col p-0">
+          <DialogHeader className="flex-shrink-0 p-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-b border-border/50">
+            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
+              <Share2 className="w-6 h-6" />
+              Share Your Progress
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="overflow-y-auto pr-2 custom-scrollbar">
+            <div id="progress-card" className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-xl relative">
+              {/* Decorative Elements */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 rounded-xl" />
+              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-t-xl" />
+              
+              {/* Card Header */}
+              <div className="text-center mb-6 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl -z-10" />
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent mb-2">
+                  {progressCard.platformName}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400 mb-3">Learning Progress Report</p>
+                <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1.5 text-sm font-medium shadow-lg shadow-blue-500/20">
+                  {progressCard.achievements.level} Level
+                </Badge>
+              </div>
+
+              {/* Total Progress Section */}
+              <div className="mb-6 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-xl blur-xl -z-10" />
+                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                  <Trophy className="w-5 h-5 text-yellow-500" />
+                  Total Progress
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Watch Time', value: `${progressCard.totalProgress.watchTime}h`, color: 'blue' },
+                    { label: 'Videos Completed', value: progressCard.totalProgress.videosCompleted, color: 'green' },
+                    { label: 'Problems Solved', value: progressCard.totalProgress.problemsSolved, color: 'purple' },
+                    { label: 'Tasks Completed', value: progressCard.totalProgress.todos, color: 'orange' },
+                    { label: 'Current Streak', value: `${progressCard.totalProgress.streak} days`, color: 'yellow' },
+                    { label: 'Total Coins', value: `🪙 ${progressCard.totalProgress.coins}`, color: 'emerald' }
+                  ].map((item) => (
+                    <div 
+                      key={item.label}
+                      className={`bg-${item.color}-50 dark:bg-${item.color}-900/20 p-3 rounded-lg border border-${item.color}-100 dark:border-${item.color}-800/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-${item.color}-500/10`}
+                    >
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.label}</p>
+                      <p className={`text-lg font-bold text-${item.color}-600 dark:text-${item.color}-400`}>
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Monthly Progress Section */}
+              <div className="mb-6 relative">
+                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 rounded-xl blur-xl -z-10" />
+                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                  <Calendar className="w-5 h-5 text-green-500" />
+                  This Month
+                </h3>
+                <div className="grid grid-cols-2 gap-3">
+                  {[
+                    { label: 'Watch Time', value: `${progressCard.monthlyProgress.watchTime}h`, color: 'blue' },
+                    { label: 'Videos Completed', value: progressCard.monthlyProgress.videosCompleted, color: 'green' },
+                    { label: 'Problems Solved', value: progressCard.monthlyProgress.problemsSolved, color: 'purple' },
+                    { label: 'Tasks Completed', value: progressCard.monthlyProgress.todos, color: 'orange' },
+                    { label: 'Monthly Streak', value: `${progressCard.monthlyProgress.streak} days`, color: 'yellow' },
+                    { label: 'Monthly Coins', value: `🪙 ${progressCard.monthlyProgress.coins}`, color: 'emerald' }
+                  ].map((item) => (
+                    <div 
+                      key={item.label}
+                      className={`bg-${item.color}-50 dark:bg-${item.color}-900/20 p-3 rounded-lg border border-${item.color}-100 dark:border-${item.color}-800/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-${item.color}-500/10`}
+                    >
+                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.label}</p>
+                      <p className={`text-lg font-bold text-${item.color}-600 dark:text-${item.color}-400`}>
+                        {item.value}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Achievements Section */}
+              {progressCard.achievements.badges.length > 0 && (
+                <div className="mb-6 relative">
+                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl blur-xl -z-10" />
+                  <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
+                    <Award className="w-5 h-5 text-purple-500" />
+                    Achievements
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {progressCard.achievements.badges.map((badge) => (
+                      <Badge
+                        key={badge}
+                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 text-sm font-medium shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105"
+                      >
+                        {badge}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Share Buttons - Fixed at bottom */}
+          <div className="flex-shrink-0 p-6 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border-t border-border/50">
+            <div className="flex justify-center gap-4">
+              <Button
+                onClick={shareProgressCard}
+                className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download
+              </Button>
+              <Button
+                onClick={shareProgressCard}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg shadow-green-500/20 transition-all duration-300 hover:scale-105"
+              >
+                <Share className="w-4 h-4 mr-2" />
+                Share
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

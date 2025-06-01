@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import dotenv from 'dotenv';
 import { google } from 'googleapis';
+import axios from 'axios';
 
 // Load environment variables
 dotenv.config();
@@ -32,6 +33,30 @@ const youtube = google.youtube({
   version: 'v3',
   auth: process.env.YOUTUBE_API_KEY
 });
+
+// Language configuration
+const languageConfig = {
+  javascript: {
+    language: 'javascript',
+    version: '18.15.0'
+  },
+  python: {
+    language: 'python',
+    version: '3.10.0'
+  },
+  html: {
+    language: 'html',
+    version: '5.0.0'
+  },
+  css: {
+    language: 'css',
+    version: '3.0.0'
+  },
+  sql: {
+    language: 'sql',
+    version: '3.0.0'
+  }
+};
 
 // Helper function to format transcript
 const formatTranscript = (transcript) => {
@@ -154,6 +179,54 @@ function parseSRT(srtContent) {
     };
   });
 }
+
+// Execute code endpoint
+app.post('/api/execute', async (req, res) => {
+  try {
+    const { code, language } = req.body;
+    
+    if (!code || !language) {
+      return res.status(400).json({ error: 'Code and language are required' });
+    }
+
+    const config = languageConfig[language];
+    if (!config) {
+      return res.status(400).json({ error: 'Unsupported language' });
+    }
+
+    // For HTML, handle it differently
+    if (language === 'html') {
+      return res.json({
+        output: 'HTML rendered successfully',
+        executionTime: 0
+      });
+    }
+
+    // For other languages, use Piston API
+    const response = await axios.post('https://emkc.org/api/v2/piston/execute', {
+      language: config.language,
+      version: config.version,
+      files: [{
+        content: code
+      }]
+    });
+
+    const result = response.data;
+    
+    return res.json({
+      output: result.run.stdout || '',
+      error: result.run.stderr || null,
+      executionTime: result.run.time || 0
+    });
+
+  } catch (error) {
+    console.error('Execution error:', error);
+    return res.status(500).json({
+      error: 'Failed to execute code',
+      details: error.message
+    });
+  }
+});
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

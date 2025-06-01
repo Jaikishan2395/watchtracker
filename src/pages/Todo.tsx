@@ -33,7 +33,27 @@ import {
   Activity,
   Users,
   UserPlus,
-  MoreVertical
+  MoreVertical,
+  Settings,
+  PinOff,
+  Edit,
+  Pin,
+  Phone,
+  PhoneOff,
+  Square,
+  Upload,
+  X,
+  Paperclip,
+  Video,
+  UserMinus,
+  BarChart,
+  Megaphone,
+  Smile,
+  Hash,
+  Send,
+  UserCircle,
+  Shield,
+  FileText
 } from 'lucide-react';
 import {
   Select,
@@ -96,7 +116,7 @@ import {
   Tooltip, 
   Legend, 
   ResponsiveContainer,
-  BarChart,
+  BarChart as RechartsBarChart,
   Bar,
   PieChart as RechartsPieChart,
   Pie,
@@ -138,10 +158,15 @@ interface SpeechRecognition extends EventTarget {
   onresult: (event: SpeechRecognitionEvent) => void;
 }
 
+// Fix: Add SpeechRecognitionConstructor type
+interface SpeechRecognitionConstructor {
+  new (): SpeechRecognition;
+}
+
 declare global {
   interface Window {
-    SpeechRecognition: new () => SpeechRecognition;
-    webkitSpeechRecognition: new () => SpeechRecognition;
+    SpeechRecognition: SpeechRecognitionConstructor;
+    webkitSpeechRecognition: SpeechRecognitionConstructor;
   }
 }
 
@@ -355,6 +380,79 @@ interface StudyTemplate {
   prerequisites?: string[];
 }
 
+// Add new interfaces for class management
+interface Class {
+  id: string;
+  name: string;
+  description?: string;
+  subject: string;
+  code: string;
+  teachers: string[];
+  students: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  schedule?: {
+    day: number;
+    startTime: string;
+    endTime: string;
+  }[];
+  settings?: {
+    allowStudentInvites: boolean;
+    requireApproval: boolean;
+    allowFileSharing: boolean;
+  };
+}
+
+interface Assignment {
+  id: string;
+  classId: string;
+  title: string;
+  description?: string;
+  type: 'assignment' | 'quiz' | 'question';
+  dueDate?: Date;
+  points?: number;
+  status: 'draft' | 'published' | 'graded';
+  questions?: Question[];
+  submissions?: Submission[];
+  attachments?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+interface Question {
+  id: string;
+  type: 'multiple-choice' | 'short-answer' | 'long-answer' | 'file-upload';
+  text: string;
+  options?: string[];
+  correctAnswer?: string;
+  points: number;
+  required: boolean;
+}
+
+interface Submission {
+  id: string;
+  studentId: string;
+  answers: {
+    questionId: string;
+    answer: string;
+    files?: string[];
+  }[];
+  submittedAt: Date;
+  gradedAt?: Date;
+  grade?: number;
+  feedback?: string;
+}
+
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  role: 'student' | 'teacher' | 'admin';
+  classes: string[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 const priorityColors = {
   low: 'text-blue-500',
   medium: 'text-yellow-500',
@@ -383,6 +481,212 @@ interface ResourceTag {
 // Add template categories
 type TemplateCategory = 'focus' | 'review' | 'exam' | 'group' | 'language' | 'project' | 'research';
 
+interface Attachment {
+  id: string;
+  type: 'drive' | 'youtube' | 'link' | 'upload';
+  url: string;
+  title: string;
+  description?: string;
+  thumbnail?: string;
+  size?: number;
+  uploadedBy: string;
+  uploadedAt: Date;
+}
+
+interface Rubric {
+  id: string;
+  name: string;
+  criteria: {
+    name: string;
+    description: string;
+    points: number;
+  }[];
+  totalPoints: number;
+}
+
+interface Grade {
+  id: string;
+  assignmentId: string;
+  studentId: string;
+  points: number;
+  maxPoints: number;
+  rubric?: {
+    criteriaId: string;
+    points: number;
+  }[];
+  feedback: string;
+  privateComments?: string;
+  gradedBy: string;
+  gradedAt: Date;
+}
+
+interface Message {
+  id: string;
+  classId: string;
+  senderId: string;
+  content: string;
+  type: 'announcement' | 'discussion' | 'question';
+  attachments?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  reactions?: {
+    userId: string;
+    type: string;
+  }[];
+  replies?: {
+    id: string;
+    senderId: string;
+    content: string;
+    createdAt: Date;
+  }[];
+}
+
+interface GradebookEntry {
+  studentId: string;
+  assignments: {
+    assignmentId: string;
+    grade: number;
+    maxPoints: number;
+    submittedAt: Date;
+    gradedAt: Date;
+  }[];
+  average: number;
+  totalPoints: number;
+  maxTotalPoints: number;
+}
+
+// Update the ChatRoom interface with more features
+interface ChatRoom {
+  id: string;
+  name: string;
+  description?: string;
+  type: 'class' | 'study' | 'group' | 'private';
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  participants: {
+    userId: string;
+    role: 'admin' | 'moderator' | 'member';
+    joinedAt: Date;
+    lastSeen?: Date;
+    status?: 'online' | 'offline' | 'away';
+    customTitle?: string;
+    permissions?: {
+      canInvite: boolean;
+      canPin: boolean;
+      canDelete: boolean;
+      canEdit: boolean;
+      canMute: boolean;
+    };
+  }[];
+  settings: {
+    isPrivate: boolean;
+    allowInvites: boolean;
+    requireApproval: boolean;
+    allowFileSharing: boolean;
+    allowVoiceMessages: boolean;
+    allowVideoCalls: boolean;
+    allowReactions: boolean;
+    allowPolls: boolean;
+    allowThreading: boolean;
+    slowMode?: number; // seconds between messages
+    maxParticipants?: number;
+    autoArchive?: boolean;
+    archiveAfter?: number; // days
+    welcomeMessage?: string;
+    rules?: string[];
+  };
+  pinnedMessages?: string[];
+  topics?: {
+    id: string;
+    name: string;
+    description?: string;
+    createdBy: string;
+    createdAt: Date;
+    isLocked?: boolean;
+    isAnnouncement?: boolean;
+  }[];
+  polls?: {
+    id: string;
+    question: string;
+    options: {
+      id: string;
+      text: string;
+      votes: string[]; // user IDs
+    }[];
+    createdBy: string;
+    createdAt: Date;
+    endsAt?: Date;
+    isMultipleChoice?: boolean;
+    isAnonymous?: boolean;
+  }[];
+  roles?: {
+    name: string;
+    color: string;
+    permissions: {
+      canInvite: boolean;
+      canPin: boolean;
+      canDelete: boolean;
+      canEdit: boolean;
+      canMute: boolean;
+    };
+  }[];
+  customEmojis?: {
+    id: string;
+    name: string;
+    url: string;
+    createdBy: string;
+  }[];
+  announcements?: {
+    id: string;
+    content: string;
+    createdBy: string;
+    createdAt: Date;
+    expiresAt?: Date;
+  }[];
+}
+
+interface RoomInvite {
+  id: string;
+  roomId: string;
+  invitedBy: string;
+  invitedUser: string;
+  status: 'pending' | 'accepted' | 'rejected';
+  createdAt: Date;
+  expiresAt: Date;
+}
+
+interface RoomMessage {
+  id: string;
+  roomId: string;
+  senderId: string;
+  content: string;
+  type: 'announcement' | 'discussion' | 'question';
+  topicId?: string;
+  attachments?: string[];
+  createdAt: Date;
+  updatedAt: Date;
+  isPinned?: boolean;
+  isEdited?: boolean;
+  editHistory?: {
+    content: string;
+    editedAt: Date;
+    editedBy: string;
+  }[];
+  mentions?: string[];
+  tags?: string[];
+  reactions?: {
+    userId: string;
+    type: string;
+  }[];
+  replies?: {
+    id: string;
+    senderId: string;
+    content: string;
+    createdAt: Date;
+  }[];
+}
+
 export default function Todo() {
   const [todos, setTodos] = useState<Todo[]>(() => {
     const savedTodos = localStorage.getItem('todos');
@@ -409,12 +713,11 @@ export default function Todo() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc');
   const [showNotes, setShowNotes] = useState<string | null>(null);
   const [noteText, setNoteText] = useState('');
-  const [view, setView] = useState<'list' | 'planner' | 'analytics' | 'study'>('list');
+  const [view, setView] = useState<'list' | 'planner' | 'analytics' | 'study' | 'classes'>('list');
   const [goals, setGoals] = useState<Goal[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [showGoalForm, setShowGoalForm] = useState(false);
   const [newGoal, setNewGoal] = useState({ title: '', description: '', targetDate: undefined as Date | undefined });
-  const [isRecording, setIsRecording] = useState(false);
   const [isFocusMode, setIsFocusMode] = useState(false);
   const [focusTimer, setFocusTimer] = useState<number | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -530,6 +833,118 @@ export default function Todo() {
   // Add state for template filtering
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState<TemplateCategory | 'all'>('all');
   const [templateSearchQuery, setTemplateSearchQuery] = useState('');
+
+  // Add new state variables for class management
+  const [classes, setClasses] = useState<Class[]>([]);
+  const [assignments, setAssignments] = useState<Assignment[]>([]);
+  const [showClassForm, setShowClassForm] = useState(false);
+  const [showAssignmentForm, setShowAssignmentForm] = useState(false);
+  const [selectedClass, setSelectedClass] = useState<Class | null>(null);
+  const [selectedAssignment, setSelectedAssignment] = useState<Assignment | null>(null);
+  const [newClass, setNewClass] = useState<Partial<Class>>({
+    name: '',
+    subject: '',
+    settings: {
+      allowStudentInvites: true,
+      requireApproval: true,
+      allowFileSharing: true
+    }
+  });
+  const [newAssignment, setNewAssignment] = useState<Partial<Assignment>>({
+    title: '',
+    type: 'assignment',
+    status: 'draft'
+  });
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState<'student' | 'teacher'>('student');
+  // Add new state variables for enhanced class features
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [rubrics, setRubrics] = useState<Rubric[]>([]);
+  const [grades, setGrades] = useState<Grade[]>([]);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [gradebook, setGradebook] = useState<GradebookEntry[]>([]);
+  const [showAttachmentDialog, setShowAttachmentDialog] = useState(false);
+  const [showRubricDialog, setShowRubricDialog] = useState(false);
+  const [showGradeDialog, setShowGradeDialog] = useState(false);
+  const [showMessageDialog, setShowMessageDialog] = useState(false);
+  const [selectedAttachment, setSelectedAttachment] = useState<Partial<Attachment>>({});
+  const [selectedRubric, setSelectedRubric] = useState<Partial<Rubric>>({});
+  const [selectedGrade, setSelectedGrade] = useState<Partial<Grade>>({});
+  const [selectedMessage, setSelectedMessage] = useState<Message | RoomMessage | null>(null);
+  const [newMessage, setNewMessage] = useState<Partial<Message>>({
+    type: 'discussion',
+    content: '',
+    attachments: []
+  });
+  const [messageFilter, setMessageFilter] = useState<'all' | 'announcement' | 'discussion' | 'question'>('all');
+
+  // Chat Room Management
+  const [chatRooms, setChatRooms] = useState<ChatRoom[]>([]);
+  const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null);
+  const [roomMessages, setRoomMessages] = useState<RoomMessage[]>([]);
+  const [showCreateRoomDialog, setShowCreateRoomDialog] = useState(false);
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
+  const [showRoomSettingsDialog, setShowRoomSettingsDialog] = useState(false);
+  const [roomInvites, setRoomInvites] = useState<RoomInvite[]>([]);
+  const [selectedTopic, setSelectedTopic] = useState<string | null>(null);
+  const [newRoom, setNewRoom] = useState<Omit<ChatRoom, 'id' | 'createdAt' | 'updatedAt'>>({
+    name: '',
+    description: '',
+    type: 'group',
+    createdBy: 'current-user',
+    participants: [],
+    settings: {
+      isPrivate: false,
+      allowInvites: true,
+      requireApproval: false,
+      allowFileSharing: true,
+      allowVoiceMessages: true,
+      allowVideoCalls: true
+    }
+  });
+  const [inviteUser, setInviteUser] = useState('');
+  const [showTopicDialog, setShowTopicDialog] = useState(false);
+  const [newTopic, setNewTopic] = useState({ name: '', description: '' });
+  const [showEditMessageDialog, setShowEditMessageDialog] = useState(false);
+  const [editingMessage, setEditingMessage] = useState<RoomMessage | null>(null);
+  const [messageSearch, setMessageSearch] = useState('');
+  const [showParticipantsDialog, setShowParticipantsDialog] = useState(false);
+  const [showFileUploadDialog, setShowFileUploadDialog] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showVoiceMessageDialog, setShowVoiceMessageDialog] = useState(false);
+  const [isRecording, setIsRecording] = useState(false);
+  const [showVideoCallDialog, setShowVideoCallDialog] = useState(false);
+  const [isInCall, setIsInCall] = useState(false);
+  const [showCreatePollDialog, setShowCreatePollDialog] = useState(false);
+  const [showAnnouncementDialog, setShowAnnouncementDialog] = useState(false);
+  const [showEmojiDialog, setShowEmojiDialog] = useState(false);
+  const [newPoll, setNewPoll] = useState<{
+    question: string;
+    options: { id: string; text: string; votes: string[] }[];
+    isMultipleChoice: boolean;
+    isAnonymous: boolean;
+    endsAt?: Date;
+  }>({
+    question: '',
+    options: [],
+    isMultipleChoice: false,
+    isAnonymous: false
+  });
+  const [newAnnouncement, setNewAnnouncement] = useState<{
+    content: string;
+    expiresAt?: Date;
+  }>({
+    content: ''
+  });
+  const [newEmoji, setNewEmoji] = useState<{
+    name: string;
+    url: string;
+  }>({
+    name: '',
+    url: ''
+  });
+  // Add state variables for dialogs
+  const [showCreateTopicDialog, setShowCreateTopicDialog] = useState(false);
 
   useEffect(() => {
     localStorage.setItem('todos', JSON.stringify(todos));
@@ -1082,7 +1497,7 @@ export default function Todo() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={priorityData}>
+                  <RechartsBarChart data={priorityData}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                     <XAxis 
                       dataKey="name" 
@@ -1106,7 +1521,7 @@ export default function Todo() {
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Bar>
-                  </BarChart>
+                  </RechartsBarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
@@ -1168,7 +1583,7 @@ export default function Todo() {
             <CardContent>
               <div className="h-[300px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyPatternData}>
+                  <RechartsBarChart data={dailyPatternData}>
                     <CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} />
                     <XAxis 
                       dataKey="date" 
@@ -1192,7 +1607,7 @@ export default function Todo() {
                     <Bar dataKey="afternoon" stackId="a" fill="#00C49F" name="Afternoon (12-17)" />
                     <Bar dataKey="evening" stackId="a" fill="#FF8042" name="Evening (17-22)" />
                     <Bar dataKey="night" stackId="a" fill="#8884d8" name="Night (22-5)" />
-                  </BarChart>
+                  </RechartsBarChart>
                 </ResponsiveContainer>
               </div>
             </CardContent>
@@ -2622,80 +3037,2366 @@ export default function Todo() {
     });
   };
 
-  return (
-    <div className="container mx-auto p-6 space-y-8">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold">To-Do List</h1>
-          <p className="text-muted-foreground mt-2">
-            {pendingCount} pending, {completedCount} completed
-          </p>
+  // Add new functions for class management
+  const createClass = () => {
+    if (newClass.name && newClass.subject) {
+      const classCode = Math.random().toString(36).substring(2, 8).toUpperCase();
+      const newClassData: Class = {
+        id: Date.now().toString(),
+        name: newClass.name,
+        description: newClass.description,
+        subject: newClass.subject,
+        code: classCode,
+        teachers: [],
+        students: [],
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        schedule: newClass.schedule,
+        settings: newClass.settings
+      };
+      setClasses([...classes, newClassData]);
+      setNewClass({
+        name: '',
+        subject: '',
+        settings: {
+          allowStudentInvites: true,
+          requireApproval: true,
+          allowFileSharing: true
+        }
+      });
+      setShowClassForm(false);
+      addNotification({
+        title: 'Class Created',
+        message: `New class "${newClassData.name}" has been created with code: ${classCode}`,
+        type: 'session'
+      });
+    }
+  };
+
+  const inviteToClass = (classId: string) => {
+    if (inviteEmail) {
+      const targetClass = classes.find(c => c.id === classId);
+      if (targetClass) {
+        // In a real app, this would send an email invitation
+        addNotification({
+          title: 'Invitation Sent',
+          message: `Invitation sent to ${inviteEmail} to join ${targetClass.name}`,
+          type: 'session'
+        });
+        setInviteEmail('');
+      }
+    }
+  };
+
+  const createAssignment = () => {
+    if (newAssignment.title && selectedClass) {
+      const assignment: Assignment = {
+        id: Date.now().toString(),
+        classId: selectedClass.id,
+        title: newAssignment.title,
+        description: newAssignment.description,
+        type: newAssignment.type || 'assignment',
+        dueDate: newAssignment.dueDate,
+        points: newAssignment.points,
+        status: 'draft',
+        questions: newAssignment.questions || [],
+        submissions: [],
+        attachments: newAssignment.attachments,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      };
+      setAssignments([...assignments, assignment]);
+      setNewAssignment({
+        title: '',
+        type: 'assignment',
+        status: 'draft'
+      });
+      setShowAssignmentForm(false);
+      addNotification({
+        title: 'Assignment Created',
+        message: `New ${assignment.type} "${assignment.title}" has been created`,
+        type: 'session'
+      });
+    }
+  };
+
+  const addQuestion = (assignmentId: string, question: Omit<Question, 'id'>) => {
+    setAssignments(assignments.map(assignment => {
+      if (assignment.id === assignmentId) {
+        const newQuestion: Question = {
+          ...question,
+          id: Date.now().toString()
+        };
+        return {
+          ...assignment,
+          questions: [...(assignment.questions || []), newQuestion]
+        };
+      }
+      return assignment;
+    }));
+  };
+
+  const publishAssignment = (assignmentId: string) => {
+    setAssignments(assignments.map(assignment =>
+      assignment.id === assignmentId
+        ? { ...assignment, status: 'published' }
+        : assignment
+    ));
+    addNotification({
+      title: 'Assignment Published',
+      message: 'Assignment has been published to students',
+      type: 'session'
+    });
+  };
+
+  const gradeSubmission = (assignmentId: string, submissionId: string, grade: number, feedback?: string) => {
+    setAssignments(assignments.map(assignment => {
+      if (assignment.id === assignmentId) {
+        return {
+          ...assignment,
+          submissions: assignment.submissions?.map(submission =>
+            submission.id === submissionId
+              ? { ...submission, grade, feedback, gradedAt: new Date() }
+              : submission
+          )
+        };
+      }
+      return assignment;
+    }));
+  };
+
+  // Add new function to render class management view
+  const renderClassManagementView = () => {
+    return (
+      <div className="space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold">Class Management</h2>
+          <Button onClick={() => setShowClassForm(true)}>
+            <Plus className="w-4 h-4 mr-2" />
+            Create Class
+          </Button>
         </div>
-        <div className="flex gap-4">
-          <div className="relative">
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search tasks..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-64 pl-8"
-            />
-          </div>
-          <div className="relative">
-            <Input
-              placeholder="Add new task..."
-              value={newTodo}
-              onChange={(e) => setNewTodo(e.target.value)}
-              className="w-64"
-              onKeyPress={(e) => e.key === 'Enter' && addTodo()}
-            />
-            {suggestions.length > 0 && newTodo.length > 0 && (
-              <div className="absolute top-full left-0 w-full bg-popover border rounded-md shadow-lg mt-1 p-2">
-                <div className="text-sm text-muted-foreground mb-1">Suggestions:</div>
-                {suggestions.map((suggestion: string, index: number) => (
-                  <div
-                    key={index}
-                    className="cursor-pointer hover:bg-accent p-1 rounded"
-                    onClick={() => setNewTodo(suggestion)}
+
+        <Tabs defaultValue="classes">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="classes">Classes</TabsTrigger>
+            <TabsTrigger value="assignments">Assignments</TabsTrigger>
+            <TabsTrigger value="gradebook">Gradebook</TabsTrigger>
+            <TabsTrigger value="communication">Communication</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="classes">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {classes.map(classItem => (
+                <Card key={classItem.id}>
+                  <CardHeader>
+                    <CardTitle>{classItem.name}</CardTitle>
+                    <p className="text-sm text-muted-foreground">
+                      {classItem.subject} • Code: {classItem.code}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <h4 className="font-medium mb-2">Teachers</h4>
+                        <div className="space-y-1">
+                          {classItem.teachers.map(teacherId => (
+                            <div key={teacherId} className="text-sm">
+                              {teacherId}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="font-medium mb-2">Students</h4>
+                        <div className="space-y-1">
+                          {classItem.students.map(studentId => (
+                            <div key={studentId} className="text-sm">
+                              {studentId}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="flex gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedClass(classItem);
+                            setShowAssignmentForm(true);
+                          }}
+                        >
+                          Add Assignment
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedClass(classItem);
+                            setInviteEmail('');
+                          }}
+                        >
+                          Invite
+                        </Button>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="assignments">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Assignments</h3>
+                <Button onClick={() => setShowAssignmentForm(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Assignment
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {assignments.map(assignment => (
+                  <Card key={assignment.id}>
+                    <CardHeader>
+                      <CardTitle>{assignment.title}</CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        {assignment.type} • Due: {assignment.dueDate ? format(assignment.dueDate, 'MMM dd, yyyy') : 'No due date'}
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {assignment.description && (
+                          <p className="text-sm">{assignment.description}</p>
+                        )}
+                        {assignment.attachments && assignment.attachments.length > 0 && (
+                          <div>
+                            <h4 className="font-medium mb-2">Attachments</h4>
+                            <div className="space-y-2">
+                              {assignment.attachments.map(attachmentId => {
+                                const attachment = attachments.find(a => a.id === attachmentId);
+                                return attachment ? (
+                                  <div key={attachment.id} className="flex items-center gap-2 text-sm">
+                                    <span className={`w-2 h-2 rounded-full ${
+                                      attachment.type === 'drive' ? 'bg-blue-500' :
+                                      attachment.type === 'youtube' ? 'bg-red-500' :
+                                      attachment.type === 'link' ? 'bg-green-500' :
+                                      'bg-gray-500'
+                                    }`} />
+                                    {attachment.title}
+                                  </div>
+                                ) : null;
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAssignment(assignment);
+                              setShowGradeDialog(true);
+                            }}
+                          >
+                            Grade
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedAssignment(assignment);
+                              setShowAttachmentDialog(true);
+                            }}
+                          >
+                            Add Attachment
+                          </Button>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="gradebook">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">Gradebook</h3>
+                <Button onClick={() => setShowRubricDialog(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Rubric
+                </Button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className="text-left p-2">Student</th>
+                      {assignments.map(assignment => (
+                        <th key={assignment.id} className="text-center p-2">
+                          {assignment.title}
+                        </th>
+                      ))}
+                      <th className="text-center p-2">Average</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {gradebook.map(entry => (
+                      <tr key={entry.studentId}>
+                        <td className="p-2">{entry.studentId}</td>
+                        {assignments.map(assignment => {
+                          const assignmentGrade = entry.assignments.find(a => a.assignmentId === assignment.id);
+                          return (
+                            <td key={assignment.id} className="text-center p-2">
+                              {assignmentGrade ? (
+                                <div className="flex flex-col items-center">
+                                  <span>{assignmentGrade.grade}/{assignmentGrade.maxPoints}</span>
+                                  <span className="text-sm text-muted-foreground">
+                                    {((assignmentGrade.grade / assignmentGrade.maxPoints) * 100).toFixed(1)}%
+                                  </span>
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </td>
+                          );
+                        })}
+                        <td className="text-center p-2 font-medium">
+                          {entry.average.toFixed(1)}%
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="communication">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex gap-4">
+                  <Select value={messageFilter} onValueChange={(value: typeof messageFilter) => setMessageFilter(value)}>
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Filter messages" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Messages</SelectItem>
+                      <SelectItem value="announcement">Announcements</SelectItem>
+                      <SelectItem value="discussion">Discussions</SelectItem>
+                      <SelectItem value="question">Questions</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button onClick={() => setShowMessageDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    New Message
+                  </Button>
+                  <Button onClick={() => setShowCreateRoomDialog(true)}>
+                    <Plus className="w-4 h-4 mr-2" />
+                    Create Room
+                  </Button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-4 gap-4">
+                {/* Chat Rooms Sidebar */}
+                <div className="col-span-1 space-y-4">
+                  <div className="space-y-2">
+                    <h3 className="font-semibold">Chat Rooms</h3>
+                    {chatRooms.map(room => (
+                      <Card 
+                        key={room.id}
+                        className={`cursor-pointer ${selectedRoom?.id === room.id ? 'border-primary' : ''}`}
+                        onClick={() => setSelectedRoom(room)}
+                      >
+                        <CardContent className="p-3">
+                          <div className="flex justify-between items-center">
+                            <div>
+                              <h4 className="font-medium">{room.name}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {room.participants.length} members
+                              </p>
+                            </div>
+                            {room.type === 'private' && (
+                              <Lock className="w-4 h-4 text-muted-foreground" />
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+
+                  {selectedRoom && (
+                    <div className="space-y-2">
+                      <h3 className="font-semibold">Topics</h3>
+                      {selectedRoom.topics?.map(topic => (
+                        <Button
+                          key={topic.id}
+                          variant={selectedTopic === topic.id ? "default" : "ghost"}
+                          className="w-full justify-start"
+                          onClick={() => setSelectedTopic(topic.id)}
+                        >
+                          {topic.name}
+                        </Button>
+                      ))}
+                      <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                          // Show create topic dialog
+                        }}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        New Topic
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Chat Room Content */}
+                <div className="col-span-3 space-y-4">
+                  {selectedRoom ? (
+                    <>
+                      <div className="flex justify-between items-center">
+                        <div>
+                          <h3 className="text-lg font-semibold">{selectedRoom.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            {selectedRoom.description}
+                          </p>
+                        </div>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowParticipantsDialog(true)}
+                          >
+                            <Users className="w-4 h-4 mr-2" />
+                            Participants
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowInviteDialog(true)}
+                          >
+                            <UserPlus className="w-4 h-4 mr-2" />
+                            Invite
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowRoomSettingsDialog(true)}
+                          >
+                            <Settings className="w-4 h-4 mr-2" />
+                            Settings
+                          </Button>
+                          {selectedRoom.settings.allowVideoCalls && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => {
+                                if (isInCall) {
+                                  endVideoCall();
+                                } else {
+                                  setShowVideoCallDialog(true);
+                                }
+                              }}
+                            >
+                              {isInCall ? (
+                                <PhoneOff className="w-4 h-4 mr-2" />
+                              ) : (
+                                <Phone className="w-4 h-4 mr-2" />
+                              )}
+                              {isInCall ? 'End Call' : 'Start Call'}
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Search messages..."
+                          value={messageSearch}
+                          onChange={(e) => setMessageSearch(e.target.value)}
+                          className="max-w-xs"
+                        />
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setShowTopicDialog(true)}
+                        >
+                          <Plus className="w-4 h-4 mr-2" />
+                          New Topic
+                        </Button>
+                      </div>
+
+                      {selectedRoom.pinnedMessages && selectedRoom.pinnedMessages.length > 0 && (
+                        <div className="space-y-2">
+                          <h4 className="font-medium">Pinned Messages</h4>
+                          {selectedRoom.pinnedMessages.map(messageId => {
+                            const message = roomMessages.find(m => m.id === messageId);
+                            return message ? (
+                              <Card key={message.id}>
+                                <CardContent className="p-3">
+                                  <div className="flex justify-between items-start">
+                                    <div>
+                                      <p className="text-sm">{message.content}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Pinned by {message.senderId}
+                                      </p>
+                                    </div>
+                                    <Button
+                                      variant="ghost"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Unpin message
+                                      }}
+                                    >
+                                      <PinOff className="w-4 h-4" />
+                                    </Button>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ) : null;
+                          })}
+                        </div>
+                      )}
+
+                      <div className="space-y-4">
+                        {roomMessages
+                          .filter(message => !selectedTopic || message.topicId === selectedTopic)
+                          .map(message => (
+                            <Card key={message.id}>
+                              <CardContent className="p-4">
+                                <div className="flex justify-between items-start mb-2">
+                                  <div>
+                                    <h4 className="font-semibold">{message.senderId}</h4>
+                                    <p className="text-sm text-muted-foreground">
+                                      {format(message.createdAt, 'MMM dd, h:mm a')}
+                                      {message.isEdited && ' (edited)'}
+                                    </p>
+                                  </div>
+                                  <div className="flex gap-2">
+                                    {message.reactions?.map(reaction => (
+                                      <Badge key={reaction.userId} variant="secondary">
+                                        {reaction.type}
+                                      </Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                                <p className="mb-4">{message.content}</p>
+                                {message.attachments && message.attachments.length > 0 && (
+                                  <div className="mb-4">
+                                    <h5 className="font-medium mb-2">Attachments</h5>
+                                    <div className="space-y-2">
+                                      {message.attachments.map(attachmentId => {
+                                        const attachment = attachments.find(a => a.id === attachmentId);
+                                        return attachment ? (
+                                          <div key={attachment.id} className="flex items-center gap-2 text-sm">
+                                            <span className={`w-2 h-2 rounded-full ${
+                                              attachment.type === 'drive' ? 'bg-blue-500' :
+                                              attachment.type === 'youtube' ? 'bg-red-500' :
+                                              attachment.type === 'link' ? 'bg-green-500' :
+                                              'bg-gray-500'
+                                            }`} />
+                                            {attachment.title}
+                                          </div>
+                                        ) : null;
+                                      })}
+                                    </div>
+                                  </div>
+                                )}
+                                {message.replies && message.replies.length > 0 && (
+                                  <div className="space-y-2 pl-4 border-l-2">
+                                    {message.replies.map(reply => (
+                                      <div key={reply.id} className="text-sm">
+                                        <span className="font-medium">{reply.senderId}</span>
+                                        <span className="text-muted-foreground ml-2">
+                                          {format(reply.createdAt, 'MMM dd, h:mm a')}
+                                        </span>
+                                        <p className="mt-1">{reply.content}</p>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                                <div className="flex gap-2 mt-4">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => {
+                                      setSelectedMessage(message);
+                                      setShowMessageDialog(true);
+                                    }}
+                                  >
+                                    Reply
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => addMessageReaction(message.id, 'current-user', '👍')}
+                                  >
+                                    React
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => pinMessage(message.id)}
+                                  >
+                                    <Pin className="w-4 h-4" />
+                                  </Button>
+                                  {message.senderId === 'current-user' && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => {
+                                        // Show edit message dialog
+                                      }}
+                                    >
+                                      <Edit className="w-4 h-4" />
+                                    </Button>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
+
+                      <div className="flex gap-2">
+                        <Input
+                          placeholder="Type a message..."
+                          value={newMessage.content || ''}
+                          onChange={(e) => setNewMessage(prev => ({ ...prev, content: e.target.value }))}
+                        />
+                        {selectedRoom.settings.allowFileSharing && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setShowFileUploadDialog(true)}
+                          >
+                            <Paperclip className="w-4 h-4" />
+                          </Button>
+                        )}
+                        {selectedRoom.settings.allowVoiceMessages && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              if (isRecording) {
+                                stopVoiceRecording();
+                              } else {
+                                setShowVoiceMessageDialog(true);
+                              }
+                            }}
+                          >
+                            {isRecording ? (
+                              <Square className="w-4 h-4" />
+                            ) : (
+                              <Mic className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
+                        <Button
+                          onClick={() => {
+                            if (newMessage.content) {
+                              sendMessage({
+                                ...newMessage as Message,
+                                classId: selectedClass?.id || '',
+                                senderId: 'current-user',
+                                createdAt: new Date(),
+                                updatedAt: new Date()
+                              });
+                              setNewMessage({ type: 'discussion', content: '', attachments: [] });
+                            }
+                          }}
+                        >
+                          Send
+                        </Button>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex items-center justify-center h-64">
+                      <p className="text-muted-foreground">Select a chat room to start messaging</p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </TabsContent>
+
+          {/* Chat Room Dialogs */}
+          <Dialog open={showCreateRoomDialog} onOpenChange={setShowCreateRoomDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create Chat Room</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>Name</Label>
+                  <Input
+                    placeholder="Enter room name"
+                    value={newRoom?.name || ''}
+                    onChange={(e) => setNewRoom({ ...newRoom, name: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Description</Label>
+                  <Textarea
+                    placeholder="Enter room description"
+                    value={newRoom?.description || ''}
+                    onChange={(e) => setNewRoom({ ...newRoom, description: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <Label>Type</Label>
+                  <Select
+                    value={newRoom?.type || 'group'}
+                    onValueChange={(value: ChatRoom['type']) => setNewRoom({ ...newRoom, type: value })}
                   >
-                    {suggestion}
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select room type" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="class">Class</SelectItem>
+                      <SelectItem value="study">Study</SelectItem>
+                      <SelectItem value="group">Group</SelectItem>
+                      <SelectItem value="private">Private</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Settings</Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="private"
+                        checked={newRoom?.settings?.isPrivate}
+                        onCheckedChange={(checked) => 
+                          setNewRoom({
+                            ...newRoom,
+                            settings: { ...newRoom?.settings, isPrivate: checked as boolean }
+                          })
+                        }
+                      />
+                      <Label htmlFor="private">Private Room</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="invites"
+                        checked={newRoom?.settings?.allowInvites}
+                        onCheckedChange={(checked) => 
+                          setNewRoom({
+                            ...newRoom,
+                            settings: { ...newRoom?.settings, allowInvites: checked as boolean }
+                          })
+                        }
+                      />
+                      <Label htmlFor="invites">Allow Invites</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <Checkbox
+                        id="approval"
+                        checked={newRoom?.settings?.requireApproval}
+                        onCheckedChange={(checked) => 
+                          setNewRoom({
+                            ...newRoom,
+                            settings: { ...newRoom?.settings, requireApproval: checked as boolean }
+                          })
+                        }
+                      />
+                      <Label htmlFor="approval">Require Approval</Label>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowCreateRoomDialog(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (newRoom?.name) {
+                      createChatRoom(newRoom);
+                      setShowCreateRoomDialog(false);
+                      setNewRoom(null);
+                    }
+                  }}
+                >
+                  Create Room
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showInviteDialog} onOpenChange={setShowInviteDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Invite to Room</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label>User</Label>
+                  <Input
+                    placeholder="Enter user email or ID"
+                    value={inviteUser}
+                    onChange={(e) => setInviteUser(e.target.value)}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowInviteDialog(false)}>
+                  Cancel
+                </Button>
+                <Button
+                  onClick={() => {
+                    if (selectedRoom && inviteUser) {
+                      inviteToRoom(selectedRoom.id, inviteUser);
+                      setShowInviteDialog(false);
+                      setInviteUser('');
+                    }
+                  }}
+                >
+                  Send Invite
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          <Dialog open={showRoomSettingsDialog} onOpenChange={setShowRoomSettingsDialog}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Room Settings</DialogTitle>
+              </DialogHeader>
+              {selectedRoom && (
+                <div className="space-y-4">
+                  <div>
+                    <Label>Name</Label>
+                    <Input
+                      value={selectedRoom.name}
+                      onChange={(e) => {
+                        const updatedRoom = {
+                          ...selectedRoom,
+                          name: e.target.value
+                        };
+                        setChatRooms(chatRooms.map(r => 
+                          r.id === selectedRoom.id ? updatedRoom : r
+                        ));
+                      }}
+                    />
+                  </div>
+                  <div>
+                    <Label>Description</Label>
+                    <Textarea
+                      value={selectedRoom.description || ''}
+                      onChange={(e) => {
+                        const updatedRoom = {
+                          ...selectedRoom,
+                          description: e.target.value
+                        };
+                        setChatRooms(chatRooms.map(r => 
+                          r.id === selectedRoom.id ? updatedRoom : r
+                        ));
+                      }}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Settings</Label>
+                    <div className="space-y-2">
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="private-settings"
+                          checked={selectedRoom.settings.isPrivate}
+                          onCheckedChange={(checked) => {
+                            const updatedRoom = {
+                              ...selectedRoom,
+                              settings: {
+                                ...selectedRoom.settings,
+                                isPrivate: checked as boolean
+                              }
+                            };
+                            setChatRooms(chatRooms.map(r => 
+                              r.id === selectedRoom.id ? updatedRoom : r
+                            ));
+                          }}
+                        />
+                        <Label htmlFor="private-settings">Private Room</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="invites-settings"
+                          checked={selectedRoom.settings.allowInvites}
+                          onCheckedChange={(checked) => {
+                            const updatedRoom = {
+                              ...selectedRoom,
+                              settings: {
+                                ...selectedRoom.settings,
+                                allowInvites: checked as boolean
+                              }
+                            };
+                            setChatRooms(chatRooms.map(r => 
+                              r.id === selectedRoom.id ? updatedRoom : r
+                            ));
+                          }}
+                        />
+                        <Label htmlFor="invites-settings">Allow Invites</Label>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id="approval-settings"
+                          checked={selectedRoom.settings.requireApproval}
+                          onCheckedChange={(checked) => {
+                            const updatedRoom = {
+                              ...selectedRoom,
+                              settings: {
+                                ...selectedRoom.settings,
+                                requireApproval: checked as boolean
+                              }
+                            };
+                            setChatRooms(chatRooms.map(r => 
+                              r.id === selectedRoom.id ? updatedRoom : r
+                            ));
+                          }}
+                        />
+                        <Label htmlFor="approval-settings">Require Approval</Label>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setShowRoomSettingsDialog(false)}>
+                  Close
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </Tabs>
+
+        {/* Existing dialogs */}
+        {/* ... */}
+
+        {/* New Attachment Dialog */}
+        <Dialog open={showAttachmentDialog} onOpenChange={setShowAttachmentDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Attachment</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select
+                  value={selectedAttachment.type}
+                  onValueChange={(value: Attachment['type']) => 
+                    setSelectedAttachment({ ...selectedAttachment, type: value })}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="drive">Google Drive</SelectItem>
+                    <SelectItem value="youtube">YouTube</SelectItem>
+                    <SelectItem value="link">Link</SelectItem>
+                    <SelectItem value="upload">Upload</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Title</Label>
+                <Input
+                  value={selectedAttachment.title}
+                  onChange={(e) => setSelectedAttachment({ ...selectedAttachment, title: e.target.value })}
+                  placeholder="Enter title"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>URL</Label>
+                <Input
+                  value={selectedAttachment.url}
+                  onChange={(e) => setSelectedAttachment({ ...selectedAttachment, url: e.target.value })}
+                  placeholder="Enter URL"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Description (optional)</Label>
+                <Textarea
+                  value={selectedAttachment.description}
+                  onChange={(e) => setSelectedAttachment({ ...selectedAttachment, description: e.target.value })}
+                  placeholder="Enter description"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAttachmentDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                if (selectedAttachment.type && selectedAttachment.title && selectedAttachment.url) {
+                  addAttachment({
+                    ...selectedAttachment as Attachment,
+                    uploadedBy: 'current-user',
+                    uploadedAt: new Date()
+                  });
+                  setShowAttachmentDialog(false);
+                  setSelectedAttachment({});
+                }
+              }}>
+                Add Attachment
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Rubric Dialog */}
+        <Dialog open={showRubricDialog} onOpenChange={setShowRubricDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Rubric</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label>Name</Label>
+                <Input
+                  value={selectedRubric.name}
+                  onChange={(e) => setSelectedRubric({ ...selectedRubric, name: e.target.value })}
+                  placeholder="Enter rubric name"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Criteria</Label>
+                <div className="space-y-2">
+                  {(selectedRubric.criteria || []).map((criterion, index) => (
+                    <div key={index} className="flex gap-2 items-start">
+                      <div className="flex-1 space-y-2">
+                        <Input
+                          value={criterion.name}
+                          onChange={(e) => {
+                            const criteria = [...(selectedRubric.criteria || [])];
+                            criteria[index] = { ...criteria[index], name: e.target.value };
+                            setSelectedRubric({ ...selectedRubric, criteria });
+                          }}
+                          placeholder="Criterion name"
+                        />
+                        <Input
+                          value={criterion.description}
+                          onChange={(e) => {
+                            const criteria = [...(selectedRubric.criteria || [])];
+                            criteria[index] = { ...criteria[index], description: e.target.value };
+                            setSelectedRubric({ ...selectedRubric, criteria });
+                          }}
+                          placeholder="Description"
+                        />
+                      </div>
+                      <Input
+                        type="number"
+                        value={criterion.points}
+                        onChange={(e) => {
+                          const criteria = [...(selectedRubric.criteria || [])];
+                          criteria[index] = { ...criteria[index], points: parseInt(e.target.value) };
+                          setSelectedRubric({ ...selectedRubric, criteria });
+                        }}
+                        placeholder="Points"
+                        className="w-20"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => {
+                          const criteria = [...(selectedRubric.criteria || [])];
+                          criteria.splice(index, 1);
+                          setSelectedRubric({ ...selectedRubric, criteria });
+                        }}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const criteria = [...(selectedRubric.criteria || [])];
+                      criteria.push({ name: '', description: '', points: 0 });
+                      setSelectedRubric({ ...selectedRubric, criteria });
+                    }}
+                  >
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add Criterion
+                  </Button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowRubricDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                if (selectedRubric.name && selectedRubric.criteria?.length) {
+                  createRubric({
+                    ...selectedRubric as Rubric,
+                    totalPoints: (selectedRubric.criteria || []).reduce((sum, c) => sum + c.points, 0)
+                  });
+                  setShowRubricDialog(false);
+                  setSelectedRubric({});
+                }
+              }}>
+                Create Rubric
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Message Dialog */}
+        <Dialog open={showMessageDialog} onOpenChange={setShowMessageDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Send Message</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Type</Label>
+                <Select
+                  value={newMessage.type || 'discussion'}
+                  onValueChange={(value: Message['type']) => 
+                    setNewMessage(prev => ({ ...prev, type: value }))}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="announcement">Announcement</SelectItem>
+                    <SelectItem value="discussion">Discussion</SelectItem>
+                    <SelectItem value="question">Question</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div>
+                <Label>Content</Label>
+                <Textarea
+                  value={newMessage.content || ''}
+                  onChange={(e) => setNewMessage(prev => ({ ...prev, content: e.target.value }))}
+                  placeholder="Enter message content"
+                />
+              </div>
+              <div>
+                <Label>Attachments</Label>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {attachments.map(attachment => (
+                    <Badge
+                      key={attachment.id}
+                      variant={newMessage.attachments?.includes(attachment.id) ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        const attachments = newMessage.attachments || [];
+                        const index = attachments.indexOf(attachment.id);
+                        if (index === -1) {
+                          setNewMessage(prev => ({
+                            ...prev,
+                            attachments: [...attachments, attachment.id]
+                          }));
+                        } else {
+                          attachments.splice(index, 1);
+                          setNewMessage(prev => ({
+                            ...prev,
+                            attachments: [...attachments]
+                          }));
+                        }
+                      }}
+                    >
+                      {attachment.title}
+                    </Badge>
+                  ))}
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowMessageDialog(false)}>
+                Cancel
+              </Button>
+              <Button onClick={() => {
+                if (newMessage.type && newMessage.content) {
+                  sendMessage({
+                    ...newMessage as Message,
+                    classId: selectedClass?.id || '',
+                    senderId: 'current-user',
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  });
+                  setShowMessageDialog(false);
+                  setNewMessage({ type: 'discussion', content: '', attachments: [] });
+                }
+              }}>
+                Send Message
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* New Dialogs */}
+        <Dialog open={showTopicDialog} onOpenChange={setShowTopicDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Topic</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  placeholder="Enter topic name"
+                  value={newTopic.name}
+                  onChange={(e) => setNewTopic({ ...newTopic, name: e.target.value })}
+                />
+              </div>
+              <div>
+                <Label>Description</Label>
+                <Textarea
+                  placeholder="Enter topic description"
+                  value={newTopic.description}
+                  onChange={(e) => setNewTopic({ ...newTopic, description: e.target.value })}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowTopicDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedRoom && newTopic.name) {
+                    createTopic(selectedRoom.id, newTopic);
+                    setShowTopicDialog(false);
+                    setNewTopic({ name: '', description: '' });
+                  }
+                }}
+              >
+                Create Topic
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showParticipantsDialog} onOpenChange={setShowParticipantsDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Room Participants</DialogTitle>
+            </DialogHeader>
+            {selectedRoom && (
+              <div className="space-y-4">
+                {selectedRoom.participants.map(participant => (
+                  <div key={participant.userId} className="flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{participant.userId}</p>
+                      <p className="text-sm text-muted-foreground">
+                        Joined {format(participant.joinedAt, 'MMM dd, yyyy')}
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Select
+                        value={participant.role}
+                        onValueChange={(value: 'admin' | 'moderator' | 'member') => 
+                          updateRoomParticipant(selectedRoom.id, participant.userId, value)
+                        }
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">Admin</SelectItem>
+                          <SelectItem value="moderator">Moderator</SelectItem>
+                          <SelectItem value="member">Member</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeRoomParticipant(selectedRoom.id, participant.userId)}
+                      >
+                        <UserMinus className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 ))}
               </div>
             )}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowParticipantsDialog(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showFileUploadDialog} onOpenChange={setShowFileUploadDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Upload File</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="border-2 border-dashed rounded-lg p-4">
+                <input
+                  type="file"
+                  onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label
+                  htmlFor="file-upload"
+                  className="flex flex-col items-center justify-center cursor-pointer"
+                >
+                  <Upload className="w-8 h-8 mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Click to upload or drag and drop
+                  </p>
+                </label>
+              </div>
+              {selectedFile && (
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="font-medium">{selectedFile.name}</p>
+                    <p className="text-sm text-muted-foreground">
+                      {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setSelectedFile(null)}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowFileUploadDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={async () => {
+                  if (selectedFile) {
+                    const attachment = await handleFileUpload(selectedFile);
+                    if (selectedRoom) {
+                      sendRoomMessage({
+                        roomId: selectedRoom.id,
+                        senderId: 'current-user',
+                        content: `Shared file: ${attachment.title}`,
+                        type: 'discussion',
+                        attachments: [attachment.id]
+                      });
+                    }
+                    setShowFileUploadDialog(false);
+                    setSelectedFile(null);
+                  }
+                }}
+              >
+                Upload
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showVoiceMessageDialog} onOpenChange={setShowVoiceMessageDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Record Voice Message</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="flex justify-center">
+                <Button
+                  size="lg"
+                  variant={isRecording ? "destructive" : "default"}
+                  onClick={() => {
+                    if (isRecording) {
+                      stopVoiceRecording();
+                      setShowVoiceMessageDialog(false);
+                    } else {
+                      startVoiceRecording();
+                    }
+                  }}
+                >
+                  {isRecording ? (
+                    <Square className="w-8 h-8" />
+                  ) : (
+                    <Mic className="w-8 h-8" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-center text-sm text-muted-foreground">
+                {isRecording ? 'Recording...' : 'Click to start recording'}
+              </p>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showVideoCallDialog} onOpenChange={setShowVideoCallDialog}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Video Call</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="aspect-video bg-black rounded-lg">
+                {/* Video call interface */}
+              </div>
+              <div className="flex justify-center gap-4">
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    if (isInCall) {
+                      endVideoCall();
+                      setShowVideoCallDialog(false);
+                    } else {
+                      startVideoCall();
+                    }
+                  }}
+                >
+                  {isInCall ? (
+                    <PhoneOff className="w-6 h-6" />
+                  ) : (
+                    <Phone className="w-6 h-6" />
+                  )}
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    // Toggle microphone
+                  }}
+                >
+                  <Mic className="w-6 h-6" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="lg"
+                  onClick={() => {
+                    // Toggle camera
+                  }}
+                >
+                  <Video className="w-6 h-6" />
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add new dialogs for chat room features */}
+        <Dialog open={showCreatePollDialog} onOpenChange={setShowCreatePollDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Poll</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Question</Label>
+                <Input
+                  placeholder="Enter poll question"
+                  value={newPoll.question}
+                  onChange={(e) => setNewPoll(prev => ({ ...prev, question: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Options</Label>
+                <div className="space-y-2">
+                  {newPoll.options.map((option, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        placeholder={`Option ${index + 1}`}
+                        value={option.text}
+                        onChange={(e) => {
+                          const newOptions = [...newPoll.options];
+                          newOptions[index] = { ...option, text: e.target.value };
+                          setNewPoll(prev => ({ ...prev, options: newOptions }));
+                        }}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          const newOptions = newPoll.options.filter((_, i) => i !== index);
+                          setNewPoll(prev => ({ ...prev, options: newOptions }));
+                        }}
+                      >
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setNewPoll(prev => ({
+                      ...prev,
+                      options: [...prev.options, { id: Math.random().toString(36).substr(2, 9), text: '', votes: [] }]
+                    }))}
+                  >
+                    Add Option
+                  </Button>
+                </div>
+              </div>
+              <div className="flex gap-4">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="multiple-choice"
+                    checked={newPoll.isMultipleChoice}
+                    onCheckedChange={(checked) => setNewPoll(prev => ({ ...prev, isMultipleChoice: checked as boolean }))}
+                  />
+                  <Label htmlFor="multiple-choice">Allow multiple choices</Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="anonymous"
+                    checked={newPoll.isAnonymous}
+                    onCheckedChange={(checked) => setNewPoll(prev => ({ ...prev, isAnonymous: checked as boolean }))}
+                  />
+                  <Label htmlFor="anonymous">Anonymous poll</Label>
+                </div>
+              </div>
+              <div>
+                <Label>End Date (Optional)</Label>
+                <Input
+                  type="datetime-local"
+                  value={newPoll.endsAt ? format(newPoll.endsAt, "yyyy-MM-dd'T'HH:mm") : ''}
+                  onChange={(e) => setNewPoll(prev => ({ ...prev, endsAt: e.target.value ? new Date(e.target.value) : undefined }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowCreatePollDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedRoom && newPoll.question && newPoll.options.length > 0) {
+                    createPoll(selectedRoom.id, {
+                      ...newPoll,
+                      createdBy: 'current-user'
+                    });
+                    setShowCreatePollDialog(false);
+                    setNewPoll({
+                      question: '',
+                      options: [],
+                      isMultipleChoice: false,
+                      isAnonymous: false
+                    });
+                  }
+                }}
+              >
+                Create Poll
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showAnnouncementDialog} onOpenChange={setShowAnnouncementDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create Announcement</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Content</Label>
+                <Textarea
+                  placeholder="Enter announcement content"
+                  value={newAnnouncement.content}
+                  onChange={(e) => setNewAnnouncement(prev => ({ ...prev, content: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Expiry Date (Optional)</Label>
+                <Input
+                  type="datetime-local"
+                  value={newAnnouncement.expiresAt ? format(newAnnouncement.expiresAt, "yyyy-MM-dd'T'HH:mm") : ''}
+                  onChange={(e) => setNewAnnouncement(prev => ({ ...prev, expiresAt: e.target.value ? new Date(e.target.value) : undefined }))}
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAnnouncementDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedRoom && newAnnouncement.content) {
+                    createAnnouncement(selectedRoom.id, {
+                      ...newAnnouncement,
+                      createdBy: 'current-user'
+                    });
+                    setShowAnnouncementDialog(false);
+                    setNewAnnouncement({ content: '' });
+                  }
+                }}
+              >
+                Post Announcement
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        <Dialog open={showEmojiDialog} onOpenChange={setShowEmojiDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add Custom Emoji</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label>Name</Label>
+                <Input
+                  placeholder="Enter emoji name"
+                  value={newEmoji.name}
+                  onChange={(e) => setNewEmoji(prev => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label>Image URL</Label>
+                <Input
+                  placeholder="Enter image URL"
+                  value={newEmoji.url}
+                  onChange={(e) => setNewEmoji(prev => ({ ...prev, url: e.target.value }))}
+                />
+              </div>
+              {newEmoji.url && (
+                <div className="flex justify-center">
+                  <img
+                    src={newEmoji.url}
+                    alt={newEmoji.name}
+                    className="w-16 h-16 object-contain"
+                  />
+                </div>
+              )}
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowEmojiDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  if (selectedRoom && newEmoji.name && newEmoji.url) {
+                    addCustomEmoji(selectedRoom.id, {
+                      ...newEmoji,
+                      createdBy: 'current-user'
+                    });
+                    setShowEmojiDialog(false);
+                    setNewEmoji({ name: '', url: '' });
+                  }
+                }}
+              >
+                Add Emoji
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add buttons to the chat room header */}
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowCreatePollDialog(true)}
+          >
+            <BarChart2 className="w-4 h-4 mr-2" />
+            Create Poll
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowAnnouncementDialog(true)}
+          >
+            <Megaphone className="w-4 h-4 mr-2" />
+            Post Announcement
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowEmojiDialog(true)}
+          >
+            <Smile className="w-4 h-4 mr-2" />
+            Add Emoji
+          </Button>
+        </div>
+      </div>
+    );
+  };
+
+  // New functions for enhanced class features
+  const addAttachment = (attachment: Attachment) => {
+    setAttachments([...attachments, attachment]);
+    addNotification({
+      title: 'Attachment Added',
+      message: `New attachment "${attachment.title}" has been added.`,
+      type: 'resource'
+    });
+  };
+
+  const createRubric = (rubric: Rubric) => {
+    setRubrics([...rubrics, rubric]);
+    addNotification({
+      title: 'Rubric Created',
+      message: `New rubric "${rubric.name}" has been created.`,
+      type: 'resource'
+    });
+  };
+
+  const gradeAssignment = (grade: Grade) => {
+    setGrades([...grades, grade]);
+    // Update gradebook
+    const studentEntry = gradebook.find(entry => entry.studentId === grade.studentId);
+    if (studentEntry) {
+      const updatedEntry = {
+        ...studentEntry,
+        assignments: [
+          ...studentEntry.assignments.filter(a => a.assignmentId !== grade.assignmentId),
+          {
+            assignmentId: grade.assignmentId,
+            grade: grade.points,
+            maxPoints: grade.maxPoints,
+            submittedAt: new Date(),
+            gradedAt: new Date()
+          }
+        ]
+      };
+      setGradebook(gradebook.map(entry => 
+        entry.studentId === grade.studentId ? updatedEntry : entry
+      ));
+    }
+    addNotification({
+      title: 'Assignment Graded',
+      message: `Assignment has been graded with ${grade.points}/${grade.maxPoints} points.`,
+      type: 'resource'
+    });
+  };
+
+  const sendMessage = (message: Message) => {
+    setMessages([...messages, message]);
+    addNotification({
+      title: 'New Message',
+      message: `New ${message.type} message has been posted.`,
+      type: 'resource'
+    });
+  };
+
+  const addMessageReply = (messageId: string, reply: Message['replies'][0]) => {
+    setMessages(messages.map(message => 
+      message.id === messageId
+        ? { ...message, replies: [...(message.replies || []), reply] }
+        : message
+    ));
+    addNotification({
+      title: 'New Reply',
+      message: 'A new reply has been added to the message.',
+      type: 'resource'
+    });
+  };
+
+  const addMessageReaction = (messageId: string, userId: string, type: string) => {
+    setMessages(messages.map(message => 
+      message.id === messageId
+        ? { ...message, reactions: [...(message.reactions || []), { userId, type }] }
+        : message
+    ));
+  };
+
+  // Chat Room Management
+  const createChatRoom = (room: Omit<ChatRoom, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newRoom: ChatRoom = {
+      ...room,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date(),
+      updatedAt: new Date(),
+      settings: {
+        isPrivate: false,
+        allowInvites: true,
+        requireApproval: false,
+        allowFileSharing: true,
+        allowVoiceMessages: true,
+        allowVideoCalls: true,
+        allowReactions: true,
+        allowPolls: true,
+        allowThreading: true,
+        slowMode: undefined,
+        maxParticipants: undefined,
+        autoArchive: false,
+        archiveAfter: undefined,
+        welcomeMessage: undefined,
+        rules: [],
+        ...room.settings
+      },
+      participants: [
+        {
+          userId: 'current-user',
+          role: 'admin',
+          joinedAt: new Date(),
+          permissions: {
+            canInvite: true,
+            canPin: true,
+            canDelete: true,
+            canEdit: true,
+            canMute: true
+          }
+        }
+      ]
+    };
+    setChatRooms([...chatRooms, newRoom]);
+  };
+
+  const inviteToRoom = (roomId: string, userId: string) => {
+    const invite: RoomInvite = {
+      id: crypto.randomUUID(),
+      roomId,
+      invitedBy: 'current-user',
+      invitedUser: userId,
+      status: 'pending',
+      createdAt: new Date(),
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
+    };
+    setRoomInvites([...roomInvites, invite]);
+    addNotification({
+      title: 'Room Invitation Sent',
+      message: `You've invited a user to join your chat room`,
+      type: 'resource'
+    });
+  };
+
+  const handleRoomInvite = (inviteId: string, accept: boolean) => {
+    const invite = roomInvites.find(i => i.id === inviteId);
+    if (!invite) return;
+
+    if (accept) {
+      const room = chatRooms.find(r => r.id === invite.roomId);
+      if (room) {
+        const updatedRoom = {
+          ...room,
+          participants: [
+            ...room.participants,
+            {
+              userId: invite.invitedUser,
+              role: 'member',
+              joinedAt: new Date()
+            }
+          ]
+        };
+        setChatRooms(chatRooms.map(r => r.id === room.id ? updatedRoom : r));
+      }
+    }
+
+    setRoomInvites(roomInvites.map(i => 
+      i.id === inviteId 
+        ? { ...i, status: accept ? 'accepted' : 'rejected' }
+        : i
+    ));
+  };
+
+  const sendRoomMessage = (message: Omit<RoomMessage, 'id' | 'createdAt' | 'updatedAt'>) => {
+    const newMessage: RoomMessage = {
+      ...message,
+      id: Math.random().toString(36).substr(2, 9),
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+    setRoomMessages(prev => [...prev, newMessage]);
+  };
+
+  const pinMessage = (messageId: string) => {
+    if (!selectedRoom) return;
+    const updatedRoom = {
+      ...selectedRoom,
+      pinnedMessages: [...(selectedRoom.pinnedMessages || []), messageId]
+    };
+    setChatRooms(chatRooms.map(r => r.id === selectedRoom.id ? updatedRoom : r));
+  };
+
+  const editMessage = (messageId: string, newContent: string) => {
+    setRoomMessages(roomMessages.map(message => {
+      if (message.id === messageId) {
+        return {
+          ...message,
+          content: newContent,
+          isEdited: true,
+          editHistory: [
+            ...(message.editHistory || []),
+            {
+              content: message.content,
+              editedAt: new Date(),
+              editedBy: 'current-user'
+            }
+          ]
+        };
+      }
+      return message;
+    }));
+  };
+
+  const createTopic = (roomId: string, topic: { name: string; description?: string }) => {
+    const newTopic: ChatRoom['topics'][0] = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: topic.name,
+      description: topic.description,
+      createdBy: 'current-user',
+      createdAt: new Date(),
+      isLocked: false,
+      isAnnouncement: false
+    };
+
+    setChatRooms(chatRooms.map(room => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          topics: [...(room.topics || []), newTopic]
+        };
+      }
+      return room;
+    }));
+  };
+
+  const updateRoomParticipant = (roomId: string, userId: string, role: 'admin' | 'moderator' | 'member') => {
+    setChatRooms(chatRooms.map(room => {
+      if (room.id === roomId) {
+        const updatedParticipants = room.participants.map(p => {
+          if (p.userId === userId) {
+            return {
+              ...p,
+              role: role as 'admin' | 'moderator' | 'member'
+            };
+          }
+          return p;
+        });
+        return {
+          ...room,
+          participants: updatedParticipants
+        };
+      }
+      return room;
+    }));
+  };
+
+  const removeRoomParticipant = (roomId: string, userId: string) => {
+    setChatRooms(chatRooms.map(room => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          participants: room.participants.filter(p => p.userId !== userId)
+        };
+      }
+      return room;
+    }));
+  };
+
+  const handleFileUpload = async (file: File) => {
+    // Simulate file upload
+    const attachment: Attachment = {
+      id: crypto.randomUUID(),
+      type: 'upload',
+      url: URL.createObjectURL(file),
+      title: file.name,
+      size: file.size,
+      uploadedBy: 'current-user',
+      uploadedAt: new Date()
+    };
+    return attachment;
+  };
+
+  const startVoiceRecording = () => {
+    setIsRecording(true);
+    // Implement voice recording logic
+  };
+
+  const stopVoiceRecording = () => {
+    setIsRecording(false);
+    // Implement voice recording stop logic
+  };
+
+  const startVideoCall = () => {
+    setIsInCall(true);
+    // Implement video call logic
+  };
+
+  const endVideoCall = () => {
+    setIsInCall(false);
+    // Implement video call end logic
+  };
+
+  // Add new functions for enhanced chat features
+  const createPoll = (roomId: string, poll: Omit<ChatRoom['polls'][0], 'id' | 'createdAt'>) => {
+    setChatRooms(prev => prev.map(room => {
+      if (room.id === roomId) {
+        const newPoll = {
+          ...poll,
+          id: Math.random().toString(36).substr(2, 9),
+          createdAt: new Date()
+        };
+        return {
+          ...room,
+          polls: [...(room.polls || []), newPoll]
+        };
+      }
+      return room;
+    }));
+  };
+
+  const voteInPoll = (roomId: string, pollId: string, optionId: string, userId: string) => {
+    setChatRooms(prev => prev.map(room => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          polls: room.polls?.map(poll => {
+            if (poll.id === pollId) {
+              return {
+                ...poll,
+                options: poll.options.map(option => {
+                  if (option.id === optionId) {
+                    return {
+                      ...option,
+                      votes: [...option.votes, userId]
+                    };
+                  }
+                  return option;
+                })
+              };
+            }
+            return poll;
+          })
+        };
+      }
+      return room;
+    }));
+  };
+
+  const createAnnouncement = (roomId: string, announcement: Omit<ChatRoom['announcements'][0], 'id' | 'createdAt'>) => {
+    setChatRooms(prev => prev.map(room => {
+      if (room.id === roomId) {
+        const newAnnouncement = {
+          ...announcement,
+          id: Math.random().toString(36).substr(2, 9),
+          createdAt: new Date()
+        };
+        return {
+          ...room,
+          announcements: [...(room.announcements || []), newAnnouncement]
+        };
+      }
+      return room;
+    }));
+  };
+
+  const addCustomEmoji = (roomId: string, emoji: Omit<ChatRoom['customEmojis'][0], 'id'>) => {
+    setChatRooms(prev => prev.map(room => {
+      if (room.id === roomId) {
+        const newEmoji = {
+          ...emoji,
+          id: Math.random().toString(36).substr(2, 9)
+        };
+        return {
+          ...room,
+          customEmojis: [...(room.customEmojis || []), newEmoji]
+        };
+      }
+      return room;
+    }));
+  };
+
+  const updateParticipantStatus = (roomId: string, userId: string, status: 'online' | 'offline' | 'away') => {
+    setChatRooms(prev => prev.map(room => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          participants: room.participants.map(p => 
+            p.userId === userId ? { ...p, status, lastSeen: new Date() } : p
+          )
+        };
+      }
+      return room;
+    }));
+  };
+
+  const muteParticipant = (roomId: string, userId: string, duration: number) => {
+    setChatRooms(prev => prev.map(room => {
+      if (room.id === roomId) {
+        return {
+          ...room,
+          participants: room.participants.map(p => 
+            p.userId === userId ? { ...p, mutedUntil: new Date(Date.now() + duration) } : p
+          )
+        };
+      }
+      return room;
+    }));
+  };
+
+  // Add UI components for new features
+  const renderChatRoomFeatures = (room: ChatRoom) => (
+    <div className="flex flex-col h-full">
+      {/* Room Header */}
+      <div className="flex items-center justify-between p-4 border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="flex items-center gap-3">
+          <div className="relative">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+              <Users className="w-5 h-5 text-primary" />
+            </div>
+            <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-green-500 border-2 border-background" />
           </div>
-          <Button onClick={addTodo}>
-            <Plus className="w-4 h-4 mr-2" />
-            Add Task
+          <div>
+            <h3 className="font-semibold">{room.name}</h3>
+            <p className="text-sm text-muted-foreground">
+              {room.participants.length} members • {room.type}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon" onClick={() => setShowRoomSettingsDialog(true)}>
+            <Settings className="w-4 h-4" />
           </Button>
-          <Button
-            variant={isRecording ? "destructive" : "outline"}
-            onClick={isRecording ? stopVoiceInput : startVoiceInput}
-            title="Voice Input"
-          >
-            {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+          <Button variant="ghost" size="icon" onClick={() => setShowInviteDialog(true)}>
+            <UserPlus className="w-4 h-4" />
           </Button>
-          <Button
-            variant={isFocusMode ? "default" : "outline"}
-            onClick={toggleFocusMode}
-            title="Focus Mode"
-          >
-            <Timer className="w-4 h-4 mr-2" />
-            {isFocusMode && focusTimer !== null ? formatTime(focusTimer) : "Focus Mode"}
+          <Button variant="ghost" size="icon" onClick={() => setShowParticipantsDialog(true)}>
+            <Users className="w-4 h-4" />
           </Button>
         </div>
       </div>
 
-      <Tabs value={view} onValueChange={(v) => setView(v as 'list' | 'planner' | 'analytics' | 'study')}>
+      {/* Main Content Area */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Sidebar */}
+        <div className="w-64 border-r bg-muted/50">
+          <div className="p-4">
+            <h4 className="font-medium mb-2">Topics</h4>
+            <div className="space-y-1">
+              {room.topics?.map((topic) => (
+                <button
+                  key={topic.id}
+                  className="w-full text-left px-3 py-2 rounded-md hover:bg-muted transition-colors flex items-center gap-2"
+                >
+                  <Hash className="w-4 h-4" />
+                  <span className="truncate">{topic.name}</span>
+                </button>
+              ))}
+              <Button
+                variant="ghost"
+                size="sm"
+                className="w-full justify-start"
+                onClick={() => setShowCreateTopicDialog(true)}
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Topic
+              </Button>
+            </div>
+          </div>
+
+          <div className="p-4 border-t">
+            <h4 className="font-medium mb-2">Pinned Messages</h4>
+            <div className="space-y-2">
+              {room.pinnedMessages?.map((messageId) => {
+                const message = roomMessages.find((m) => m.id === messageId);
+                if (!message) return null;
+                return (
+                  <div key={message.id} className="p-2 rounded-md bg-muted">
+                    <p className="text-sm line-clamp-2">{message.content}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {format(new Date(message.createdAt), 'MMM d, h:mm a')}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* Chat Area */}
+        <div className="flex-1 flex flex-col">
+          {/* Messages */}
+          <div className="flex-1 overflow-y-auto p-4 space-y-4">
+            {roomMessages.map((message) => (
+              <div
+                key={message.id}
+                className={`flex gap-3 ${
+                  message.senderId === 'current-user' ? 'flex-row-reverse' : ''
+                }`}
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  <UserCircle className="w-4 h-4 text-primary" />
+                </div>
+                <div
+                  className={`max-w-[70%] ${
+                    message.senderId === 'current-user'
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-muted'
+                  } rounded-lg p-3`}
+                >
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-medium">
+                      {room.participants.find((p) => p.userId === message.senderId)?.customTitle ||
+                        'User'}
+                    </span>
+                    <span className="text-xs opacity-70">
+                      {format(new Date(message.createdAt), 'h:mm a')}
+                    </span>
+                  </div>
+                  <p className="whitespace-pre-wrap">{message.content}</p>
+                  {message.attachments && message.attachments.length > 0 && (
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {message.attachments.map((attachment) => (
+                        <div
+                          key={attachment}
+                          className="aspect-video rounded-md overflow-hidden bg-background"
+                        >
+                          <img
+                            src={attachment}
+                            alt="Attachment"
+                            className="w-full h-full object-cover"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                  {message.reactions && message.reactions.length > 0 && (
+                    <div className="flex gap-1 mt-2">
+                      {message.reactions.map((reaction) => (
+                        <span
+                          key={reaction.userId}
+                          className="text-xs bg-background/50 rounded-full px-2 py-1"
+                        >
+                          {reaction.type}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Message Input */}
+          <div className="p-4 border-t bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="icon" onClick={() => setShowEmojiDialog(true)}>
+                <Smile className="w-4 h-4" />
+              </Button>
+              <Button variant="ghost" size="icon" onClick={() => setShowFileUploadDialog(true)}>
+                <Paperclip className="w-4 h-4" />
+              </Button>
+              <div className="flex-1 relative">
+                <Input
+                  placeholder="Type a message..."
+                  value={newMessage.content || ''}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  className="pr-20"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                      e.preventDefault();
+                      if (newMessage.trim()) {
+                        sendRoomMessage({
+                          roomId: room.id,
+                          content: newMessage,
+                          type: 'discussion',
+                          senderId: 'current-user'
+                        });
+                        setNewMessage('');
+                      }
+                    }
+                  }}
+                />
+                <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => {
+                      if (newMessage.trim()) {
+                        sendRoomMessage({
+                          roomId: room.id,
+                          content: newMessage,
+                          type: 'discussion',
+                          senderId: 'current-user'
+                        });
+                        setNewMessage('');
+                      }
+                    }}
+                  >
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <Tabs value={view} onValueChange={(v) => setView(v as 'list' | 'planner' | 'analytics' | 'study' | 'classes')}>
         <TabsList>
           <TabsTrigger value="list">List View</TabsTrigger>
           <TabsTrigger value="planner">Daily Planner</TabsTrigger>
           <TabsTrigger value="study">Study Plan</TabsTrigger>
+          <TabsTrigger value="classes">Classes</TabsTrigger>
           <TabsTrigger value="analytics">Analytics</TabsTrigger>
         </TabsList>
 
         <TabsContent value="list">
-          <div className="flex gap-4">
+          {/* List View content restored here */}
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold">To-Do List</h1>
+              <p className="text-muted-foreground mt-2">
+                {pendingCount} pending, {completedCount} completed
+              </p>
+            </div>
+            <div className="flex gap-4">
+              <div className="relative">
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                  placeholder="Search tasks..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-64 pl-8"
+                />
+              </div>
+              <div className="relative">
+                <Input
+                  placeholder="Add new task..."
+                  value={newTodo}
+                  onChange={(e) => setNewTodo(e.target.value)}
+                  className="w-64"
+                  onKeyPress={(e) => e.key === 'Enter' && addTodo()}
+                />
+                {suggestions.length > 0 && newTodo.length > 0 && (
+                  <div className="absolute top-full left-0 w-full bg-popover border rounded-md shadow-lg mt-1 p-2">
+                    <div className="text-sm text-muted-foreground mb-1">Suggestions:</div>
+                    {suggestions.map((suggestion: string, index: number) => (
+                      <div
+                        key={index}
+                        className="cursor-pointer hover:bg-accent p-1 rounded"
+                        onClick={() => setNewTodo(suggestion)}
+                      >
+                        {suggestion}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Button onClick={addTodo}>
+                <Plus className="w-4 h-4 mr-2" />
+                Add Task
+              </Button>
+              <Button
+                variant={isRecording ? "destructive" : "outline"}
+                onClick={isRecording ? stopVoiceInput : startVoiceInput}
+                title="Voice Input"
+              >
+                {isRecording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant={isFocusMode ? "default" : "outline"}
+                onClick={toggleFocusMode}
+                title="Focus Mode"
+              >
+                <Timer className="w-4 h-4 mr-2" />
+                {isFocusMode && focusTimer !== null ? formatTime(focusTimer) : "Focus Mode"}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex gap-4 mt-4">
             <Select value={filter} onValueChange={(value: 'all' | 'active' | 'completed') => setFilter(value)}>
               <SelectTrigger className="w-[180px]">
                 <SelectValue placeholder="Filter by status" />
@@ -2767,7 +5468,7 @@ export default function Todo() {
             </Button>
           </div>
 
-          <Card>
+          <Card className="mt-4">
             <CardContent className="p-6">
               <div className="space-y-4">
                 {filteredAndSortedTodos.map((todo) => (
@@ -3002,6 +5703,32 @@ export default function Todo() {
               </div>
             </CardContent>
           </Card>
+
+          {showGoalForm && (
+            <Card className="mt-4">
+              <CardContent className="p-4">
+                <h3 className="font-semibold mb-4">Add New Goal</h3>
+                <div className="space-y-4">
+                  <Input
+                    placeholder="Goal title"
+                    value={newGoal.title}
+                    onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
+                  />
+                  <Input
+                    placeholder="Description (optional)"
+                    value={newGoal.description}
+                    onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
+                  />
+                  <div className="flex gap-4">
+                    <Button onClick={addGoal}>Add Goal</Button>
+                    <Button variant="ghost" onClick={() => setShowGoalForm(false)}>Cancel</Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {renderCategoryDialog()}
         </TabsContent>
 
         <TabsContent value="planner">
@@ -3012,36 +5739,14 @@ export default function Todo() {
           {renderStudyView()}
         </TabsContent>
 
+        <TabsContent value="classes">
+          {renderClassManagementView()}
+        </TabsContent>
+
         <TabsContent value="analytics">
           {renderAnalyticsView()}
         </TabsContent>
       </Tabs>
-
-      {showGoalForm && (
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Add New Goal</h3>
-            <div className="space-y-4">
-              <Input
-                placeholder="Goal title"
-                value={newGoal.title}
-                onChange={(e) => setNewGoal({ ...newGoal, title: e.target.value })}
-              />
-              <Input
-                placeholder="Description (optional)"
-                value={newGoal.description}
-                onChange={(e) => setNewGoal({ ...newGoal, description: e.target.value })}
-              />
-              <div className="flex gap-4">
-                <Button onClick={addGoal}>Add Goal</Button>
-                <Button variant="ghost" onClick={() => setShowGoalForm(false)}>Cancel</Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {renderCategoryDialog()}
     </div>
   );
 } 

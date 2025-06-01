@@ -11,8 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { toast } from 'sonner';
 
 const Index = () => {
+  const [isLoading, setIsLoading] = useState(true);
   const [stats, setStats] = useState<PlaylistData>({
     totalWatchTime: 0,
     totalVideos: 0,
@@ -56,12 +58,40 @@ const Index = () => {
   });
 
   useEffect(() => {
-    const savedPlaylists = localStorage.getItem('youtubePlaylists');
-    if (savedPlaylists) {
-      const parsedPlaylists = JSON.parse(savedPlaylists) as Playlist[];
-      setPlaylists(parsedPlaylists);
-      calculateStats(parsedPlaylists);
-    }
+    const loadData = () => {
+      try {
+        setIsLoading(true);
+        const savedPlaylists = localStorage.getItem('youtubePlaylists');
+        if (savedPlaylists) {
+          const parsedPlaylists = JSON.parse(savedPlaylists) as Playlist[];
+          setPlaylists(parsedPlaylists);
+          calculateStats(parsedPlaylists);
+        } else {
+          // Initialize with empty state
+          setPlaylists([]);
+          calculateStats([]);
+        }
+      } catch (error) {
+        console.error('Error loading playlists:', error);
+        toast.error('Failed to load playlists data');
+        setPlaylists([]);
+        calculateStats([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+
+    // Add event listener for storage changes
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'youtubePlaylists') {
+        loadData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const calculateStats = (playlistsData: Playlist[]) => {
@@ -146,6 +176,21 @@ const Index = () => {
     { name: 'Remaining', value: (stats.totalVideos - stats.completedVideos) + (stats.totalCodingQuestions - stats.solvedQuestions), color: '#e5e7eb' }
   ];
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
+        <Card>
+          <CardContent className="py-8 text-center">
+            <div className="flex flex-col items-center gap-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+              <p>Loading dashboard...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-6 py-8">
@@ -193,14 +238,24 @@ const Index = () => {
         )}
 
         {/* Progress Charts */}
-        {(stats.totalVideos > 0 || stats.totalCodingQuestions > 0) && (
-          <>
-            {/* Progress Over Time */}
-            <div className="mb-8">
-              <ProgressTabs playlists={playlists} />
-            </div>
-          </>
-        )}
+        <div className="mb-8">
+          {playlists.length > 0 ? (
+            <ProgressTabs playlists={playlists} />
+          ) : (
+            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
+              <CardContent className="py-8 text-center">
+                <div className="flex flex-col items-center gap-4">
+                  <Play className="w-12 h-12 text-gray-400" />
+                  <h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">No Content Yet</h3>
+                  <p className="text-gray-600 dark:text-gray-400">Start adding videos and playlists to track your progress</p>
+                  <Button variant="outline" className="mt-2">
+                    Add Content
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+        </div>
 
         {/* Social Media Activity Section */}
         <div className="mb-8">
