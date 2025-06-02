@@ -53,7 +53,9 @@ import {
   Send,
   UserCircle,
   Shield,
-  FileText
+  FileText,
+  List,
+  BookOpen
 } from 'lucide-react';
 import {
   Select,
@@ -125,6 +127,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from 'lucide-react';
+import { Switch } from "@/components/ui/switch";
 
 // Add type declarations for SpeechRecognition
 interface SpeechRecognitionEvent extends Event {
@@ -945,6 +948,61 @@ export default function Todo() {
   });
   // Add state variables for dialogs
   const [showCreateTopicDialog, setShowCreateTopicDialog] = useState(false);
+  const [showTimeDialog, setShowTimeDialog] = useState<string | null>(null);
+  const [timeInput, setTimeInput] = useState({ hours: 0, minutes: 0, seconds: 0 });
+  const [selectedPreset, setSelectedPreset] = useState<number | null>(null);
+  const [enableNotification, setEnableNotification] = useState(false);
+  const [notificationTime, setNotificationTime] = useState(5);
+  const [notificationSound, setNotificationSound] = useState('default');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurringInterval, setRecurringInterval] = useState({ count: 1, unit: 'days' });
+  const [progressTracking, setProgressTracking] = useState(false);
+  const [milestones, setMilestones] = useState<{ time: number; description: string }[]>([]);
+
+  const timePresets = [
+    { label: '15 min', value: 15 },
+    { label: '30 min', value: 30 },
+    { label: '45 min', value: 45 },
+    { label: '1 hour', value: 60 },
+    { label: '1.5 hours', value: 90 },
+    { label: '2 hours', value: 120 }
+  ];
+
+  const notificationPresets = [
+    { label: '5 min before', value: 5 },
+    { label: '10 min before', value: 10 },
+    { label: '15 min before', value: 15 },
+    { label: '30 min before', value: 30 },
+    { label: '1 hour before', value: 60 }
+  ];
+
+  const notificationSounds = [
+    { label: 'Default', value: 'default' },
+    { label: 'Bell', value: 'bell' },
+    { label: 'Chime', value: 'chime' },
+    { label: 'Digital', value: 'digital' },
+    { label: 'Gentle', value: 'gentle' }
+  ];
+
+  const recurringUnits = [
+    { label: 'Minutes', value: 'minutes' },
+    { label: 'Hours', value: 'hours' },
+    { label: 'Days', value: 'days' },
+    { label: 'Weeks', value: 'weeks' }
+  ];
+
+  const updateTimeInput = (field: 'hours' | 'minutes' | 'seconds', value: string) => {
+    const numValue = parseInt(value) || 0;
+    setTimeInput(prev => ({
+      ...prev,
+      [field]: numValue
+    }));
+    setSelectedPreset(null);
+  };
+
+  const getTotalSeconds = () => {
+    return timeInput.hours * 3600 + timeInput.minutes * 60 + timeInput.seconds;
+  };
 
   useEffect(() => {
     localStorage.setItem('todos', JSON.stringify(todos));
@@ -4774,17 +4832,15 @@ export default function Todo() {
     });
   };
 
-  const addMessageReply = (messageId: string, reply: Message['replies'][0]) => {
-    setMessages(messages.map(message => 
-      message.id === messageId
-        ? { ...message, replies: [...(message.replies || []), reply] }
-        : message
+  const addMessageReply = (messageId: string, reply: Omit<Message['replies'][0], 'id' | 'createdAt'>) => {
+    const newReply: Message['replies'][0] = {
+      ...reply,
+      id: Date.now().toString(),
+      createdAt: new Date()
+    };
+    setMessages(messages.map(m =>
+      m.id === messageId ? { ...m, replies: [...(m.replies || []), newReply] } : m
     ));
-    addNotification({
-      title: 'New Reply',
-      message: 'A new reply has been added to the message.',
-      type: 'resource'
-    });
   };
 
   const addMessageReaction = (messageId: string, userId: string, type: string) => {
@@ -5321,6 +5377,12 @@ export default function Todo() {
     </div>
   );
 
+  const updateFocusTime = (id: string, minutes: number) => {
+    setTodos(todos.map(todo =>
+      todo.id === id ? { ...todo, focusTime: minutes } : todo
+    ));
+  };
+
   return (
     <div className="space-y-6">
       <Tabs value={view} onValueChange={(v) => setView(v as 'list' | 'planner' | 'analytics' | 'study' | 'classes')}>
@@ -5484,55 +5546,27 @@ export default function Todo() {
                         checked={todo.completed}
                         onCheckedChange={() => toggleTodo(todo.id)}
                       />
-                      {editingId === todo.id ? (
-                        <Input
-                          value={editText}
-                          onChange={(e) => setEditText(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && saveEdit(todo.id)}
-                          onBlur={() => saveEdit(todo.id)}
-                          autoFocus
-                          className="w-64"
-                        />
-                      ) : (
-                        <div className="flex flex-col">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
                           <span className={cn(
-                            todo.completed ? 'line-through text-muted-foreground' : '',
-                            priorityColors[todo.priority]
+                            "font-medium",
+                            todo.completed && "line-through text-muted-foreground"
                           )}>
                             {todo.title}
                           </span>
-                          <div className="flex gap-2 text-sm text-muted-foreground">
-                            {todo.category && (
-                              <span>{todo.category}</span>
-                            )}
-                            {todo.dueDate && (
-                              <span>Due: {format(todo.dueDate, 'MMM dd, yyyy')}</span>
-                            )}
-                            {todo.recurring && (
-                              <span className="flex items-center">
-                                <Repeat className="w-3 h-3 mr-1" />
-                                {todo.recurring.type} ({todo.recurring.interval})
-                              </span>
-                            )}
-                          </div>
-                          {showNotes === todo.id ? (
-                            <div className="mt-2">
-                              <Input
-                                value={noteText}
-                                onChange={(e) => setNoteText(e.target.value)}
-                                placeholder="Add notes..."
-                                className="w-64"
-                              />
-                              <div className="flex gap-2 mt-2">
-                                <Button size="sm" onClick={() => updateNotes(todo.id)}>Save</Button>
-                                <Button size="sm" variant="ghost" onClick={() => setShowNotes(null)}>Cancel</Button>
-                              </div>
-                            </div>
-                          ) : todo.notes ? (
-                            <p className="text-sm text-muted-foreground mt-1">{todo.notes}</p>
-                          ) : null}
+                          {todo.focusTime && (
+                            <Badge variant="outline" className="text-xs">
+                              <Timer className="w-3 h-3 mr-1" />
+                              {todo.focusTime} min
+                            </Badge>
+                          )}
                         </div>
-                      )}
+                        {todo.dueDate && (
+                          <div className="text-sm text-muted-foreground">
+                            Due: {format(todo.dueDate, 'MMM d, yyyy')}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex items-center space-x-2">
                       <Popover>
@@ -5692,6 +5726,18 @@ export default function Todo() {
                       >
                         {todo.isLocked ? <Lock className="w-4 h-4" /> : <Unlock className="w-4 h-4" />}
                       </Button>
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        title="Set estimated time"
+                        onClick={() => {
+                          setShowTimeDialog(todo.id);
+                          setTimeInput(todo.focusTime?.toString() || '');
+                        }}
+                      >
+                        <Timer className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 ))}
@@ -5747,6 +5793,272 @@ export default function Todo() {
           {renderAnalyticsView()}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={showTimeDialog !== null} onOpenChange={() => setShowTimeDialog(null)}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Timer className="w-5 h-5" />
+              Schedule Time
+            </DialogTitle>
+            <DialogDescription>
+              Set the estimated time to complete this task
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-6 py-4">
+            <div className="space-y-4">
+              <div className="grid grid-cols-3 gap-2">
+                {timePresets.map((preset) => (
+                  <Button
+                    key={preset.value}
+                    variant={selectedPreset === preset.value ? "default" : "outline"}
+                    onClick={() => {
+                      setSelectedPreset(preset.value);
+                      setTimeInput({
+                        hours: Math.floor(preset.value / 60),
+                        minutes: preset.value % 60,
+                        seconds: 0
+                      });
+                    }}
+                    className="w-full"
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+              </div>
+
+              <div className="grid grid-cols-3 gap-4">
+                <div className="space-y-2">
+                  <Label>Hours</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    value={timeInput.hours}
+                    onChange={(e) => updateTimeInput('hours', e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Minutes</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={timeInput.minutes}
+                    onChange={(e) => updateTimeInput('minutes', e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Seconds</Label>
+                  <Input
+                    type="number"
+                    min="0"
+                    max="59"
+                    value={timeInput.seconds}
+                    onChange={(e) => updateTimeInput('seconds', e.target.value)}
+                    className="text-center"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={enableNotification}
+                      onCheckedChange={setEnableNotification}
+                    />
+                    <Label>Enable Notification</Label>
+                  </div>
+                  {enableNotification && (
+                    <div className="flex gap-2">
+                      <Select
+                        value={notificationTime.toString()}
+                        onValueChange={(value) => setNotificationTime(parseInt(value))}
+                      >
+                        <SelectTrigger className="w-[140px]">
+                          <SelectValue placeholder="Notify before" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {notificationPresets.map((preset) => (
+                            <SelectItem key={preset.value} value={preset.value.toString()}>
+                              {preset.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <Select
+                        value={notificationSound}
+                        onValueChange={setNotificationSound}
+                      >
+                        <SelectTrigger className="w-[120px]">
+                          <SelectValue placeholder="Sound" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {notificationSounds.map((sound) => (
+                            <SelectItem key={sound.value} value={sound.value}>
+                              {sound.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={isRecurring}
+                      onCheckedChange={setIsRecurring}
+                    />
+                    <Label>Recurring Time Block</Label>
+                  </div>
+                  {isRecurring && (
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        min="1"
+                        value={recurringInterval.count}
+                        onChange={(e) => setRecurringInterval(prev => ({
+                          ...prev,
+                          count: parseInt(e.target.value) || 1
+                        }))}
+                        className="w-20"
+                      />
+                      <Select
+                        value={recurringInterval.unit}
+                        onValueChange={(value) => setRecurringInterval(prev => ({
+                          ...prev,
+                          unit: value
+                        }))}
+                      >
+                        <SelectTrigger className="w-[100px]">
+                          <SelectValue placeholder="Unit" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {recurringUnits.map((unit) => (
+                            <SelectItem key={unit.value} value={unit.value}>
+                              {unit.label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Switch
+                      checked={progressTracking}
+                      onCheckedChange={setProgressTracking}
+                    />
+                    <Label>Track Progress</Label>
+                  </div>
+                  {progressTracking && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const totalSeconds = getTotalSeconds();
+                        const newMilestone = {
+                          time: Math.floor(totalSeconds / (milestones.length + 2)),
+                          description: `Milestone ${milestones.length + 1}`
+                        };
+                        setMilestones([...milestones, newMilestone]);
+                      }}
+                    >
+                      Add Milestone
+                    </Button>
+                  )}
+                </div>
+
+                {progressTracking && milestones.length > 0 && (
+                  <div className="space-y-2">
+                    {milestones.map((milestone, index) => (
+                      <div key={index} className="flex items-center gap-2">
+                        <Input
+                          type="number"
+                          min="0"
+                          value={milestone.time}
+                          onChange={(e) => {
+                            const newMilestones = [...milestones];
+                            newMilestones[index].time = parseInt(e.target.value) || 0;
+                            setMilestones(newMilestones);
+                          }}
+                          className="w-20"
+                        />
+                        <Input
+                          value={milestone.description}
+                          onChange={(e) => {
+                            const newMilestones = [...milestones];
+                            newMilestones[index].description = e.target.value;
+                            setMilestones(newMilestones);
+                          }}
+                          placeholder="Milestone description"
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setMilestones(milestones.filter((_, i) => i !== index));
+                          }}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowTimeDialog(null);
+              setTimeInput({ hours: 0, minutes: 0, seconds: 0 });
+              setSelectedPreset(null);
+              setEnableNotification(false);
+              setIsRecurring(false);
+              setProgressTracking(false);
+              setMilestones([]);
+            }}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              const totalSeconds = getTotalSeconds();
+              if (totalSeconds > 0 && showTimeDialog) {
+                const minutes = Math.round(totalSeconds / 60);
+                setTodos(todos.map(todo =>
+                  todo.id === showTimeDialog
+                    ? { ...todo, focusTime: minutes, updatedAt: new Date() }
+                    : todo
+                ));
+                if (enableNotification) {
+                  addNotification({
+                    title: 'Task Time Reminder',
+                    message: `Your task is scheduled to complete in ${notificationTime} minutes`,
+                    type: 'reminder',
+                    scheduledFor: new Date(Date.now() + (totalSeconds - notificationTime * 60) * 1000)
+                  });
+                }
+                setShowTimeDialog(null);
+                setTimeInput({ hours: 0, minutes: 0, seconds: 0 });
+                setSelectedPreset(null);
+                setEnableNotification(false);
+                setIsRecurring(false);
+                setProgressTracking(false);
+                setMilestones([]);
+              }
+            }}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 } 
