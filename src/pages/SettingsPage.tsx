@@ -20,6 +20,30 @@ import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Progress } from "@/components/ui/progress";
 
+// Add interfaces for data management
+interface ParsedTodo {
+  id: string;
+  title: string;
+  completed: boolean;
+  priority: 'low' | 'medium' | 'high';
+  category?: string;
+  dueDate?: string;
+  createdAt: string;
+  updatedAt: string;
+  notes?: string;
+}
+
+interface ParsedCategory {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+  description?: string;
+  createdAt: string;
+}
+
+const DATA_VERSION = '1.0';
+
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -248,6 +272,68 @@ export function SettingsPage() {
       planningPreference: '',
       motivation: ''
     });
+  };
+
+  // Add data management functions
+  const clearAllData = () => {
+    if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
+      localStorage.removeItem('todos');
+      localStorage.removeItem('categories');
+      toast.success('All data has been cleared!');
+    }
+  };
+
+  const exportData = () => {
+    const todos = JSON.parse(localStorage.getItem('todos') || '[]');
+    const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+    
+    const data = {
+      version: DATA_VERSION,
+      todos,
+      categories,
+      lastModified: new Date().toISOString()
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `todo-backup-${new Date().toISOString().split('T')[0]}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success('Data exported successfully!');
+  };
+
+  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = JSON.parse(e.target?.result as string);
+          if (data.todos && data.categories) {
+            const parsedTodos = data.todos.map((todo: ParsedTodo) => ({
+              ...todo,
+              createdAt: new Date(todo.createdAt),
+              updatedAt: new Date(todo.updatedAt),
+              dueDate: todo.dueDate ? new Date(todo.dueDate) : undefined
+            }));
+            const parsedCategories = data.categories.map((category: ParsedCategory) => ({
+              ...category,
+              createdAt: new Date(category.createdAt)
+            }));
+            localStorage.setItem('todos', JSON.stringify(parsedTodos));
+            localStorage.setItem('categories', JSON.stringify(parsedCategories));
+            toast.success('Data imported successfully!');
+          }
+        } catch (error) {
+          toast.error('Error importing data. Please make sure the file is valid.');
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   return (
@@ -1042,9 +1128,52 @@ export function SettingsPage() {
                     </p>
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    2.5 GB / 5 GB
+                    {Math.round((localStorage.getItem('todos')?.length || 0) / 1024)} KB
                   </div>
                 </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <Icons.Download className="w-4 h-4" />
+                      Export Data
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Download your data as a backup
+                    </p>
+                  </div>
+                  <Button variant="outline" onClick={exportData}>
+                    <Icons.Download className="w-4 h-4 mr-2" />
+                    Export
+                  </Button>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label className="flex items-center gap-2">
+                      <Icons.Upload className="w-4 h-4" />
+                      Import Data
+                    </Label>
+                    <p className="text-sm text-muted-foreground">
+                      Restore from a backup file
+                    </p>
+                  </div>
+                  <label>
+                    <input
+                      type="file"
+                      accept=".json"
+                      onChange={importData}
+                      style={{ display: 'none' }}
+                    />
+                    <Button variant="outline" asChild>
+                      <span>
+                        <Icons.Upload className="w-4 h-4 mr-2" />
+                        Import
+                      </span>
+                    </Button>
+                  </label>
+                </div>
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label className="flex items-center gap-2">
@@ -1057,7 +1186,10 @@ export function SettingsPage() {
                   </div>
                   <AlertDialog>
                     <AlertDialogTrigger asChild>
-                      <Button variant="destructive">Clear All Data</Button>
+                      <Button variant="destructive">
+                        <Icons.Trash2 className="w-4 h-4 mr-2" />
+                        Clear All Data
+                      </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
@@ -1068,7 +1200,7 @@ export function SettingsPage() {
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={resetAllData}>
+                        <AlertDialogAction onClick={clearAllData}>
                           Continue
                         </AlertDialogAction>
                       </AlertDialogFooter>

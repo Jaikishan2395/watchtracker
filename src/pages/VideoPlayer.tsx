@@ -27,9 +27,12 @@ interface YouTubePlayer {
   getPlayerState: () => number;
   playVideo: () => void;
   pauseVideo: () => void;
-  seekTo: (seconds: number) => void;
+  seekTo: (seconds: number, allowSeekAhead?: boolean) => void;
   getCurrentTime: () => number;
+  getDuration: () => number;
   getVideoData: () => { title: string };
+  setVolume: (volume: number) => void;
+  setPlaybackRate: (rate: number) => void;
 }
 
 interface YouTubePlayerEvent {
@@ -220,46 +223,46 @@ const styles = `
 @keyframes fade-out {
   0% {
     opacity: 1;
-    transform: translateX(0) scale(1);
-  }
-  50% {
-    opacity: 0.5;
-    transform: translateX(10px) scale(0.95);
   }
   100% {
     opacity: 0;
-    transform: translateX(20px) scale(0.9);
   }
 }
 
-@keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  25% {
-    transform: translateX(-2px);
-  }
-  75% {
-    transform: translateX(2px);
-  }
+/* Disable YouTube hover effects */
+iframe[src*="youtube.com"] {
+  pointer-events: none !important;
 }
 
-.animate-slide-in-right {
-  animation: slide-in-right 0.5s ease-out forwards;
+.youtube-player-container {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  overflow: hidden;
 }
 
-.animate-fade-in {
-  animation: fade-in 0.5s ease-out forwards;
+.youtube-player-container iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  border: none;
+  pointer-events: none !important;
 }
 
-.animate-fade-out {
-  animation: fade-out 0.6s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+/* Hide YouTube's default controls and hover effects */
+.youtube-player-container iframe {
+  pointer-events: none !important;
 }
 
-.animate-shake {
-  animation: shake 0.3s ease-in-out;
+/* Ensure our custom controls still work */
+.video-controls {
+  pointer-events: auto !important;
 }
 
+/* Custom Scrollbar Styles */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
@@ -269,20 +272,20 @@ const styles = `
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.3);
+  background-color: rgba(156, 163, 175, 0.5);
   border-radius: 3px;
 }
 
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.5);
+  background-color: rgba(156, 163, 175, 0.7);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(75, 85, 99, 0.3);
+  background-color: rgba(75, 85, 99, 0.5);
 }
 
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(75, 85, 99, 0.5);
+  background-color: rgba(75, 85, 99, 0.7);
 }
 `;
 
@@ -357,7 +360,7 @@ const VideoPlayer = () => {
 
   const playerRef = useRef<YouTubePlayer | null>(null);
   const iframeRef = useRef<HTMLDivElement>(null);
-  const updateInterval = useRef<NodeJS.Timeout | null>(null);
+  const updateInterval = useRef<number | null>(null);
   const lastUpdateTime = useRef<number>(Date.now());
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -409,19 +412,146 @@ const VideoPlayer = () => {
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const [activeTab, setActiveTab] = useState<'chat' | 'notes' | 'code'>('chat');
 
+  // Add these state variables after the existing state declarations
+  const [showFloatingChat, setShowFloatingChat] = useState(false);
+  const [showFloatingNotes, setShowFloatingNotes] = useState(false);
+  const [showFloatingCode, setShowFloatingCode] = useState(false);
+  const [chatWindowPosition, setChatWindowPosition] = useState({ x: 50, y: 50 });
+  const [notesWindowPosition, setNotesWindowPosition] = useState({ x: 150, y: 50 });
+  const [codeWindowPosition, setCodeWindowPosition] = useState({ x: 250, y: 50 });
+
+  const [stopwatchTime, setStopwatchTime] = useState(0);
+  const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
+  const stopwatchInterval = useRef<NodeJS.Timeout | null>(null);
+
+  // Extract video progress list for useMemo/useEffect dependencies
+  const videoProgressList = useMemo(() => playlist?.videos.map(v => v.progress) || [], [playlist?.videos]);
+
   // Get current video from playlist
   const currentVideo = playlist?.videos[currentVideoIndex];
 
-  // Move these useMemo declarations to the top, before any effects
+  // Wrap selectVideo in useCallback (move this above all useEffect hooks)
+  const selectVideo = useCallback((index: number) => {
+    if (index === currentVideoIndex) {
+      // If clicking the same video, toggle play/pause
+      if (playerRef.current) {
+        const state = playerRef.current.getPlayerState();
+        if (state === window.YT.PlayerState.PLAYING) {
+          playerRef.current.pauseVideo();
+        } else {
+          playerRef.current.playVideo();
+        }
+      }
+      return;
+    }
+    
+    // Reset stopwatch when changing videos
+    stopStopwatch();
+    setStopwatchTime(0);
+    
+    // Get the target video
+    const targetVideo = playlist?.videos[index];
+    if (!targetVideo) return;
+    // Check if the target video is completed
+    if (targetVideo.progress >= 100) {
+      toast.info('This video is already completed');
+      return;
+    }
+    // Stop current video playback
+    if (playerRef.current) {
+      playerRef.current.pauseVideo();
+      playerRef.current.destroy();
+      playerRef.current = null;
+    }
+    // Update URL without triggering a full navigation
+    const newUrl = `/playlist/${id}/play?video=${index}`;
+    window.history.pushState({}, '', newUrl);
+    // Update state
+    setCurrentVideoIndex(index);
+    // Force player reinitialization
+    setIsPlayerReady(false);
+    setTimeout(() => {
+      setIsPlayerReady(true);
+    }, 100);
+    toast.success(`Now playing: ${targetVideo.title}`);
+  }, [currentVideoIndex, id, playlist, playerRef, setCurrentVideoIndex, setIsPlayerReady, toast]);
+
+  // Move these useMemo declarations after selectVideo
   const uncompletedVideos = useMemo(() => 
     playlist?.videos.filter(video => video.progress < 100) || [],
-    [playlist?.videos, playlist?.videos.map(v => v.progress)]
+    [playlist?.videos, videoProgressList]
   );
 
   const completedVideosList = useMemo(() => 
     playlist?.videos.filter(video => video.progress >= 100) || [],
-    [playlist?.videos, playlist?.videos.map(v => v.progress)]
+    [playlist?.videos, videoProgressList]
   );
+
+  // Wrap startWatchTimeTracking in useCallback
+  const startWatchTimeTracking = useCallback(() => {
+    if (!playerRef.current || !currentVideo) return;
+    const now = Date.now();
+    lastUpdateTime.current = now;
+    // Load existing watch time data
+    const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
+    let existingData: WatchTimeData | null = null;
+    if (savedData) {
+      try {
+        existingData = JSON.parse(savedData);
+      } catch (e) {
+        console.error('Error loading watch time data:', e);
+      }
+    }
+    // Start the update interval
+    updateInterval.current = window.setInterval(() => {
+      if (!playerRef.current || !currentVideo) return;
+      const currentTime = Date.now();
+      const elapsed = Math.floor((currentTime - lastUpdateTime.current) / 1000) * 1000; // Round to nearest second
+      lastUpdateTime.current = currentTime;
+      // Update watch time data
+      setWatchTimeData(prev => {
+        const updatedData = {
+          ...prev,
+          totalWatchTime: prev.totalWatchTime + elapsed,
+          lastUpdate: currentTime,
+          cumulativeTime: prev.cumulativeTime + elapsed
+        };
+        localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(updatedData));
+        return updatedData;
+      });
+    }, 1000);
+    // Increment play count and initialize cumulative time if needed
+    setWatchTimeData(prev => {
+      const updatedData = {
+        ...prev,
+        playCount: prev.playCount + 1,
+        cumulativeTime: existingData?.cumulativeTime || prev.cumulativeTime
+      };
+      localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(updatedData));
+      return updatedData;
+    });
+  }, [currentVideo]);
+
+  // Wrap stopWatchTimeTracking in useCallback
+  const stopWatchTimeTracking = useCallback(() => {
+    if (!currentVideo) return;
+    const now = Date.now();
+    // Clear the update interval
+    if (updateInterval.current) {
+      clearInterval(updateInterval.current);
+      updateInterval.current = null;
+    }
+    // Update and save to localStorage
+    setWatchTimeData(prev => {
+      const finalData = {
+        ...prev,
+        lastUpdate: now,
+        stopCount: prev.stopCount + 1
+      };
+      localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(finalData));
+      return finalData;
+    });
+  }, [currentVideo]);
 
   // Save chat messages to localStorage
   useEffect(() => {
@@ -438,15 +568,10 @@ const VideoPlayer = () => {
     const handlePlaylistUpdate = (event: CustomEvent) => {
       const { playlistId: updatedPlaylistId, updatedPlaylist } = event.detail;
       if (updatedPlaylistId === id) {
-        // Update the playlist state
         setPlaylist(updatedPlaylist);
-        
-        // If we're currently playing the last video, update the currentVideoIndex
         if (currentVideoIndex === playlist?.videos.length - 1) {
           setCurrentVideoIndex(updatedPlaylist.videos.length - 1);
         }
-
-        // If current video is completed, find and play the next uncompleted video
         const currentVideo = updatedPlaylist.videos[currentVideoIndex];
         if (currentVideo?.progress >= 100) {
           const nextUncompletedIndex = updatedPlaylist.videos.findIndex(v => v.progress < 100);
@@ -456,14 +581,11 @@ const VideoPlayer = () => {
         }
       }
     };
-
-    // Add event listener for playlist updates
     window.addEventListener('playlistUpdated', handlePlaylistUpdate as EventListener);
-
     return () => {
       window.removeEventListener('playlistUpdated', handlePlaylistUpdate as EventListener);
     };
-  }, [id, currentVideoIndex, playlist?.videos.length]);
+  }, [id, currentVideoIndex, playlist?.videos.length, selectVideo]);
 
   // Add polling to ensure real-time updates
   useEffect(() => {
@@ -660,87 +782,6 @@ const VideoPlayer = () => {
     };
   }, [currentVideo?.id]);
 
-  // Function to start tracking watch time
-  const startWatchTimeTracking = () => {
-    if (!playerRef.current || !currentVideo) return;
-
-    const now = Date.now();
-    lastUpdateTime.current = now;
-
-    // Load existing watch time data
-    const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
-    let existingData: WatchTimeData | null = null;
-    if (savedData) {
-      try {
-        existingData = JSON.parse(savedData);
-      } catch (e) {
-        console.error('Error loading watch time data:', e);
-      }
-    }
-
-    // Start the update interval
-    updateInterval.current = setInterval(() => {
-      if (!playerRef.current || !currentVideo) return;
-
-      const currentTime = Date.now();
-      const elapsed = Math.floor((currentTime - lastUpdateTime.current) / 1000) * 1000; // Round to nearest second
-      lastUpdateTime.current = currentTime;
-
-      // Update watch time data
-      setWatchTimeData(prev => {
-        const updatedData = {
-          ...prev,
-          totalWatchTime: prev.totalWatchTime + elapsed,
-          lastUpdate: currentTime,
-          cumulativeTime: prev.cumulativeTime + elapsed
-        };
-
-        // Save to localStorage
-        localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(updatedData));
-        return updatedData;
-      });
-    }, 1000);
-
-    // Increment play count and initialize cumulative time if needed
-    setWatchTimeData(prev => {
-      const updatedData = {
-        ...prev,
-        playCount: prev.playCount + 1,
-        cumulativeTime: existingData?.cumulativeTime || prev.cumulativeTime
-      };
-
-      // Save to localStorage
-      localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(updatedData));
-      return updatedData;
-    });
-  };
-
-  // Function to stop tracking watch time
-  const stopWatchTimeTracking = () => {
-    if (!currentVideo) return;
-
-    const now = Date.now();
-
-    // Clear the update interval
-    if (updateInterval.current) {
-      clearInterval(updateInterval.current);
-      updateInterval.current = null;
-    }
-
-    // Update and save to localStorage
-    setWatchTimeData(prev => {
-      const finalData = {
-        ...prev,
-        lastUpdate: now,
-        stopCount: prev.stopCount + 1
-      };
-
-      // Save to localStorage
-      localStorage.setItem(`watchTime_${currentVideo.id}`, JSON.stringify(finalData));
-      return finalData;
-    });
-  };
-
   const updateVideoProgress = (videoId: string, progress: number) => {
     if (!playlist) return;
 
@@ -764,53 +805,7 @@ const VideoPlayer = () => {
     toast.success('Progress updated!');
   };
 
-  const selectVideo = (index: number) => {
-    if (index === currentVideoIndex) {
-      // If clicking the same video, toggle play/pause
-      if (playerRef.current) {
-        const state = playerRef.current.getPlayerState();
-        if (state === window.YT.PlayerState.PLAYING) {
-          playerRef.current.pauseVideo();
-        } else {
-          playerRef.current.playVideo();
-        }
-      }
-      return;
-    }
-    
-    // Get the target video
-    const targetVideo = playlist?.videos[index];
-    if (!targetVideo) return;
-
-    // Check if the target video is completed
-    if (targetVideo.progress >= 100) {
-      toast.info('This video is already completed');
-      return;
-    }
-
-    // Stop current video playback
-    if (playerRef.current) {
-      playerRef.current.pauseVideo();
-      playerRef.current.destroy();
-      playerRef.current = null;
-    }
-    
-    // Update URL without triggering a full navigation
-    const newUrl = `/playlist/${id}/play?video=${index}`;
-    window.history.pushState({}, '', newUrl);
-    
-    // Update state
-    setCurrentVideoIndex(index);
-    
-    // Force player reinitialization
-    setIsPlayerReady(false);
-    setTimeout(() => {
-      setIsPlayerReady(true);
-    }, 100);
-    
-    toast.success(`Now playing: ${targetVideo.title}`);
-  };
-
+  // Function to go to next video
   const goToNextVideo = () => {
     if (playlist && currentVideoIndex < playlist.videos.length - 1) {
       // Find the next uncompleted video
@@ -839,8 +834,11 @@ const VideoPlayer = () => {
     }
   };
 
+  // Update the markAsComplete function
   const markAsComplete = () => {
     if (playlist && currentVideo) {
+      stopStopwatch(); // Stop the stopwatch when marking as complete
+      
       // Create a new array of videos with the updated progress
       const updatedVideos = playlist.videos.map(video => {
         if (video.id === currentVideo.id) {
@@ -2041,7 +2039,7 @@ const VideoPlayer = () => {
         }
 
         // Prepare the code for execution
-        let code = currentFile.content;
+        const code = currentFile.content;
         let stdin = '';
 
         // Add specific handling for different languages
@@ -2132,6 +2130,34 @@ const VideoPlayer = () => {
       setCurrentFile(initialFile);
     }
   }, [activeTab, codeFiles.length]);
+
+  // Add these functions after the existing functions
+  const startStopwatch = () => {
+    if (!isStopwatchRunning) {
+      setIsStopwatchRunning(true);
+      stopwatchInterval.current = setInterval(() => {
+        setStopwatchTime(prev => prev + 1);
+      }, 1000);
+    }
+  };
+
+  const stopStopwatch = () => {
+    if (isStopwatchRunning) {
+      setIsStopwatchRunning(false);
+      if (stopwatchInterval.current) {
+        clearInterval(stopwatchInterval.current);
+      }
+    }
+  };
+
+  // Add this effect to handle stopwatch cleanup
+  useEffect(() => {
+    return () => {
+      if (stopwatchInterval.current) {
+        clearInterval(stopwatchInterval.current);
+      }
+    };
+  }, []);
 
   if (isLoading) {
     return (
@@ -2275,1044 +2301,588 @@ const VideoPlayer = () => {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  <div className="space-y-4 mt-6">
-                    <div className="flex items-center justify-between">
+                <div className="space-y-6">
+                  {/* Video Player Controls */}
+                  <div className="bg-white/90 dark:bg-slate-800/90 rounded-lg p-4 shadow-lg border border-gray-200 dark:border-slate-700">
+                    <div className="space-y-4">
+                      {/* Main Controls */}
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <Button
+                            onClick={markAsComplete}
+                            className={`relative overflow-hidden transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${
+                              currentVideo.progress >= 100
+                                ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white'
+                                : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 hover:from-blue-600 hover:via-indigo-600 hover:to-blue-700 text-white'
+                            }`}
+                          >
+                            <div className="absolute inset-0 bg-white/10 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
+                            <CheckCircle className="w-4 h-4 mr-2 animate-pulse" />
+                            {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
+                          </Button>
+                          <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700" />
+                          <div className="flex items-center gap-2">
+                            {!isStopwatchRunning && (
+                              <Button
+                                onClick={() => {
+                                  if (playerRef.current) {
+                                    playerRef.current.seekTo(0);
+                                    playerRef.current.playVideo();
+                                    startStopwatch();
+                                  }
+                                }}
+                                className="group relative overflow-hidden bg-white hover:bg-gray-50 text-gray-900 transition-all duration-300 shadow-[0_4px_14px_0_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.12)] transform hover:scale-110 active:scale-95 w-16 h-16 rounded-2xl border border-gray-100 backdrop-blur-sm"
+                              >
+                                <div className="absolute inset-0 bg-gradient-to-r from-gray-100/0 via-gray-100/50 to-gray-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                                <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <PlayCircle className="w-8 h-8 animate-bounce" />
+                              </Button>
+                            )}
+                            <Button
+                              onClick={() => {
+                                if (playerRef.current) {
+                                  playerRef.current.pauseVideo();
+                                }
+                              }}
+                              className="group relative overflow-hidden bg-white hover:bg-gray-50 text-gray-900 transition-all duration-300 shadow-[0_4px_14px_0_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.12)] transform hover:scale-110 active:scale-95 w-16 h-16 rounded-2xl border border-gray-100 backdrop-blur-sm"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-gray-100/0 via-gray-100/50 to-gray-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              <Timer className="w-8 h-8 animate-pulse" />
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                if (playerRef.current) {
+                                  playerRef.current.playVideo();
+                                }
+                              }}
+                              className="group relative overflow-hidden bg-white hover:bg-gray-50 text-gray-900 transition-all duration-300 shadow-[0_4px_14px_0_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.12)] transform hover:scale-110 active:scale-95 w-16 h-16 rounded-2xl border border-gray-100 backdrop-blur-sm"
+                            >
+                              <div className="absolute inset-0 bg-gradient-to-r from-gray-100/0 via-gray-100/50 to-gray-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+                              <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+                              <Play className="w-8 h-8 animate-pulse" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Select
+                            onValueChange={(value) => {
+                              if (playerRef.current) {
+                                // @ts-expect-error - YouTube API types don't include setPlaybackQuality
+                                playerRef.current.setPlaybackQuality(value);
+                              }
+                            }}
+                            defaultValue="hd720"
+                          >
+                            <SelectTrigger className="w-[140px]">
+                              <SelectValue placeholder="Quality" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="hd2160">4K (2160p)</SelectItem>
+                              <SelectItem value="hd1440">2K (1440p)</SelectItem>
+                              <SelectItem value="hd1080">Full HD (1080p)</SelectItem>
+                              <SelectItem value="hd720">HD (720p)</SelectItem>
+                              <SelectItem value="large">480p</SelectItem>
+                              <SelectItem value="medium">360p</SelectItem>
+                              <SelectItem value="small">240p</SelectItem>
+                              <SelectItem value="tiny">144p</SelectItem>
+                              <SelectItem value="auto">Auto</SelectItem>
+                            </SelectContent>
+                          </Select>
+                          <Select
+                            onValueChange={(value) => {
+                              if (playerRef.current) {
+                                playerRef.current.setPlaybackRate(parseFloat(value));
+                              }
+                            }}
+                            defaultValue="1"
+                          >
+                            <SelectTrigger className="w-[100px]">
+                              <SelectValue placeholder="Speed" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="0.25">0.25x</SelectItem>
+                              <SelectItem value="0.5">0.5x</SelectItem>
+                              <SelectItem value="0.75">0.75x</SelectItem>
+                              <SelectItem value="1">1x</SelectItem>
+                              <SelectItem value="1.25">1.25x</SelectItem>
+                              <SelectItem value="1.5">1.5x</SelectItem>
+                              <SelectItem value="1.75">1.75x</SelectItem>
+                              <SelectItem value="2">2x</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+
+                      {/* Stopwatch Controls */}
+                      <div className="flex items-center gap-4 mt-4">
+                        <div className="flex items-center gap-2 bg-white/10 dark:bg-slate-800/50 px-4 py-2 rounded-lg">
+                          <Timer className="w-5 h-5 text-blue-500" />
+                          <span className="font-mono text-lg">
+                            {Math.floor(stopwatchTime / 3600).toString().padStart(2, '0')}:
+                            {Math.floor((stopwatchTime % 3600) / 60).toString().padStart(2, '0')}:
+                            {(stopwatchTime % 60).toString().padStart(2, '0')}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Progress and Time Controls */}
                       <div className="flex items-center gap-4">
-                        <Button
-                          onClick={markAsComplete}
-                          className={`transition-all duration-200 shadow-sm hover:shadow-md ${
-                            currentVideo.progress >= 100
-                              ? 'bg-green-600 hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-800 text-white'
-                              : 'bg-blue-600 hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-800 text-white'
-                          }`}
-                        >
-                          <CheckCircle className="w-4 h-4 mr-2" />
-                          {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
-                        </Button>
+                        <div className="flex-1">
+                          <Progress 
+                            value={playerRef.current ? (playerRef.current.getCurrentTime() / (playerRef.current.getDuration() || 1)) * 100 : 0} 
+                            className="h-2"
+                            onClick={(e) => {
+                              if (playerRef.current) {
+                                const rect = e.currentTarget.getBoundingClientRect();
+                                const x = e.clientX - rect.left;
+                                const percentage = x / rect.width;
+                                const duration = playerRef.current.getDuration();
+                                playerRef.current.seekTo(duration * percentage);
+                              }
+                            }}
+                          />
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
 
-            {/* Toggle Buttons */}
-            <div className="fixed bottom-8 right-8 flex gap-4 z-50">
-              <Button
-                onClick={() => {
-                  setActiveTab('chat');
-                  setShowChat(true);
-                }}
-                className={`rounded-full shadow-lg transition-all duration-300 ${
-                  activeTab === 'chat'
-                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-                    : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
-                }`}
-              >
-                <MessageSquare className="w-5 h-5" />
-              </Button>
-              <Button
-                onClick={() => {
-                  setActiveTab('notes');
-                  setShowChat(false);
-                }}
-                className={`rounded-full shadow-lg transition-all duration-300 ${
-                  activeTab === 'notes'
-                    ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                    : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
-                }`}
-              >
-                <StickyNote className="w-5 h-5" />
-              </Button>
-              <Button
-                onClick={() => {
-                  setActiveTab('code');
-                  setShowChat(false);
-                }}
-                className={`rounded-full shadow-lg transition-all duration-300 ${
-                  activeTab === 'code'
-                    ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                    : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
-                }`}
-              >
-                <Code className="w-5 h-5" />
-              </Button>
-            </div>
-
-            {/* Chat Room or Notes Section */}
-            <div className="xl:col-span-1">
-              {activeTab === 'chat' && showChat && (
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
-                  <CardHeader className="border-b border-gray-200 dark:border-slate-700 pb-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl dark:text-white flex items-center gap-2">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                        Live Chat
-                      </CardTitle>
-                      <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                        {chatMessages.length} messages
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    {/* Chat Messages */}
-                    <div className="h-[400px] overflow-y-auto custom-scrollbar space-y-4 pr-2">
-                      {filteredMessages.length === 0 ? (
-                        <div className="h-full flex items-center justify-center">
-                          <div className="text-center text-gray-500 dark:text-gray-400">
-                            <div className="text-4xl mb-2">💬</div>
-                            <p>No messages yet</p>
-                            <p className="text-sm">Start the conversation!</p>
-                          </div>
-                        </div>
-                      ) : (
-                        filteredMessages.map((message) => (
-                          <div
-                            key={message.id}
-                            className={`flex flex-col space-y-1 p-3 rounded-lg transition-all duration-200 ${
-                              deletingMessages.has(message.id) 
-                                ? 'animate-fade-out'
-                                : shakingMessages.has(message.id)
-                                ? 'animate-shake'
-                                : 'animate-slide-in-right'
-                            } ${
-                              message.userId === 'user1'
-                                ? 'bg-gradient-to-r from-blue-500/10 to-indigo-500/10 dark:from-blue-500/20 dark:to-indigo-500/20 ml-12'
-                                : 'bg-gradient-to-r from-gray-500/10 to-slate-500/10 dark:from-gray-500/20 dark:to-slate-500/20 mr-12'
-                            }`}
-                          >
-                            <div className="flex items-center justify-between">
-                              <div className="flex items-center gap-2">
-                                <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold ${
-                                  message.userId === 'user1'
-                                    ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-                                    : 'bg-gradient-to-r from-gray-500 to-slate-500 text-white'
-                                }`}>
-                                  {message.username[0].toUpperCase()}
-                                </div>
-                                <span className="font-medium text-sm text-gray-700 dark:text-gray-200">
-                                  {message.username}
-                                </span>
-                              </div>
-                              <div className="flex items-center gap-2">
-                                <span className="text-xs text-gray-500 dark:text-gray-400">
-                                  {new Date(message.timestamp).toLocaleTimeString()}
-                                </span>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => setShowMessageMenu(showMessageMenu === message.id ? null : message.id)}
-                                  className="h-6 w-6 hover:bg-gray-100 dark:hover:bg-slate-700"
-                                >
-                                  <MoreVertical className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            </div>
-                            {message.type === 'text' && (
-                              <p className="text-gray-800 dark:text-gray-100 pl-10">{message.content}</p>
-                            )}
-                            {message.type === 'audio' && message.audioUrl && (
-                              <div className="pl-10">
-                                <audio controls className="w-full rounded-lg">
-                                  <source src={message.audioUrl} type="audio/webm" />
-                                  Your browser does not support the audio element.
-                                </audio>
-                              </div>
-                            )}
-                            {message.type === 'emoji' && (
-                              <p className="text-2xl pl-10">{message.content}</p>
-                            )}
-                            
-                            {/* Reactions */}
-                            {Object.keys(message.reactions).length > 0 && (
-                              <div className="flex gap-1 pl-10 mt-1">
-                                {Object.entries(message.reactions).map(([emoji, users]) => (
-                                  <div
-                                    key={emoji}
-                                    className="bg-white/80 dark:bg-slate-800/80 px-2 py-1 rounded-full text-xs flex items-center gap-1 shadow-sm"
-                                  >
-                                    <span>{emoji}</span>
-                                    <span className="text-gray-500 dark:text-gray-400">{users.length}</span>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Message Menu */}
-                            {showMessageMenu === message.id && (
-                              <div className="absolute right-4 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 animate-fade-in">
-                                <div className="p-1">
-                                  <Button
-                                    variant="ghost"
-                                    className="w-full justify-start text-sm hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                                    onClick={() => deleteMessage(message.id)}
-                                  >
-                                    <Trash2 className="w-4 h-4 mr-2" />
-                                    Delete Message
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    className="w-full justify-start text-sm"
-                                    onClick={() => setShowReactions(message.id)}
-                                  >
-                                    <ThumbsUp className="w-4 h-4 mr-2" />
-                                    Add Reaction
-                                  </Button>
-                                </div>
-                              </div>
-                            )}
-
-                            {/* Reaction Picker */}
-                            {showReactions === message.id && (
-                              <div className="absolute right-4 mt-1 bg-white dark:bg-slate-800 rounded-lg shadow-lg border border-gray-200 dark:border-slate-700 animate-fade-in">
-                                <div className="p-2 grid grid-cols-4 gap-1">
-                                  {['👍', '❤️', '😂', '🎉', '👏', '🙌', '🔥', '⭐'].map((emoji) => (
-                                    <button
-                                      key={emoji}
-                                      onClick={() => addReaction(message.id, emoji)}
-                                      className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200 text-xl hover:scale-110"
-                                    >
-                                      {emoji}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        ))
-                      )}
-                      <div ref={chatEndRef} />
-                    </div>
-
-                    {/* Message Input */}
-                    <div className="relative">
-                      <div className="flex items-center gap-2 bg-white/70 dark:bg-slate-700/70 rounded-xl p-2 border border-gray-200 dark:border-slate-600">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => setShowEmojiPicker(!showEmojiPicker)}
-                          className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 rounded-full hover:scale-105 transition-transform"
-                        >
-                          <Smile className="w-4 h-4" />
-                        </Button>
-                        <input
-                          type="text"
-                          value={newMessage}
-                          onChange={(e) => setNewMessage(e.target.value)}
-                          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                          placeholder="Type a message..."
-                          className="flex-1 px-4 py-2 bg-transparent border-0 focus:outline-none focus:ring-0 dark:text-white"
-                        />
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={isRecording ? stopRecording : startRecording}
-                          className={`rounded-full transition-all duration-200 hover:scale-105 ${
-                            isRecording 
-                              ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white hover:from-red-600 hover:to-pink-600 shadow-lg shadow-red-500/20 animate-pulse' 
-                              : 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-500/20'
-                          }`}
-                        >
-                          <Mic className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={handleSendMessage}
-                          className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-full shadow-lg shadow-green-500/20 hover:scale-105 transition-transform"
-                        >
-                          <Send className="w-4 h-4" />
-                        </Button>
-                      </div>
-
-                      {/* Recording Indicator */}
-                      {isRecording && (
-                        <div className="absolute -top-12 left-0 right-0 flex items-center justify-center animate-fade-in">
-                          <div className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-6 py-2 rounded-full flex items-center gap-3 shadow-lg shadow-red-500/20">
-                            <div className="flex gap-1">
-                              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
-                              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
-                              <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
-                            </div>
-                            <span className="font-medium">Recording...</span>
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Emoji Picker */}
-                      {showEmojiPicker && (
-                        <div className="absolute bottom-16 left-4 bg-white dark:bg-slate-800 rounded-xl shadow-lg p-3 border border-gray-200 dark:border-slate-700 animate-fade-in">
-                          <div className="grid grid-cols-8 gap-2">
-                            {['😊', '😂', '❤️', '👍', '🎉', '🔥', '👏', '🙌', '😍', '🤔', '😎', '🎯', '💪', '✨', '🌟', '💫'].map((emoji) => (
-                              <button
-                                key={emoji}
-                                onClick={() => addEmoji(emoji)}
-                                className="p-2 hover:bg-gray-100 dark:hover:bg-slate-700 rounded-lg transition-all duration-200 text-xl hover:scale-110"
-                              >
-                                {emoji}
-                              </button>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === 'notes' && !showChat && (
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
-                  <CardHeader className="border-b border-gray-200 dark:border-slate-700 pb-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl dark:text-white flex items-center gap-2">
-                        <StickyNote className="w-5 h-5" />
-                        Video Notes
-                      </CardTitle>
-                      <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                        {notes.length} notes
-                      </Badge>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="p-4">
-                    <div className="space-y-4">
-                      {/* Notes List */}
-                      <div className="h-[400px] overflow-y-auto custom-scrollbar space-y-4 pr-2">
-                        {notes.length === 0 ? (
-                          <div className="h-full flex items-center justify-center">
-                            <div className="text-center text-gray-500 dark:text-gray-400">
-                              <div className="text-4xl mb-2">📝</div>
-                              <p>No notes yet</p>
-                              <p className="text-sm">Start taking notes!</p>
-                            </div>
-                          </div>
-                        ) : (
-                          notes.map((note) => (
-                            <div
-                              key={note.id}
-                              className="bg-white/70 dark:bg-slate-700/70 rounded-lg p-4 shadow-sm hover:shadow-md transition-all duration-200 cursor-pointer group"
-                              style={{ backgroundColor: note.color }}
-                              onClick={() => openNotePopup(note)}
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <div className="flex items-center gap-2">
-                                  <span className="text-sm text-gray-500 dark:text-gray-400">
-                                    {new Date(note.timestamp).toLocaleString()}
-                                  </span>
-                                  {note.tags && note.tags.length > 0 && (
-                                    <div className="flex gap-1">
-                                      {note.tags.slice(0, 2).map((tag, index) => (
-                                        <Badge key={index} variant="secondary" className="text-xs">
-                                          {tag}
-                                        </Badge>
-                                      ))}
-                                      {note.tags.length > 2 && (
-                                        <Badge variant="secondary" className="text-xs">
-                                          +{note.tags.length - 2}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      editNote(note.id);
-                                    }}
-                                    className="h-6 w-6 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                  >
-                                    <Edit2 className="w-4 h-4" />
-                                  </Button>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      deleteNote(note.id);
-                                    }}
-                                    className="h-6 w-6 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </Button>
-                                </div>
-                              </div>
-                              <p className="text-gray-800 dark:text-gray-200 line-clamp-2 mb-2">{note.content}</p>
-                              
-                              {/* Display images if any */}
-                              {note.images && note.images.length > 0 && (
-                                <div className="grid grid-cols-2 gap-2">
-                                  {note.images.slice(0, 2).map((image, index) => (
-                                    <div key={index} className="relative group/image">
-                                      <img
-                                        src={image}
-                                        alt={`Note image ${index + 1}`}
-                                        className="w-full h-24 object-cover rounded-lg"
-                                      />
-                                      {note.images && note.images.length > 2 && index === 1 && (
-                                        <div className="absolute inset-0 bg-black/50 flex items-center justify-center rounded-lg">
-                                          <span className="text-white text-sm">+{note.images.length - 2}</span>
-                                        </div>
-                                      )}
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-
-                              <div className="mt-2 text-xs text-gray-500 dark:text-gray-400 flex items-center gap-2">
-                                <span className="truncate">{note.videoTitle}</span>
-                                {note.flashcards && note.flashcards.length > 0 && (
-                                  <Badge variant="outline" className="text-xs">
-                                    {note.flashcards.length} cards
-                                  </Badge>
-                                )}
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      {/* Note Input */}
-                      <div className="relative mt-4">
-                        <div 
-                          className={`flex flex-col gap-2 bg-white/70 dark:bg-slate-700/70 rounded-xl p-4 border ${
-                            isDragging ? 'border-blue-500 border-2' : 'border-gray-200 dark:border-slate-600'
-                          }`}
-                          onDragOver={handleDragOver}
-                          onDragLeave={handleDragLeave}
-                          onDrop={handleDrop}
-                          onPaste={handlePaste}
-                        >
-                          {/* Feature Buttons Row */}
-                          <div className="flex items-center gap-2 flex-wrap">
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={toggleDarkMode}
-                                    className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                  >
-                                    {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Toggle Dark Mode</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={isRecordingVoice ? stopVoiceRecording : startVoiceRecording}
-                                    className={`h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600 ${
-                                      isRecordingVoice ? 'text-red-500 animate-pulse' : ''
-                                    }`}
-                                  >
-                                    <Volume2 className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>{isRecordingVoice ? 'Stop Recording' : 'Start Voice Recording'}</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Popover>
-                                    <PopoverTrigger asChild>
-                                      <Button
-                                        variant="ghost"
-                                        size="icon"
-                                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                      >
-                                        <Tag className="w-4 h-4" />
-                                      </Button>
-                                    </PopoverTrigger>
-                                    <PopoverContent className="w-80">
-                                      <Command>
-                                        <CommandInput placeholder="Search or add tags..." />
-                                        <CommandEmpty>No tags found.</CommandEmpty>
-                                        <CommandGroup>
-                                          {availableTags.map(tag => (
-                                            <CommandItem
-                                              key={tag}
-                                              onSelect={() => addTag(tag)}
-                                            >
-                                              {tag}
-                                            </CommandItem>
-                                          ))}
-                                        </CommandGroup>
-                                      </Command>
-                                    </PopoverContent>
-                                  </Popover>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Add Tags</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => toggleFloatingNote({ id: 'new', content: currentNote, timestamp: Date.now(), videoId: currentVideo?.id || '', videoTitle: currentVideo?.title || '' })}
-                                    className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                  >
-                                    <Maximize2 className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Create Floating Note</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => generateFlashcards({ id: 'new', content: currentNote, timestamp: Date.now(), videoId: currentVideo?.id || '', videoTitle: currentVideo?.title || '' })}
-                                    className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                  >
-                                    <FileText className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Generate Flashcards</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => exportNoteAsPDF({ id: 'new', content: currentNote, timestamp: Date.now(), videoId: currentVideo?.id || '', videoTitle: currentVideo?.title || '' })}
-                                    className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                  >
-                                    <Download className="w-4 h-4" />
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Export as PDF</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-
-                            <TooltipProvider>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <div className="relative">
-                                    <input
-                                      type="color"
-                                      value={noteColor}
-                                      onChange={(e) => setNoteColor(e.target.value)}
-                                      className="h-8 w-8 rounded cursor-pointer opacity-0 absolute inset-0"
-                                    />
-                                    <div 
-                                      className="h-8 w-8 rounded cursor-pointer border border-gray-200 dark:border-slate-600"
-                                      style={{ backgroundColor: noteColor }}
-                                    />
-                                  </div>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  <p>Choose Note Color</p>
-                                </TooltipContent>
-                              </Tooltip>
-                            </TooltipProvider>
-                          </div>
-
-                          {/* Selected Tags Display */}
-                          {selectedTags.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-2">
-                              {selectedTags.map(tag => (
-                                <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                                  {tag}
-                                  <Button
-                                    variant="ghost"
-                                    size="icon"
-                                    onClick={() => removeTag(tag)}
-                                    className="h-4 w-4 hover:bg-transparent"
-                                  >
-                                    <X className="w-3 h-3" />
-                                  </Button>
-                                </Badge>
-                              ))}
-                            </div>
-                          )}
-
-                          {/* Note Textarea */}
-                          <textarea
-                            value={currentNote}
-                            onChange={(e) => setCurrentNote(e.target.value)}
-                            placeholder={editingNoteId ? "Edit your note..." : "Take a note... (You can paste images here)"}
-                            className="flex-1 bg-transparent border-0 focus:ring-0 resize-none min-h-[100px] text-gray-800 dark:text-gray-200"
-                            style={{ backgroundColor: noteColor }}
-                          />
-
-                          {/* Image Upload and Send Button Row */}
-                          <div className="flex items-center justify-between mt-2">
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                multiple
-                                onChange={handleImageUpload}
-                                className="hidden"
-                                id="image-upload"
-                              />
-                              <label htmlFor="image-upload">
-                                <Button
-                                  type="button"
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                                  disabled={isUploading}
-                                >
-                                  {isUploading ? (
-                                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white" />
-                                  ) : (
-                                    <Image className="w-4 h-4" />
-                                  )}
-                                </Button>
-                              </label>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {editingNoteId ? (
-                                <>
-                                  <Button
-                                    onClick={saveEditedNote}
-                                    className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-full shadow-lg shadow-green-500/20 hover:scale-105 transition-transform"
-                                  >
-                                    <Save className="w-4 h-4 mr-2" />
-                                    Save
-                                  </Button>
-                                  <Button
-                                    onClick={() => {
-                                      setEditingNoteId(null);
-                                      setCurrentNote('');
-                                      setNoteImages([]);
-                                      setNoteTags([]);
-                                      setNoteColor('#ffffff');
-                                    }}
-                                    className="bg-gradient-to-r from-red-500 to-pink-500 hover:from-red-600 hover:to-pink-600 text-white rounded-full shadow-lg shadow-red-500/20 hover:scale-105 transition-transform"
-                                  >
-                                    <X className="w-4 h-4 mr-2" />
-                                    Cancel
-                                  </Button>
-                                </>
-                              ) : (
-                                <Button
-                                  onClick={addNote}
-                                  className="bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white rounded-full shadow-lg shadow-green-500/20 hover:scale-105 transition-transform"
-                                >
-                                  <Send className="w-4 h-4 mr-2" />
-                                  Save Note
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-
-                        {/* Preview uploaded images */}
-                        {noteImages.length > 0 && (
-                          <div className="mt-2 grid grid-cols-2 gap-2">
-                            {noteImages.map((image, index) => (
-                              <div key={index} className="relative group">
-                                <img
-                                  src={image}
-                                  alt={`Uploaded image ${index + 1}`}
-                                  className="w-full h-32 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                                  onClick={() => setImagePreview(image)}
-                                />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  onClick={() => removeImage(index)}
-                                  className="absolute top-1 right-1 h-6 w-6 bg-red-500/80 text-white hover:bg-red-600 opacity-0 group-hover:opacity-100 transition-opacity"
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              {activeTab === 'code' && (
-                <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
-                  <CardHeader className="border-b border-gray-200 dark:border-slate-700 pb-4">
-                    <div className="flex items-center justify-between">
-                      <CardTitle className="text-xl dark:text-white flex items-center gap-2">
-                        <Code className="w-5 h-5" />
+                  {/* Features Section */}
+                  <div className="space-y-4">
+                    {/* Feature Toggles */}
+                    <div className="flex items-center justify-center gap-4">
+                      <Button
+                        onClick={() => setShowFloatingChat(!showFloatingChat)}
+                        className={`px-6 py-2 rounded-full shadow-lg transition-all duration-300 ${
+                          showFloatingChat
+                            ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
+                            : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
+                        }`}
+                      >
+                        <MessageSquare className="w-5 h-5 mr-2" />
+                        Chat Room
+                      </Button>
+                      <Button
+                        onClick={() => setShowFloatingNotes(!showFloatingNotes)}
+                        className={`px-6 py-2 rounded-full shadow-lg transition-all duration-300 ${
+                          showFloatingNotes
+                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
+                            : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
+                        }`}
+                      >
+                        <StickyNote className="w-5 h-5 mr-2" />
+                        Notes
+                      </Button>
+                      <Button
+                        onClick={() => setShowFloatingCode(!showFloatingCode)}
+                        className={`px-6 py-2 rounded-full shadow-lg transition-all duration-300 ${
+                          showFloatingCode
+                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
+                            : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
+                        }`}
+                      >
+                        <Code className="w-5 h-5 mr-2" />
                         Code IDE
-                      </CardTitle>
-                      <div className="flex items-center gap-2">
-                        <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-                          <SelectTrigger className="w-[120px]">
-                            <SelectValue placeholder="Language" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="javascript">JavaScript</SelectItem>
-                            <SelectItem value="typescript">TypeScript</SelectItem>
-                            <SelectItem value="python">Python</SelectItem>
-                            <SelectItem value="java">Java</SelectItem>
-                            <SelectItem value="cpp">C++</SelectItem>
-                            <SelectItem value="csharp">C#</SelectItem>
-                            <SelectItem value="php">PHP</SelectItem>
-                            <SelectItem value="ruby">Ruby</SelectItem>
-                            <SelectItem value="go">Go</SelectItem>
-                            <SelectItem value="rust">Rust</SelectItem>
-                            <SelectItem value="html">HTML</SelectItem>
-                            <SelectItem value="css">CSS</SelectItem>
-                            <SelectItem value="sql">SQL</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <Button
-                          onClick={handleExecuteCode}
-                          disabled={isExecuting}
-                          className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600"
-                        >
-                          {isExecuting ? (
-                            <>
-                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                              Running...
-                            </>
-                          ) : (
-                            <>
-                              <Play className="w-4 h-4 mr-2" />
-                              Run Code
-                            </>
-                          )}
-                        </Button>
-                      </div>
+                      </Button>
                     </div>
-                  </CardHeader>
-                  <CardContent className="p-0">
-                    <div className="grid grid-cols-2 gap-4 h-[600px]">
-                      {/* Code Editor */}
-                      <div className="h-full border-r border-gray-200 dark:border-slate-700">
-                        <Editor
-                          height="100%"
-                          defaultLanguage={selectedLanguage}
-                          language={selectedLanguage}
-                          value={currentFile?.content}
-                          onChange={(value) => {
-                            if (currentFile) {
-                              setCurrentFile({
-                                ...currentFile,
-                                content: value || ''
-                              });
-                            }
-                          }}
-                          theme={isDarkMode ? 'vs-dark' : 'light'}
-                          options={{
-                            minimap: { enabled: false },
-                            fontSize: 14,
-                            wordWrap: 'on',
-                            lineNumbers: 'on',
-                            scrollBeyondLastLine: false,
-                            automaticLayout: true
-                          }}
-                          onMount={(editor) => {
-                            editorRef.current = editor;
-                          }}
-                        />
-                      </div>
-                      
-                      {/* Output Panel */}
-                      <div className="h-full p-4 overflow-auto">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <h3 className="text-lg font-semibold dark:text-white">Output</h3>
-                            {executionResult && (
-                              <span className="text-sm text-gray-500 dark:text-gray-400">
-                                Execution time: {executionResult.executionTime.toFixed(2)}ms
-                              </span>
-                            )}
-                          </div>
-                          
-                          {executionResult ? (
-                            <div className="space-y-4">
-                              {/* Error Display */}
-                              {executionResult.error && (
-                                <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></div>
-                                    <h4 className="font-medium text-red-700 dark:text-red-400">Error</h4>
-                                  </div>
-                                  <pre className="text-red-600 dark:text-red-400 text-sm whitespace-pre-wrap font-mono">
-                                    {executionResult.error}
-                                  </pre>
-                                </div>
-                              )}
-
-                              {/* Console Output */}
-                              {executionResult.output && (
-                                <div className="p-4 bg-gray-50 dark:bg-slate-900/50 border border-gray-200 dark:border-slate-700 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                    <h4 className="font-medium text-gray-700 dark:text-gray-300">Console Output</h4>
-                                  </div>
-                                  <pre className="text-gray-800 dark:text-gray-200 text-sm whitespace-pre-wrap font-mono">
-                                    {executionResult.output}
-                                  </pre>
-                                </div>
-                              )}
-
-                              {/* Language-specific Output */}
-                              {['python', 'java', 'cpp', 'csharp', 'php', 'ruby', 'go', 'rust', 'sql', 'typescript'].includes(selectedLanguage) && (
-                                <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                                    <h4 className="font-medium text-blue-700 dark:text-blue-400">Code Execution</h4>
-                                  </div>
-                                  <div className="text-sm text-blue-600 dark:text-blue-400">
-                                    <p>Language: {selectedLanguage}</p>
-                                    <p>File: {currentFile?.name}</p>
-                                    {executionResult.error ? (
-                                      <p className="mt-2">Status: Failed ❌</p>
-                                    ) : (
-                                      <p className="mt-2">Status: Success ✅</p>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Live Preview for Web Code */}
-                              {(selectedLanguage === 'html' || selectedLanguage === 'css' || selectedLanguage === 'javascript') && (
-                                <div className="mt-4">
-                                  <div className="flex items-center gap-2 mb-2">
-                                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                                    <h4 className="font-medium text-purple-700 dark:text-purple-400">Live Preview</h4>
-                                  </div>
-                                  <div className="border border-gray-200 dark:border-slate-700 rounded-lg overflow-hidden">
-                                    <iframe
-                                      srcDoc={`
-                                        <!DOCTYPE html>
-                                        <html>
-                                          <head>
-                                            <style>
-                                              body { margin: 0; padding: 16px; font-family: system-ui, -apple-system, sans-serif; }
-                                              ${selectedLanguage === 'css' ? currentFile?.content : ''}
-                                            </style>
-                                          </head>
-                                          <body>
-                                            ${selectedLanguage === 'html' ? currentFile?.content : ''}
-                                            <script>
-                                              try {
-                                                ${selectedLanguage === 'javascript' ? currentFile?.content : ''}
-                                              } catch (error) {
-                                                console.error('JavaScript Error:', error);
-                                              }
-                                            </script>
-                                          </body>
-                                        </html>
-                                      `}
-                                      className="w-full h-[300px] bg-white"
-                                      sandbox="allow-scripts"
-                                    />
-                                  </div>
-                                </div>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="flex flex-col items-center justify-center h-[calc(100%-4rem)] text-gray-500 dark:text-gray-400">
-                              <div className="text-4xl mb-4">👨‍💻</div>
-                              <p className="text-center">
-                                Run your code to see the output here
-                                <br />
-                                <span className="text-sm mt-2 block">
-                                  {selectedLanguage === 'html' && 'HTML will be rendered in the preview'}
-                                  {selectedLanguage === 'css' && 'CSS will be applied to the preview'}
-                                  {selectedLanguage === 'javascript' && 'JavaScript will be executed in the preview'}
-                                  {['python', 'java', 'cpp', 'csharp', 'php', 'ruby', 'go', 'rust', 'sql', 'typescript'].includes(selectedLanguage) && 
-                                    'Code will be executed on the server'}
-                                </span>
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </div>
-
-            {/* Enhanced Navigation Controls */}
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
-              <CardContent className="p-6">
-                <div className="flex justify-between items-center">
-                  <Button
-                    onClick={goToPreviousVideo}
-                    disabled={currentVideoIndex === 0}
-                    variant="outline"
-                    className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200"
-                  >
-                    <SkipBack className="w-4 h-4 mr-2" />
-                    Previous
-                  </Button>
-                  
-                  <span className="text-sm text-gray-600 dark:text-slate-300 font-medium">
-                    {currentVideoIndex + 1} / {playlist.videos.length}
-                  </span>
-                  
-                  <Button
-                    onClick={goToNextVideo}
-                    disabled={currentVideoIndex === playlist.videos.length - 1}
-                    variant="outline"
-                    className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200"
-                  >
-                    Next
-                    <SkipForward className="w-4 h-4 ml-2" />
-                  </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Enhanced Playlist Sidebar */}
-          {showAllVideos && (
-            <div className="space-y-4">
-              {/* Uncompleted Videos */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Uncompleted Videos</h3>
-                  <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                    {uncompletedVideos.length}
-                  </Badge>
+          {/* Floating Feature Windows */}
+          {showFloatingChat && (
+            <div
+              className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 w-[400px] h-[500px] z-50"
+              style={{
+                left: `${chatWindowPosition.x}px`,
+                top: `${chatWindowPosition.y}px`,
+              }}
+            >
+              <div 
+                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 cursor-move"
+                onMouseDown={(e) => {
+                  const startX = e.clientX - chatWindowPosition.x;
+                  const startY = e.clientY - chatWindowPosition.y;
+
+                  const handleMouseMove = (e: MouseEvent) => {
+                    setChatWindowPosition({
+                      x: e.clientX - startX,
+                      y: e.clientY - startY
+                    });
+                  };
+
+                  const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                  };
+
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
+                }}
+              >
+                <h3 className="font-semibold text-gray-800 dark:text-white">Chat Room</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFloatingChat(false)}
+                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex flex-col h-[calc(100%-4rem)]">
+                <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="space-y-4">
+                    {filteredMessages.map((message) => (
+                      <div key={message.id} className="flex items-start gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                          {message.userId[0]}
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{message.username}</p>
+                          <p className="text-sm text-gray-600 dark:text-gray-300">{message.content}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                {uncompletedVideos.length === 0 ? (
-                  <div className="text-gray-600 dark:text-slate-400 text-sm">No uncompleted videos.</div>
-                ) : (
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="space-y-2">
-                      {uncompletedVideos.map((video) => {
-                        const originalIndex = playlist?.videos.findIndex(v => v.id === video.id) ?? -1;
-                        return (
-                          <div
-                            key={video.id}
-                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] ${
-                              originalIndex === currentVideoIndex 
-                                ? 'ring-2 ring-blue-500 dark:ring-blue-400' 
-                                : ''
-                            }`}
-                            onClick={() => selectVideo(originalIndex)}
-                          >
-                            <img 
-                              src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(video.url)}/mqdefault.jpg`}
-                              alt={`Video ${originalIndex + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div 
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                                    originalIndex === currentVideoIndex
-                                      ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                                      : 'bg-white/90 text-gray-700'
-                                  }`}
-                                >
-                                  {originalIndex === currentVideoIndex ? (
-                                    <Play className="w-4 h-4" />
-                                  ) : (
-                                    originalIndex + 1
-                                  )}
-                                </div>
-                              </div>
-                              {originalIndex === currentVideoIndex && (
-                                <div className="absolute top-2 right-2">
-                                  <Badge variant="outline" className="text-xs px-1 py-0 bg-white/90 dark:bg-slate-800/90 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700">
-                                    Now Playing
-                                  </Badge>
-                                </div>
-                              )}
-                            </div>
+                <div className="p-4 border-t border-gray-200 dark:border-slate-700">
+                  <div className="flex gap-2">
+                    <Input
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Type a message..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' && !e.shiftKey) {
+                          e.preventDefault();
+                          handleSendMessage();
+                        }
+                      }}
+                    />
+                    <Button onClick={handleSendMessage}>
+                      <Send className="w-5 h-5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showFloatingNotes && (
+            <div
+              className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 w-[400px] h-[500px] z-50"
+              style={{
+                left: `${notesWindowPosition.x}px`,
+                top: `${notesWindowPosition.y}px`,
+              }}
+            >
+              <div 
+                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 cursor-move"
+                onMouseDown={(e) => {
+                  const startX = e.clientX - notesWindowPosition.x;
+                  const startY = e.clientY - notesWindowPosition.y;
+
+                  const handleMouseMove = (e: MouseEvent) => {
+                    setNotesWindowPosition({
+                      x: e.clientX - startX,
+                      y: e.clientY - startY
+                    });
+                  };
+
+                  const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                  };
+
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
+                }}
+              >
+                <h3 className="font-semibold text-gray-800 dark:text-white">Notes</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFloatingNotes(false)}
+                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex flex-col h-[calc(100%-4rem)]">
+                <div className="flex-1 p-4 overflow-y-auto">
+                  <div className="space-y-4">
+                    {notes.map((note) => (
+                      <div key={note.id} className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                        <p className="text-sm text-gray-600 dark:text-gray-300">{note.content}</p>
+                        {note.images && note.images.length > 0 && (
+                          <div className="mt-2 flex gap-2 overflow-x-auto">
+                            {note.images.map((image, index) => (
+                              <img
+                                key={index}
+                                src={image}
+                                alt={`Note image ${index + 1}`}
+                                className="h-20 w-20 object-cover rounded"
+                              />
+                            ))}
                           </div>
-                        );
-                      })}
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="p-4 border-t border-gray-200 dark:border-slate-700">
+                  <div className="space-y-4">
+                    <div className="flex gap-2">
+                      <Input
+                        value={currentNote}
+                        onChange={(e) => setCurrentNote(e.target.value)}
+                        placeholder="Write a note..."
+                        onPaste={handlePaste}
+                      />
+                      <Button onClick={addNote}>
+                        <Save className="w-5 h-5 mr-2" />
+                        Save
+                      </Button>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageUpload}
+                        className="hidden"
+                        id="note-image-upload"
+                      />
+                      <Label
+                        htmlFor="note-image-upload"
+                        className="flex-1 cursor-pointer"
+                      >
+                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">
+                          <Image className="w-5 h-5" />
+                          <span>Add Images</span>
+                        </div>
+                      </Label>
                     </div>
                   </div>
-                )}
+                </div>
               </div>
+            </div>
+          )}
+
+          {showFloatingCode && (
+            <div
+              className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 w-[600px] h-[500px] z-50"
+              style={{
+                left: `${codeWindowPosition.x}px`,
+                top: `${codeWindowPosition.y}px`,
+              }}
+            >
+              <div 
+                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 cursor-move"
+                onMouseDown={(e) => {
+                  const startX = e.clientX - codeWindowPosition.x;
+                  const startY = e.clientY - codeWindowPosition.y;
+
+                  const handleMouseMove = (e: MouseEvent) => {
+                    setCodeWindowPosition({
+                      x: e.clientX - startX,
+                      y: e.clientY - startY
+                    });
+                  };
+
+                  const handleMouseUp = () => {
+                    document.removeEventListener('mousemove', handleMouseMove);
+                    document.removeEventListener('mouseup', handleMouseUp);
+                  };
+
+                  document.addEventListener('mousemove', handleMouseMove);
+                  document.addEventListener('mouseup', handleMouseUp);
+                }}
+              >
+                <h3 className="font-semibold text-gray-800 dark:text-white">Code IDE</h3>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowFloatingCode(false)}
+                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+              <div className="flex flex-col h-[calc(100%-4rem)]">
+                <div className="flex-1">
+                  <Editor
+                    height="100%"
+                    defaultLanguage="javascript"
+                    language={currentFile?.language || 'javascript'}
+                    value={currentFile?.content || ''}
+                    onChange={(value) => {
+                      if (currentFile) {
+                        setCurrentFile({
+                          ...currentFile,
+                          content: value || ''
+                        });
+                      }
+                    }}
+                    onMount={(editor) => {
+                      editorRef.current = editor;
+                    }}
+                    options={{
+                      minimap: { enabled: false },
+                      fontSize: 14,
+                      wordWrap: 'on',
+                      lineNumbers: 'on',
+                      scrollBeyondLastLine: false,
+                      automaticLayout: true,
+                      theme: isDarkMode ? 'vs-dark' : 'light'
+                    }}
+                  />
+                </div>
+                <div className="p-4 border-t border-gray-200 dark:border-slate-700">
+                  <div className="flex items-center justify-between">
+                    <Select
+                      value={currentFile?.language || 'javascript'}
+                      onValueChange={(value) => {
+                        if (currentFile) {
+                          setCurrentFile({
+                            ...currentFile,
+                            language: value
+                          });
+                        }
+                      }}
+                    >
+                      <SelectTrigger className="w-[140px]">
+                        <SelectValue placeholder="Language" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="javascript">JavaScript</SelectItem>
+                        <SelectItem value="typescript">TypeScript</SelectItem>
+                        <SelectItem value="python">Python</SelectItem>
+                        <SelectItem value="java">Java</SelectItem>
+                        <SelectItem value="cpp">C++</SelectItem>
+                        <SelectItem value="csharp">C#</SelectItem>
+                        <SelectItem value="php">PHP</SelectItem>
+                        <SelectItem value="ruby">Ruby</SelectItem>
+                        <SelectItem value="go">Go</SelectItem>
+                        <SelectItem value="rust">Rust</SelectItem>
+                        <SelectItem value="sql">SQL</SelectItem>
+                        <SelectItem value="html">HTML</SelectItem>
+                        <SelectItem value="css">CSS</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={handleExecuteCode}
+                      disabled={isExecuting}
+                      className="bg-green-600 hover:bg-green-700 text-white"
+                    >
+                      {isExecuting ? 'Running...' : 'Run Code'}
+                    </Button>
+                  </div>
+                  {executionResult && (
+                    <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
+                      <h4 className="font-medium mb-2">Output:</h4>
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {executionResult.output}
+                      </pre>
+                      {executionResult.error && (
+                        <>
+                          <h4 className="font-medium mt-4 mb-2 text-red-600">Error:</h4>
+                          <pre className="text-sm text-red-600 whitespace-pre-wrap">
+                            {executionResult.error}
+                          </pre>
+                        </>
+                      )}
+                      <p className="text-xs text-gray-500 mt-2">
+                        Execution time: {executionResult.executionTime.toFixed(2)}ms
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {showAllVideos && (
+            <div className="space-y-6">
+              {/* Uncompleted Videos */}
+              {uncompletedVideos.length > 0 && (
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Uncompleted Videos</h3>
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {uncompletedVideos.map((video, index) => (
+                      <div 
+                        key={video.id} 
+                        className="relative group cursor-pointer"
+                        onClick={() => selectVideo(playlist.videos.indexOf(video))}
+                      >
+                        <div className="relative aspect-video rounded-lg overflow-hidden">
+                          <img
+                            src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(video.url)}/mqdefault.jpg`}
+                            alt={video.title}
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                              <PlayCircle className="w-6 h-6 text-gray-900" />
+                            </div>
+                          </div>
+                          <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-blue-500" />
+                          <div className="absolute top-2 right-2 bg-black/70 text-white text-sm px-2 py-1 rounded-full">
+                            {playlist.videos.indexOf(video) + 1}/{playlist.videos.length}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Completed Videos */}
               {completedVideosList.length > 0 && (
-                <div className="space-y-3 mt-6 pt-6 border-t border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Completed Videos</h3>
-                    <Badge variant="outline" className="bg-white/70 dark:bg-slate-700/70 dark:text-slate-200 dark:border-slate-600">
-                      {completedVideosList.length}
-                    </Badge>
-                  </div>
-                  <div className="max-h-[calc(100vh-200px)] overflow-y-auto pr-2 custom-scrollbar">
-                    <div className="space-y-2">
-                      {completedVideosList.map((video) => {
-                        const originalIndex = playlist?.videos.findIndex(v => v.id === video.id) ?? -1;
-                        return (
-                          <div
-                            key={video.id}
-                            className={`relative aspect-video rounded-lg overflow-hidden cursor-pointer transition-all duration-300 hover:scale-[1.02] opacity-70 hover:opacity-100 ${
-                              originalIndex === currentVideoIndex ? 'ring-2 ring-blue-500 dark:ring-blue-400' : ''
-                            }`}
-                            onClick={() => selectVideo(originalIndex)}
-                          >
-                            <img 
-                              src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(video.url)}/mqdefault.jpg`}
-                              alt={`Video ${originalIndex + 1}`}
-                              className="w-full h-full object-cover"
-                            />
-                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent">
-                              <div className="absolute inset-0 flex items-center justify-center">
-                                <div 
-                                  className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-all ${
-                                    video.progress >= 100 
-                                      ? 'bg-green-600 dark:bg-green-700 text-white' 
-                                      : originalIndex === currentVideoIndex
-                                        ? 'bg-blue-600 dark:bg-blue-700 text-white'
-                                        : 'bg-white/90 text-gray-700'
-                                  }`}
-                                >
-                                  {video.progress >= 100 ? (
-                                    <CheckCircle className="w-5 h-5" />
-                                  ) : originalIndex === currentVideoIndex ? (
-                                    <Play className="w-4 h-4" />
-                                  ) : (
-                                    originalIndex + 1
-                                  )}
-                                </div>
-                              </div>
-                              {originalIndex === currentVideoIndex && (
-                                <div className="absolute top-2 right-2">
-                                  <Badge variant="outline" className="text-xs px-1 py-0 bg-white/90 dark:bg-slate-800/90 text-gray-700 dark:text-slate-200 border-gray-200 dark:border-slate-700">
-                                    Now Playing
-                                  </Badge>
-                                </div>
-                              )}
+                <div className="space-y-2">
+                  <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Completed Videos</h3>
+                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                    {completedVideosList.map((video, index) => (
+                      <div
+                        key={video.id}
+                        className="relative group cursor-pointer"
+                        onClick={() => selectVideo(playlist.videos.indexOf(video))}
+                      >
+                        <div className="relative aspect-video rounded-lg overflow-hidden">
+                          <img 
+                            src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(video.url)}/mqdefault.jpg`}
+                            alt={video.title}
+                            className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-300"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                            <div className="w-12 h-12 rounded-full bg-white/90 flex items-center justify-center transform group-hover:scale-110 transition-transform duration-300">
+                              <PlayCircle className="w-6 h-6 text-gray-900" />
                             </div>
                           </div>
-                        );
-                      })}
-                    </div>
+                          <div className="absolute bottom-2 left-2 w-2 h-2 rounded-full bg-green-500" />
+                          <div className="absolute top-2 right-2 bg-black/70 text-white text-sm px-2 py-1 rounded-full">
+                            {playlist.videos.indexOf(video) + 1}/{playlist.videos.length}
+                          </div>
+                          <div className="absolute top-2 left-2 bg-green-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md z-10">
+                            Completed
+                          </div>
+                          <button
+                            className="absolute bottom-2 right-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md z-10 hover:bg-red-700 transition-colors"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateVideoProgress(video.id, 0);
+                              toast.success('Video reset to uncompleted status.');
+                            }}
+                          >
+                            Reset
+                          </button>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
               )}
@@ -3320,412 +2890,6 @@ const VideoPlayer = () => {
           )}
         </div>
       </div>
-
-      {/* Enhanced Completion Dialog */}
-      <AlertDialog open={showCompletionDialog} onOpenChange={setShowCompletionDialog}>
-        <AlertDialogContent className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-sm border border-white/20 dark:border-slate-700/50">
-          <AlertDialogHeader>
-            <AlertDialogTitle className="text-xl font-semibold text-gray-900 dark:text-white flex items-center gap-2">
-              <CheckCircle className="w-6 h-6 text-green-500" />
-              All Videos Completed!
-            </AlertDialogTitle>
-            <AlertDialogDescription className="text-gray-600 dark:text-slate-300 mt-2">
-              Congratulations! You have completed all videos in this playlist.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="mt-4">
-            <Button
-              onClick={() => {
-                if (playlist?.id) {
-                  navigate(`/playlist/${playlist.id}`);
-                }
-              }}
-              className="w-full bg-blue-600 hover:bg-blue-700 text-white shadow-sm hover:shadow-md transition-all duration-200"
-            >
-              <List className="w-4 h-4 mr-2" />
-              Return to Playlist
-            </Button>
-          </div>
-          <AlertDialogFooter className="mt-4">
-            <AlertDialogCancel className="bg-gray-100 hover:bg-gray-200 dark:bg-slate-700 dark:hover:bg-slate-600 dark:text-slate-200">
-              Close
-            </AlertDialogCancel>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Image preview modal */}
-      {imagePreview && (
-        <div 
-          className="fixed inset-0 bg-black/80 flex items-center justify-center z-50"
-          onClick={() => setImagePreview(null)}
-        >
-          <div className="relative max-w-4xl max-h-[90vh] p-4">
-            <img
-              src={imagePreview}
-              alt="Preview"
-              className="max-w-full max-h-[80vh] object-contain"
-            />
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setImagePreview(null)}
-              className="absolute top-2 right-2 h-8 w-8 bg-white/20 text-white hover:bg-white/30"
-            >
-              <X className="w-4 h-4" />
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* Note Popup */}
-      {showNotePopup && selectedNote && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-slate-800 rounded-xl p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto relative animate-fade-in">
-            <div className="absolute top-4 right-4 flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={toggleDarkMode}
-                className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-              >
-                {isDarkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => {
-                  setShowNotePopup(false);
-                  setIsEditingInPopup(false);
-                  setPopupNoteContent('');
-                  setPopupNoteImages([]);
-                  setPopupNoteTags([]);
-                  setPopupNoteColor('#ffffff');
-                }}
-                className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-              >
-                <X className="w-4 h-4" />
-              </Button>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-500 dark:text-gray-400">
-                  {new Date(selectedNote.timestamp).toLocaleString()}
-                </span>
-                <div className="flex gap-2">
-                  {!isEditingInPopup ? (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => startEditingInPopup(selectedNote)}
-                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleFloatingNote(selectedNote)}
-                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      >
-                        <Maximize2 className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => exportNoteAsPDF(selectedNote)}
-                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      >
-                        <Download className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => generateFlashcards(selectedNote)}
-                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                      >
-                        <FileText className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          deleteNote(selectedNote.id);
-                          setShowNotePopup(false);
-                        }}
-                        className="h-8 w-8 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={saveEditedNoteFromPopup}
-                        className="h-8 w-8 hover:bg-green-50 dark:hover:bg-green-900/20 text-green-500"
-                      >
-                        <Save className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setIsEditingInPopup(false);
-                          setPopupNoteContent('');
-                          setPopupNoteImages([]);
-                          setPopupNoteTags([]);
-                          setPopupNoteColor('#ffffff');
-                        }}
-                        className="h-8 w-8 hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {isEditingInPopup ? (
-                <div className="space-y-4">
-                  <textarea
-                    value={popupNoteContent}
-                    onChange={(e) => setPopupNoteContent(e.target.value)}
-                    placeholder="Edit your note..."
-                    className="w-full bg-transparent border border-gray-200 dark:border-slate-700 rounded-lg p-3 focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 resize-none"
-                    rows={5}
-                  />
-                  
-                  {/* Voice-to-Text Button */}
-                  <Button
-                    variant="outline"
-                    onClick={isRecordingVoice ? stopVoiceRecording : startVoiceRecording}
-                    className={`w-full ${isRecordingVoice ? 'bg-red-500 text-white' : ''}`}
-                  >
-                    <Volume2 className="w-4 h-4 mr-2" />
-                    {isRecordingVoice ? 'Stop Recording' : 'Start Voice Recording'}
-                  </Button>
-
-                  {/* Tag Management */}
-                  <div className="space-y-2">
-                    <Label>Tags</Label>
-                    <div className="flex flex-wrap gap-2">
-                      {popupNoteTags.map(tag => (
-                        <Badge key={tag} variant="secondary" className="flex items-center gap-1">
-                          {tag}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removePopupTag(tag)}
-                            className="h-4 w-4 hover:bg-transparent"
-                          >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </Badge>
-                      ))}
-                    </div>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className="w-full">
-                          <Tag className="w-4 h-4 mr-2" />
-                          Add Tag
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-80">
-                        <Command>
-                          <CommandInput placeholder="Search tags..." />
-                          <CommandEmpty>No tags found.</CommandEmpty>
-                          <CommandGroup>
-                            {availableTags.map(tag => (
-                              <CommandItem
-                                key={tag}
-                                onSelect={() => addPopupTag(tag)}
-                              >
-                                {tag}
-                              </CommandItem>
-                            ))}
-                          </CommandGroup>
-                        </Command>
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-
-                  {/* Image upload in popup */}
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handlePopupImageUpload}
-                      className="hidden"
-                      id="popup-image-upload"
-                    />
-                    <label htmlFor="popup-image-upload">
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-600"
-                        disabled={isUploading}
-                      >
-                        {isUploading ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-gray-900 dark:border-white" />
-                        ) : (
-                          <Image className="w-4 h-4" />
-                        )}
-                      </Button>
-                    </label>
-
-                    {/* Color picker in popup */}
-                    <input
-                      type="color"
-                      value={popupNoteColor}
-                      onChange={(e) => setPopupNoteColor(e.target.value)}
-                      className="h-8 w-8 rounded cursor-pointer"
-                    />
-                  </div>
-
-                  {/* Preview uploaded images */}
-                  {popupNoteImages.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {popupNoteImages.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image}
-                            alt={`Uploaded image ${index + 1}`}
-                            className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setImagePreview(image)}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => removePopupImage(index)}
-                            className="absolute top-2 right-2 h-6 w-6 bg-red-500/80 text-white hover:bg-red-600"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <>
-                  <p className="text-gray-800 dark:text-gray-200 whitespace-pre-wrap">
-                    {selectedNote.content}
-                  </p>
-
-                  {/* Display images if any */}
-                  {selectedNote.images && selectedNote.images.length > 0 && (
-                    <div className="grid grid-cols-2 gap-4">
-                      {selectedNote.images.map((image, index) => (
-                        <div key={index} className="relative group">
-                          <img
-                            src={image}
-                            alt={`Note image ${index + 1}`}
-                            className="w-full h-48 object-cover rounded-lg cursor-pointer hover:opacity-90 transition-opacity"
-                            onClick={() => setImagePreview(image)}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Display tags if any */}
-                  {selectedNote.tags && selectedNote.tags.length > 0 && (
-                    <div className="flex flex-wrap gap-2">
-                      {selectedNote.tags.map((tag, index) => (
-                        <Badge key={index} variant="secondary">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  )}
-
-                  {/* Display flashcards if any */}
-                  {selectedNote.flashcards && selectedNote.flashcards.length > 0 && (
-                    <div className="mt-4">
-                      <h3 className="text-lg font-semibold mb-2">Flashcards</h3>
-                      <div className="space-y-4">
-                        {selectedNote.flashcards.map((flashcard) => (
-                          <div
-                            key={flashcard.id}
-                            className="relative aspect-[2/1] cursor-pointer perspective-1000"
-                            onClick={() => setIsFlipped(!isFlipped)}
-                          >
-                            <div
-                              className={`absolute w-full h-full transition-transform duration-500 transform-style-3d ${
-                                isFlipped ? 'rotate-y-180' : ''
-                              }`}
-                            >
-                              <div className="absolute w-full h-full backface-hidden bg-white dark:bg-slate-700 rounded-lg p-4 shadow-lg">
-                                <p className="text-lg font-medium">{flashcard.front}</p>
-                              </div>
-                              <div className="absolute w-full h-full backface-hidden bg-white dark:bg-slate-700 rounded-lg p-4 shadow-lg rotate-y-180">
-                                <p className="text-lg font-medium">{flashcard.back}</p>
-                              </div>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="text-sm text-gray-500 dark:text-gray-400">
-                    {selectedNote.videoTitle}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Floating Notes */}
-      {notes.filter(note => note.isFloating).map(note => (
-        <div
-          key={note.id}
-          className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-lg p-4 w-80 z-50 cursor-move"
-          style={{
-            left: note.position?.x || 100,
-            top: note.position?.y || 100,
-          }}
-          onMouseDown={(e) => {
-            const startX = e.clientX - (note.position?.x || 0);
-            const startY = e.clientY - (note.position?.y || 0);
-
-            const handleMouseMove = (e: MouseEvent) => {
-              moveFloatingNote(note.id, e.clientX - startX, e.clientY - startY);
-            };
-
-            const handleMouseUp = () => {
-              document.removeEventListener('mousemove', handleMouseMove);
-              document.removeEventListener('mouseup', handleMouseUp);
-            };
-
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-          }}
-        >
-          <div className="flex justify-between items-start mb-2">
-            <h3 className="font-medium">{note.videoTitle}</h3>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => toggleFloatingNote(note)}
-              className="h-6 w-6"
-            >
-              <Minimize2 className="w-4 h-4" />
-            </Button>
-          </div>
-          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-3">
-            {note.content}
-          </p>
-        </div>
-      ))}
     </div>
   );
 };

@@ -62,14 +62,81 @@ const Index = () => {
       try {
         setIsLoading(true);
         const savedPlaylists = localStorage.getItem('youtubePlaylists');
+        console.log('Loaded playlists from localStorage:', savedPlaylists);
+        
         if (savedPlaylists) {
           const parsedPlaylists = JSON.parse(savedPlaylists) as Playlist[];
+          console.log('Parsed playlists:', parsedPlaylists);
           setPlaylists(parsedPlaylists);
           calculateStats(parsedPlaylists);
         } else {
-          // Initialize with empty state
-          setPlaylists([]);
-          calculateStats([]);
+          console.log('No saved playlists found, initializing with sample data');
+          // Initialize with sample data for testing
+          const samplePlaylists: Playlist[] = [
+            {
+              id: '1',
+              title: 'Sample Video Playlist',
+              description: 'A sample video playlist',
+              type: 'video',
+              videos: [
+                {
+                  id: 'v1',
+                  title: 'Video 1',
+                  url: 'https://youtube.com/watch?v=1',
+                  progress: 100,
+                  watchTime: 30,
+                  completedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
+                },
+                {
+                  id: 'v2',
+                  title: 'Video 2',
+                  url: 'https://youtube.com/watch?v=2',
+                  progress: 100,
+                  watchTime: 45,
+                  completedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+                }
+              ],
+              createdAt: new Date().toISOString()
+            },
+            {
+              id: '2',
+              title: 'Sample Coding Playlist',
+              description: 'A sample coding playlist',
+              type: 'coding',
+              videos: [], // Required empty array for coding playlist
+              codingQuestions: [
+                {
+                  id: 'q1',
+                  title: 'Question 1',
+                  description: 'Sample question 1',
+                  difficulty: 'easy',
+                  category: 'algorithms',
+                  solved: true,
+                  timeSpent: 30,
+                  dateSolved: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+                  dateAdded: new Date().toISOString(),
+                  attempts: 1
+                },
+                {
+                  id: 'q2',
+                  title: 'Question 2',
+                  description: 'Sample question 2',
+                  difficulty: 'medium',
+                  category: 'data-structures',
+                  solved: true,
+                  timeSpent: 45,
+                  dateSolved: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+                  dateAdded: new Date().toISOString(),
+                  attempts: 2
+                }
+              ],
+              createdAt: new Date().toISOString()
+            }
+          ];
+          console.log('Setting sample playlists:', samplePlaylists);
+          setPlaylists(samplePlaylists);
+          calculateStats(samplePlaylists);
+          localStorage.setItem('youtubePlaylists', JSON.stringify(samplePlaylists));
         }
       } catch (error) {
         console.error('Error loading playlists:', error);

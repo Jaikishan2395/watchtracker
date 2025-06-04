@@ -19,6 +19,7 @@ import Library from "./pages/Library";
 import { SettingsPage } from "./pages/SettingsPage";
 import AllQuestions from "./pages/AllQuestions";
 import Todo from "./pages/Todo";
+import Pomodoro from "./pages/Pomodoro";
 import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
 import { loadQuestionsFromFile } from './utils/loadQuestions';
@@ -56,6 +57,7 @@ const AppContent = () => {
             <Route path="/library" element={<Library />} />
             <Route path="/all-questions" element={<AllQuestions />} />
             <Route path="/todo" element={<Todo />} />
+            <Route path="/pomodoro" element={<Pomodoro />} />
             <Route 
               path="/playlist/:playlistId" 
               element={<PlaylistDetailWrapper />} 

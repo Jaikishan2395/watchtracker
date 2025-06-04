@@ -25,42 +25,35 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
 
   useEffect(() => {
     const generateProgressData = () => {
-      if (!playlists || playlists.length === 0) {
-        setProgressData([]);
-        return;
-      }
-
+      console.log('Generating progress data with playlists:', playlists);
       const data: ProgressData[] = [];
       const now = new Date();
-      let days = 7;
-      let interval = 'day';
-
-      switch (timeRange) {
-        case 'week':
-          days = 7;
-          interval = 'day';
-          break;
-        case 'month':
-          days = 30;
-          interval = 'day';
-          break;
-        case 'year':
-          days = 12;
-          interval = 'month';
-          break;
-      }
-
-      // Create date range
       const dateRange: Date[] = [];
-      for (let i = days - 1; i >= 0; i--) {
-        const date = new Date();
-        if (interval === 'day') {
+      const interval = timeRange === 'week' ? 'day' : 'month';
+
+      // Generate date range based on selected time range
+      if (timeRange === 'week') {
+        for (let i = 6; i >= 0; i--) {
+          const date = new Date(now);
           date.setDate(date.getDate() - i);
-        } else {
-          date.setMonth(date.getMonth() - i);
+          dateRange.push(date);
         }
-        dateRange.push(date);
+      } else if (timeRange === 'month') {
+        for (let i = 29; i >= 0; i--) {
+          const date = new Date(now);
+          date.setDate(date.getDate() - i);
+          dateRange.push(date);
+        }
+      } else {
+        // Year view - show last 12 months
+        for (let i = 11; i >= 0; i--) {
+          const date = new Date(now);
+          date.setMonth(date.getMonth() - i);
+          dateRange.push(date);
+        }
       }
+
+      console.log('Date range generated:', dateRange);
 
       // Process data for each date
       dateRange.forEach(date => {
@@ -76,8 +69,10 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
         playlists.forEach(playlist => {
           if (Array.isArray(playlist.videos)) {
             playlist.videos.forEach(video => {
-              if (video.completedAt) {
-                const completedDate = new Date(video.completedAt);
+              // Check if video is completed (progress = 100)
+              if (video.progress === 100) {
+                // Use current date for completed videos since we don't have completedAt
+                const completedDate = new Date();
                 if (interval === 'day' && completedDate.toDateString() === date.toDateString()) {
                   videosCompleted++;
                   watchTime += video.watchTime || 0;
@@ -93,8 +88,9 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
 
           if (playlist.type === 'coding' && Array.isArray(playlist.codingQuestions)) {
             playlist.codingQuestions.forEach(question => {
-              if (question.dateSolved) {
-                const solvedDate = new Date(question.dateSolved);
+              if (question.solved) {
+                // Use current date for solved questions since we don't have dateSolved
+                const solvedDate = new Date();
                 if (interval === 'day' && solvedDate.toDateString() === date.toDateString()) {
                   questionsSolved++;
                   codingTime += question.timeSpent || 0;
@@ -118,11 +114,15 @@ const ProgressTabs = ({ playlists }: ProgressTabsProps) => {
         });
       });
 
+      console.log('Processed progress data:', data);
       setProgressData(data);
     };
 
     generateProgressData();
   }, [playlists, timeRange]);
+
+  // Add console log for the final data being used in charts
+  console.log('Current progress data for charts:', progressData);
 
   const totalVideos = progressData.reduce((sum, day) => sum + day.videosCompleted, 0);
   const totalQuestions = progressData.reduce((sum, day) => sum + day.questionsSolved, 0);
