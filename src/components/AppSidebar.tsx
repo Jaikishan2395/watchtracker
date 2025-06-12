@@ -1,4 +1,4 @@
-import { Home, User, Code, LogIn, Library, Settings, ListChecks, CheckSquare } from 'lucide-react';
+import { Home, User, Code, LogIn, Library, Settings, ListChecks, CheckSquare, Crown } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Sidebar,
@@ -34,6 +34,11 @@ const menuItems = [
     title: 'To-Do',
     url: '/todo',
     icon: CheckSquare,
+  },
+  {
+    title: 'Premium',
+    url: '/premium',
+    icon: Crown,
   },
   {
     title: 'Profile',

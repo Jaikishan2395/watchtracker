@@ -7,7 +7,7 @@ export interface Video {
   watchTime: number; // Duration in minutes
   thumbnail?: string;
   dateCompleted?: string; // ISO date string when video was completed
-  contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'; // Type of video content
+  contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'live-stream' | 'masterclass' | 'bootcamp' | 'seminar' | 'q&a' | 'review' | 'movie' | 'tv-show' | 'anime' | 'gaming' | 'music' | 'comedy' | 'vlog' | 'reaction' | 'other'; // Type of video content
   completedAt?: string;
 }
 
@@ -70,7 +70,8 @@ export interface Playlist {
   title: string;
   description: string;
   type: 'video' | 'coding';
-  contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'other'; // Type of content in the playlist
+  thumbnail?: string; // Optional thumbnail URL
+  contentType?: 'course' | 'tutorial' | 'lecture' | 'workshop' | 'interview' | 'documentary' | 'conference' | 'webinar' | 'podcast' | 'coding-tutorial' | 'project-walkthrough' | 'tech-talk' | 'live-stream' | 'masterclass' | 'bootcamp' | 'seminar' | 'q&a' | 'review' | 'movie' | 'tv-show' | 'anime' | 'gaming' | 'music' | 'comedy' | 'vlog' | 'reaction' | 'other'; // Type of content in the playlist
   videos: Video[];
   codingQuestions?: CodingQuestion[];
   createdAt: string;
@@ -86,6 +87,12 @@ export interface Playlist {
   }[];
   isPublic?: boolean;
   ownerId?: string;
+  timeLock?: {
+    enabled: boolean;
+    startTime: string; // Format: "HH:mm" (24-hour)
+    endTime: string;   // Format: "HH:mm" (24-hour)
+    days: number[];    // Array of days (0-6, where 0 is Sunday)
+  };
 }
 
 export interface PlaylistData {
@@ -103,3 +110,32 @@ export interface PlaylistData {
   currentStreak: number;
   longestStreak: number;
 }
+export type ContentType = 
+  | 'course'
+  | 'tutorial'
+  | 'lecture'
+  | 'workshop'
+  | 'interview'
+  | 'documentary'
+  | 'conference'
+  | 'webinar'
+  | 'podcast'
+  | 'coding-tutorial'
+  | 'project-walkthrough'
+  | 'tech-talk'
+  | 'live-stream'
+  | 'masterclass'
+  | 'bootcamp'
+  | 'seminar'
+  | 'q&a'
+  | 'review'
+  | 'movie'
+  | 'tv-show'
+  | 'anime'
+  | 'gaming'
+  | 'music'
+  | 'comedy'
+  | 'vlog'
+  | 'reaction'
+  | 'other';
+

@@ -127,45 +127,125 @@ const Library = () => {
   const videoPlaylists = playlists.filter(playlist => playlist.type === 'video');
   const codingPlaylists = playlists.filter(playlist => playlist.type === 'coding');
 
-  const markAsComplete = () => {
-    // ... other code ...
-    const videoToStore: CompletedVideo = {
-      id: currentVideo.id,
-      title: currentVideo.title,
-      playlistId: playlist.id,
-      playlistTitle: playlist.title,
-      completedAt: new Date().toISOString(),
-      watchTime: watchTimeData.totalWatchTime  // Store total watch time with completion
-    };
-    // ... other code ...
-  };
-
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
       theme === 'dark' 
-        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900' 
+        ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950' 
         : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100'
     }`}>
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
-          <Button
-            onClick={() => setIsModalOpen(true)}
-            className={`relative overflow-hidden group transition-all duration-300 ${
-              theme === 'dark'
-                ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-            } text-white shadow-lg hover:shadow-xl`}
-          >
-            <span className="relative z-10 flex items-center">
-              <Plus className="w-4 h-4 mr-2 transition-transform group-hover:rotate-90 duration-300" />
-              Add Content
-            </span>
-            <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          </Button>
+      <div className="container mx-auto px-4">
+        <div className="flex flex-col">
+          {playlists.length > 0 && (
+            <div className="flex flex-col">
+              <div className="flex flex-col">
+                <div className="flex justify-end mb-2">
+                  <Button
+                    onClick={() => setIsModalOpen(true)}
+                    className={`relative overflow-hidden group transition-all duration-300 ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
+                        : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
+                    } text-white shadow-lg hover:shadow-xl h-9 px-4`}
+                  >
+                    <span className="relative z-10 flex items-center">
+                      <Plus className="w-4 h-4 mr-2 transition-transform group-hover:rotate-90 duration-300" />
+                      Add Content
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </Button>
+                </div>
+
+                <div className="flex justify-center">
+                  <Tabs defaultValue="all" className="w-[600px]">
+                    <TabsList className={`w-full ${
+                      theme === 'dark'
+                        ? 'bg-slate-800/40 backdrop-blur-md border border-slate-700/30'
+                        : 'bg-white/60 backdrop-blur-md border border-gray-200/30'
+                    } transition-all duration-300 rounded-2xl shadow-lg p-1`}>
+                      <TabsTrigger 
+                        value="all"
+                        className={`${
+                          theme === 'dark'
+                            ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/80 data-[state=active]:to-purple-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg'
+                            : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/90 data-[state=active]:to-purple-500/90 data-[state=active]:text-white data-[state=active]:shadow-lg'
+                        } transition-all duration-300 rounded-xl px-4 py-2 font-medium hover:bg-white/10 text-gray-600 dark:text-gray-300 flex-1 relative overflow-hidden group`}
+                      >
+                        <span className="relative z-10">All Content</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="videos"
+                        className={`${
+                          theme === 'dark'
+                            ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/80 data-[state=active]:to-purple-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg'
+                            : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/90 data-[state=active]:to-purple-500/90 data-[state=active]:text-white data-[state=active]:shadow-lg'
+                        } transition-all duration-300 rounded-xl px-4 py-2 font-medium hover:bg-white/10 text-gray-600 dark:text-gray-300 flex-1 relative overflow-hidden group`}
+                      >
+                        <span className="relative z-10">Video Playlists</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="coding"
+                        className={`${
+                          theme === 'dark'
+                            ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/80 data-[state=active]:to-purple-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg'
+                            : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/90 data-[state=active]:to-purple-500/90 data-[state=active]:text-white data-[state=active]:shadow-lg'
+                        } transition-all duration-300 rounded-xl px-4 py-2 font-medium hover:bg-white/10 text-gray-600 dark:text-gray-300 flex-1 relative overflow-hidden group`}
+                      >
+                        <span className="relative z-10">Coding Practice</span>
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="all" className="mt-4">
+                      <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                        {playlists.map((playlist, index) => (
+                          <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300">
+                            <PlaylistCard
+                              playlist={playlist}
+                              onDelete={deletePlaylist}
+                              delay={index * 100}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="videos" className="mt-4">
+                      <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                        {videoPlaylists.map((playlist, index) => (
+                          <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300">
+                            <PlaylistCard
+                              playlist={playlist}
+                              onDelete={deletePlaylist}
+                              delay={index * 100}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                    
+                    <TabsContent value="coding" className="mt-4">
+                      <div className="grid grid-cols-1 gap-6 max-w-4xl mx-auto">
+                        {codingPlaylists.map((playlist, index) => (
+                          <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300">
+                            <PlaylistCard
+                              playlist={playlist}
+                              onDelete={deletePlaylist}
+                              delay={index * 100}
+                            />
+                          </div>
+                        ))}
+                      </div>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Playlists with Tabs */}
-        {playlists.length === 0 ? (
+        {playlists.length === 0 && (
           <Card className={`${
             theme === 'dark'
               ? 'bg-slate-800/50 backdrop-blur-sm border-slate-700'
@@ -205,87 +285,6 @@ const Library = () => {
               </div>
             </CardContent>
           </Card>
-        ) : (
-          <Tabs defaultValue="all" className="space-y-6">
-            <TabsList className={`${
-              theme === 'dark'
-                ? 'bg-slate-800/50 backdrop-blur-sm border-slate-700'
-                : 'bg-white/70 backdrop-blur-sm'
-            } transition-colors duration-300`}>
-              <TabsTrigger 
-                value="all"
-                className={`${
-                  theme === 'dark'
-                    ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-white'
-                    : 'data-[state=active]:bg-white data-[state=active]:text-gray-900'
-                } transition-colors duration-300`}
-              >
-                All Content
-              </TabsTrigger>
-              <TabsTrigger 
-                value="videos"
-                className={`${
-                  theme === 'dark'
-                    ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-white'
-                    : 'data-[state=active]:bg-white data-[state=active]:text-gray-900'
-                } transition-colors duration-300`}
-              >
-                Video Playlists
-              </TabsTrigger>
-              <TabsTrigger 
-                value="coding"
-                className={`${
-                  theme === 'dark'
-                    ? 'data-[state=active]:bg-slate-700 data-[state=active]:text-white'
-                    : 'data-[state=active]:bg-white data-[state=active]:text-gray-900'
-                } transition-colors duration-300`}
-              >
-                Coding Practice
-              </TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="all" className="space-y-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {playlists.map((playlist, index) => (
-                  <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300">
-                    <PlaylistCard
-                      playlist={playlist}
-                      onDelete={deletePlaylist}
-                      delay={index * 100}
-                    />
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="videos" className="space-y-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {videoPlaylists.map((playlist, index) => (
-                  <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300">
-                    <PlaylistCard
-                      playlist={playlist}
-                      onDelete={deletePlaylist}
-                      delay={index * 100}
-                    />
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="coding" className="space-y-0">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {codingPlaylists.map((playlist, index) => (
-                  <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300">
-                    <PlaylistCard
-                      playlist={playlist}
-                      onDelete={deletePlaylist}
-                      delay={index * 100}
-                    />
-                  </div>
-                ))}
-              </div>
-            </TabsContent>
-          </Tabs>
         )}
 
         <AddPlaylistModal

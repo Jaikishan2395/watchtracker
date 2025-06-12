@@ -73,7 +73,14 @@ const VideoCard = ({ video, onProgressUpdate, delay, index }: VideoCardProps) =>
   const formatScheduledTime = (scheduledTime: string) => {
     if (!scheduledTime) return '';
     const date = new Date(scheduledTime);
-    return date.toLocaleString();
+    return date.toLocaleString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    });
   };
 
   const handleSaveProgress = () => {

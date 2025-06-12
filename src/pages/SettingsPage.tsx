@@ -81,33 +81,6 @@ export function SettingsPage() {
     motivation: ''
   });
 
-  const [socialMedia, setSocialMedia] = useState<{
-    [key: string]: {
-      connected: boolean;
-      username: string;
-      shareProgress: boolean;
-      shareAchievements: boolean;
-    };
-  }>({
-    twitter: { connected: false, username: '', shareProgress: true, shareAchievements: true },
-    linkedin: { connected: false, username: '', shareProgress: true, shareAchievements: true },
-    github: { connected: false, username: '', shareProgress: true, shareAchievements: true },
-    instagram: { connected: false, username: '', shareProgress: true, shareAchievements: false },
-    facebook: { connected: false, username: '', shareProgress: true, shareAchievements: false },
-    youtube: { connected: false, username: '', shareProgress: true, shareAchievements: true },
-  });
-
-  const [showProfileInput, setShowProfileInput] = useState({
-    twitter: false,
-    linkedin: false,
-    github: false,
-    instagram: false,
-    facebook: false,
-    youtube: false,
-  });   
-      
-
-
   const resetAllData = () => {
     localStorage.removeItem('youtubePlaylists');
     toast.success('All data has been reset!');
@@ -128,63 +101,6 @@ export function SettingsPage() {
     { value: "PST", label: "Pacific Time (PST)" },
     { value: "GMT", label: "Greenwich Mean Time (GMT)" },
   ];
-
-  const validateProfileUrl = (platform: string, url: string): boolean => {
-    const urlPatterns = {
-      twitter: /^https?:\/\/(www\.)?twitter\.com\/[A-Za-z0-9_]+$/,
-      linkedin: /^https?:\/\/(www\.)?linkedin\.com\/(in|company)\/[A-Za-z0-9-]+$/,
-      github: /^https?:\/\/(www\.)?github\.com\/[A-Za-z0-9-]+$/,
-      instagram: /^https?:\/\/(www\.)?instagram\.com\/[A-Za-z0-9_]+$/,
-      facebook: /^https?:\/\/(www\.)?facebook\.com\/[A-Za-z0-9.]+$/,
-      youtube: /^https?:\/\/(www\.)?youtube\.com\/(@|channel\/)[A-Za-z0-9-]+$/,
-    };
-
-    return urlPatterns[platform as keyof typeof urlPatterns].test(url);
-  };
-
-  const handleConnect = (platform: string) => {
-    const profileUrl = socialMedia[platform as keyof typeof socialMedia].username;
-    
-    if (!profileUrl) {
-      toast.error(`Please enter a valid ${platform} profile URL`);
-      return;
-    }
-
-    if (!validateProfileUrl(platform, profileUrl)) {
-      toast.error(`Please enter a valid ${platform} profile URL`);
-      return;
-    }
-
-    setSocialMedia(prev => ({
-      ...prev,
-      [platform]: { ...prev[platform as keyof typeof prev], connected: true }
-    }));
-    setShowProfileInput(prev => ({
-      ...prev,
-      [platform]: false
-    }));
-    toast.success(`Successfully connected to ${platform}`);
-  };
-
-  const handleDisconnect = (platform: string) => {
-    setSocialMedia(prev => ({
-      ...prev,
-      [platform]: { ...prev[platform as keyof typeof prev], connected: false, username: '' }
-    }));
-    toast.success(`Disconnected from ${platform}`);
-  };
-
-  const getProfileUrlPlaceholder = (platform: string): string => {
-    const placeholders = {
-      twitter: "https://twitter.com/username",
-      linkedin: "https://linkedin.com/in/username",
-      github: "https://github.com/username",
-      instagram: "https://instagram.com/username",
-      facebook: "https://facebook.com/username",
-      youtube: "https://youtube.com/@channelname",
-    };
-    return placeholders[platform as keyof typeof placeholders];
-  };
 
   const handleNextStep = () => {
     setFeedback(prev => ({
@@ -276,64 +192,29 @@ export function SettingsPage() {
 
   // Add data management functions
   const clearAllData = () => {
-    if (window.confirm('Are you sure you want to clear all data? This cannot be undone.')) {
-      localStorage.removeItem('todos');
-      localStorage.removeItem('categories');
-      toast.success('All data has been cleared!');
-    }
-  };
-
-  const exportData = () => {
-    const todos = JSON.parse(localStorage.getItem('todos') || '[]');
-    const categories = JSON.parse(localStorage.getItem('categories') || '[]');
+    // Clear all relevant localStorage items
+    localStorage.removeItem('todos');
+    localStorage.removeItem('categories');
+    localStorage.removeItem('youtubePlaylists');
+    localStorage.removeItem('userPreferences');
+    localStorage.removeItem('notifications');
+    localStorage.removeItem('focusSettings');
+    localStorage.removeItem('shortcuts');
+    localStorage.removeItem('backupSettings');
+    localStorage.removeItem('privacySettings');
     
-    const data = {
-      version: DATA_VERSION,
-      todos,
-      categories,
-      lastModified: new Date().toISOString()
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `todo-backup-${new Date().toISOString().split('T')[0]}.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-    toast.success('Data exported successfully!');
-  };
-
-  const importData = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        try {
-          const data = JSON.parse(e.target?.result as string);
-          if (data.todos && data.categories) {
-            const parsedTodos = data.todos.map((todo: ParsedTodo) => ({
-              ...todo,
-              createdAt: new Date(todo.createdAt),
-              updatedAt: new Date(todo.updatedAt),
-              dueDate: todo.dueDate ? new Date(todo.dueDate) : undefined
-            }));
-            const parsedCategories = data.categories.map((category: ParsedCategory) => ({
-              ...category,
-              createdAt: new Date(category.createdAt)
-            }));
-            localStorage.setItem('todos', JSON.stringify(parsedTodos));
-            localStorage.setItem('categories', JSON.stringify(parsedCategories));
-            toast.success('Data imported successfully!');
-          }
-        } catch (error) {
-          toast.error('Error importing data. Please make sure the file is valid.');
-        }
-      };
-      reader.readAsText(file);
-    }
+    // Clear any other app-specific data
+    localStorage.removeItem('appState');
+    localStorage.removeItem('userSettings');
+    localStorage.removeItem('theme');
+    localStorage.removeItem('language');
+    localStorage.removeItem('timezone');
+    
+    // Show success message
+    toast.success('All data has been cleared successfully!');
+    
+    // Optionally refresh the page to ensure clean state
+    window.location.reload();
   };
 
   return (
@@ -344,7 +225,6 @@ export function SettingsPage() {
           <TabsTrigger value="general">General</TabsTrigger>
           <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
-          <TabsTrigger value="social">Social Media</TabsTrigger>
           <TabsTrigger value="focus">Focus Mode</TabsTrigger>
           <TabsTrigger value="shortcuts">Shortcuts</TabsTrigger>
           <TabsTrigger value="backup">Backup & Sync</TabsTrigger>
@@ -879,117 +759,6 @@ export function SettingsPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="social">
-          <Card>
-            <CardHeader>
-              <CardTitle>Social Media Integration</CardTitle>
-              <CardDescription>
-                Connect your social media accounts to share your progress
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              {Object.entries(socialMedia).map(([platform, data]) => (
-                <div key={platform} className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      {platform === 'twitter' && <Icons.Twitter className="w-5 h-5" />}
-                      {platform === 'linkedin' && <Icons.Linkedin className="w-5 h-5" />}
-                      {platform === 'github' && <Icons.Github className="w-5 h-5" />}
-                      {platform === 'instagram' && <Icons.Instagram className="w-5 h-5" />}
-                      {platform === 'facebook' && <Icons.Facebook className="w-5 h-5" />}
-                      {platform === 'youtube' && <Icons.Youtube className="w-5 h-5" />}
-                      <Label className="text-base font-medium capitalize">
-                        {platform}
-                      </Label>
-                    </div>
-                    {data.connected ? (
-                      <Button
-                        variant="outline"
-                        onClick={() => handleDisconnect(platform)}
-                        className="gap-2"
-                      >
-                        <Icons.XCircle className="w-4 h-4" />
-                        Disconnect
-                      </Button>
-                    ) : (
-                      <Button
-                        onClick={() => setShowProfileInput(prev => ({
-                          ...prev,
-                          [platform]: true
-                        }))}
-                        className="gap-2"
-                      >
-                        <Icons.Link2 className="w-4 h-4" />
-                        Connect
-                      </Button>
-                    )}
-                  </div>
-                  {showProfileInput[platform as keyof typeof showProfileInput] && (
-                    <div className="flex gap-2">
-                      <Input
-                        placeholder={getProfileUrlPlaceholder(platform)}
-                        value={data.username}
-                        onChange={(e) =>
-                          setSocialMedia(prev => ({
-                            ...prev,
-                            [platform]: {
-                              ...prev[platform as keyof typeof prev],
-                              username: e.target.value
-                            }
-                          }))
-                        }
-                      />
-                      <Button onClick={() => handleConnect(platform)}>
-                        Connect
-                      </Button>
-                    </div>
-                  )}
-                  {data.connected && (
-                    <div className="space-y-2">
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`${platform}-progress`}
-                          checked={data.shareProgress}
-                          onCheckedChange={(checked) =>
-                            setSocialMedia(prev => ({
-                              ...prev,
-                              [platform]: {
-                                ...prev[platform as keyof typeof prev],
-                                shareProgress: checked as boolean
-                              }
-                            }))
-                          }
-                        />
-                        <Label htmlFor={`${platform}-progress`}>
-                          Share progress updates
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Checkbox
-                          id={`${platform}-achievements`}
-                          checked={data.shareAchievements}
-                          onCheckedChange={(checked) =>
-                            setSocialMedia(prev => ({
-                              ...prev,
-                              [platform]: {
-                                ...prev[platform as keyof typeof prev],
-                                shareAchievements: checked as boolean
-                              }
-                            }))
-                          }
-                        />
-                        <Label htmlFor={`${platform}-achievements`}>
-                          Share achievements
-                        </Label>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
         <TabsContent value="focus">
           <Card>
             <CardHeader>
@@ -1135,53 +904,11 @@ export function SettingsPage() {
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label className="flex items-center gap-2">
-                      <Icons.Download className="w-4 h-4" />
-                      Export Data
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Download your data as a backup
-                    </p>
-                  </div>
-                  <Button variant="outline" onClick={exportData}>
-                    <Icons.Download className="w-4 h-4 mr-2" />
-                    Export
-                  </Button>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="flex items-center gap-2">
-                      <Icons.Upload className="w-4 h-4" />
-                      Import Data
-                    </Label>
-                    <p className="text-sm text-muted-foreground">
-                      Restore from a backup file
-                    </p>
-                  </div>
-                  <label>
-                    <input
-                      type="file"
-                      accept=".json"
-                      onChange={importData}
-                      style={{ display: 'none' }}
-                    />
-                    <Button variant="outline" asChild>
-                      <span>
-                        <Icons.Upload className="w-4 h-4 mr-2" />
-                        Import
-                      </span>
-                    </Button>
-                  </label>
-                </div>
-
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label className="flex items-center gap-2">
                       <Icons.Trash2 className="w-4 h-4" />
                       Clear Data
                     </Label>
                     <p className="text-sm text-muted-foreground">
-                      Remove all stored data
+                      Remove all stored data from all pages
                     </p>
                   </div>
                   <AlertDialog>
@@ -1193,15 +920,26 @@ export function SettingsPage() {
                     </AlertDialogTrigger>
                     <AlertDialogContent>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete all your data. This action cannot be undone.
+                          This action will permanently delete all your data from all pages including:
+                          <ul className="list-disc pl-6 mt-2 space-y-1">
+                            <li>All todos and categories</li>
+                            <li>User preferences and settings</li>
+                            <li>Focus mode settings</li>
+                            <li>Notification preferences</li>
+                            <li>All other app data</li>
+                          </ul>
+                          This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
-                        <AlertDialogAction onClick={clearAllData}>
-                          Continue
+                        <AlertDialogAction 
+                          onClick={clearAllData}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Yes, Clear All Data
                         </AlertDialogAction>
                       </AlertDialogFooter>
                     </AlertDialogContent>

@@ -1,7 +1,7 @@
 import { ArrowLeft, Loader2, Plus, Check, Grid, List, Copy, Save, BarChart2, Filter, ExternalLink } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo, useCallback } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { AlertCircle } from 'lucide-react';
 import { questionsData } from '@/assets/questions';
@@ -11,6 +11,8 @@ import { toast } from 'sonner';
 import { usePlaylists } from '@/context/PlaylistContext';
 import { Playlist } from '@/types/playlist';
 import { RawDifficulty } from '@/types/question';
+import { useVirtualizer } from '@tanstack/react-virtual';
+import { useInView } from 'react-intersection-observer';
 
 interface Question {
   id: number;
@@ -41,18 +43,18 @@ interface PlaylistState {
   }[];
 }
 
+const ITEMS_PER_PAGE = 20;
+
 const parseQuestions = (text: string): Question[] => {
   try {
-    // Skip the header and separator lines
     const lines = text.split('\n')
       .filter(line => line.trim() && !line.startsWith('|-------') && !line.startsWith('| Topic'))
-      .slice(1); // Skip the header row
+      .slice(1);
     
     const questions: Question[] = [];
     let id = 1;
 
-    lines.forEach(line => {
-      // Split by | and remove empty strings and trim whitespace
+    for (const line of lines) {
       const parts = line.split('|')
         .map(s => s.trim())
         .filter(Boolean);
@@ -69,7 +71,7 @@ const parseQuestions = (text: string): Question[] => {
           });
         }
       }
-    });
+    }
 
     return questions;
   } catch (error) {
@@ -88,40 +90,81 @@ const AllQuestions = () => {
     sortOrder: 'asc',
     viewMode: 'list'
   });
-  const [playlist, setPlaylist] = useState<PlaylistState>(() => {
-    // Initialize with empty state
-    return {
-      questions: new Set(),
-      name: 'My Playlist',
-      questionDetails: []
-    };
-  });
+  const [playlist, setPlaylist] = useState<PlaylistState>(() => ({
+    questions: new Set(),
+    name: 'My Playlist',
+    questionDetails: []
+  }));
   const [selectedTopic, setSelectedTopic] = useState<string>('All');
   const [selectedLevel, setSelectedLevel] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [showFilters, setShowFilters] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
   const { playlists, addPlaylist } = usePlaylists();
+  const { ref: loadMoreRef, inView } = useInView();
+
+  // Memoize the parsed questions
+  const parsedQuestions = useMemo(() => {
+    try {
+      return parseQuestions(questionsData);
+    } catch (error) {
+      console.error('Error parsing questions:', error);
+      return [];
+    }
+  }, []);
 
   useEffect(() => {
-    try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      const questions = parseQuestions(questionsData);
-      setState(prev => ({ 
+    if (parsedQuestions.length > 0) {
+      setState(prev => ({
         ...prev,
-        data: questions,
+        data: parsedQuestions,
         isLoading: false,
         error: null
       }));
-    } catch (error) {
-      console.error('Error loading questions:', error);
-      setState(prev => ({
-        ...prev,
-        data: [],
-        isLoading: false,
-        error: 'Failed to load questions. Please try again later.'
-      }));
     }
-  }, []);
+  }, [parsedQuestions]);
+
+  // Memoize filtered questions
+  const filteredQuestions = useMemo(() => {
+    return state.data
+      .filter(q => {
+        const matchesTopic = selectedTopic === 'All' || q.topic === selectedTopic;
+        const matchesLevel = selectedLevel === 'All' || q.level === selectedLevel;
+        const matchesSearch = searchQuery === '' || 
+          q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          q.topic.toLowerCase().includes(searchQuery.toLowerCase());
+        
+        return matchesTopic && matchesLevel && matchesSearch;
+      })
+      .sort((a, b) => {
+        if (state.sortBy === 'id') {
+          return state.sortOrder === 'asc' ? a.id - b.id : b.id - a.id;
+        } else if (state.sortBy === 'level') {
+          const levelOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
+          return state.sortOrder === 'asc' 
+            ? levelOrder[a.level] - levelOrder[b.level]
+            : levelOrder[b.level] - levelOrder[a.level];
+        } else {
+          return state.sortOrder === 'asc'
+            ? a.topic.localeCompare(b.topic)
+            : b.topic.localeCompare(a.topic);
+        }
+      });
+  }, [state.data, selectedTopic, selectedLevel, searchQuery, state.sortBy, state.sortOrder]);
+
+  // Memoize paginated questions
+  const paginatedQuestions = useMemo(() => {
+    const startIndex = 0;
+    const endIndex = currentPage * ITEMS_PER_PAGE;
+    return filteredQuestions.slice(startIndex, endIndex);
+  }, [filteredQuestions, currentPage]);
+
+  // Load more questions when scrolling
+  useEffect(() => {
+    if (inView && paginatedQuestions.length < filteredQuestions.length) {
+      setCurrentPage(prev => prev + 1);
+    }
+  }, [inView, paginatedQuestions.length, filteredQuestions.length]);
 
   useEffect(() => {
     if (playlist.questions.size > 0) {
@@ -137,31 +180,6 @@ const AllQuestions = () => {
   const topics = ['All', ...new Set(state.data.map(q => q.topic))];
   const levels = ['All', 'Easy', 'Medium', 'Hard'];
 
-  const filteredQuestions = state.data
-    .filter(q => {
-      const matchesTopic = selectedTopic === 'All' || q.topic === selectedTopic;
-      const matchesLevel = selectedLevel === 'All' || q.level === selectedLevel;
-      const matchesSearch = searchQuery === '' || 
-        q.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        q.topic.toLowerCase().includes(searchQuery.toLowerCase());
-      
-      return matchesTopic && matchesLevel && matchesSearch;
-    })
-    .sort((a, b) => {
-      if (state.sortBy === 'id') {
-        return state.sortOrder === 'asc' ? a.id - b.id : b.id - a.id;
-      } else if (state.sortBy === 'level') {
-        const levelOrder = { 'Easy': 1, 'Medium': 2, 'Hard': 3 };
-        return state.sortOrder === 'asc' 
-          ? levelOrder[a.level] - levelOrder[b.level]
-          : levelOrder[b.level] - levelOrder[a.level];
-      } else {
-        return state.sortOrder === 'asc'
-          ? a.topic.localeCompare(b.topic)
-          : b.topic.localeCompare(a.topic);
-      }
-    });
-
   const stats = {
     total: state.data.length,
     filtered: filteredQuestions.length,
@@ -173,30 +191,29 @@ const AllQuestions = () => {
   };
 
   const togglePlaylist = (questionId: number) => {
+    // If question is already in playlist, don't allow removal
+    if (playlist.questions.has(questionId)) {
+      toast.info('Question is already marked as done!');
+      return;
+    }
+
     setPlaylist((prev: PlaylistState) => {
       const newQuestions = new Set(prev.questions);
       const question = state.data.find(q => q.id === questionId);
       
-      if (newQuestions.has(questionId)) {
-        newQuestions.delete(questionId);
-        // Remove from questionDetails
-        const newQuestionDetails = prev.questionDetails.filter(q => q.id !== questionId);
+      newQuestions.add(questionId);
+      // Add to questionDetails
+      if (question) {
+        const newQuestionDetails = [...prev.questionDetails, {
+          id: question.id,
+          topic: question.topic,
+          question: question.question,
+          level: question.level,
+          link: question.link
+        }];
         return { ...prev, questions: newQuestions, questionDetails: newQuestionDetails };
-      } else {
-        newQuestions.add(questionId);
-        // Add to questionDetails
-        if (question) {
-          const newQuestionDetails = [...prev.questionDetails, {
-            id: question.id,
-            topic: question.topic,
-            question: question.question,
-            level: question.level,
-            link: question.link
-          }];
-          return { ...prev, questions: newQuestions, questionDetails: newQuestionDetails };
-        }
-        return { ...prev, questions: newQuestions };
       }
+      return { ...prev, questions: newQuestions };
     });
   };
 
@@ -482,8 +499,8 @@ const AllQuestions = () => {
               <p className="text-gray-600 dark:text-gray-400">No questions found matching your criteria</p>
             </div>
           ) : (
-            <div className={state.viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'grid gap-4'}>
-              {filteredQuestions.map((q) => (
+            <div className={state.viewMode === 'grid' ? 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4' : 'space-y-4'}>
+              {paginatedQuestions.map((q) => (
                 <div
                   key={q.id}
                   className={`p-4 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-slate-800 hover:shadow-md transition-shadow ${
@@ -552,9 +569,10 @@ const AllQuestions = () => {
                               onClick={() => togglePlaylist(q.id)}
                               className={`${
                                 playlist.questions.has(q.id)
-                                  ? 'text-green-600 dark:text-green-400'
-                                  : 'text-gray-600 dark:text-gray-400'
+                                  ? 'text-green-600 dark:text-green-400 cursor-not-allowed'
+                                  : 'text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400'
                               }`}
+                              disabled={playlist.questions.has(q.id)}
                             >
                               {playlist.questions.has(q.id) ? (
                                 <Check className="w-4 h-4" />
@@ -564,7 +582,7 @@ const AllQuestions = () => {
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent>
-                            <p>{playlist.questions.has(q.id) ? 'Remove from playlist' : 'Add to playlist'}</p>
+                            <p>{playlist.questions.has(q.id) ? 'Question marked as done' : 'Add to playlist'}</p>
                           </TooltipContent>
                         </Tooltip>
                       </TooltipProvider>
@@ -577,6 +595,13 @@ const AllQuestions = () => {
                   </h3>
                 </div>
               ))}
+              
+              {/* Load more trigger */}
+              {paginatedQuestions.length < filteredQuestions.length && (
+                <div ref={loadMoreRef} className="h-10 flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 animate-spin text-blue-600 dark:text-blue-400" />
+                </div>
+              )}
             </div>
           )}
         </div>

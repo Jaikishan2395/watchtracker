@@ -2269,7 +2269,7 @@ const VideoPlayer = () => {
                 className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200"
               >
                 <List className="w-4 h-4 mr-2" />
-                {showAllVideos ? 'Hide Playlist' : 'Show Playlist'}
+                {showAllVideos ? 'Hide ' : 'Show '}
               </Button>
             </div>
           </div>

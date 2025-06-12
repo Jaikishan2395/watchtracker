@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play, Trash2, Share2, Users } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play, Trash2, Share2, Users, Lock, Unlock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -12,7 +12,7 @@ import InviteModal from '@/components/InviteModal';
 import { Playlist, Video } from '@/types/playlist';
 import { toast } from 'sonner';
 import { usePlaylists } from '@/context/PlaylistContext';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 
 interface CompletedVideo {
@@ -24,6 +24,217 @@ interface CompletedVideo {
   watchTime: number;
 }
 
+const customScrollbarStyles = `
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 0px;
+    display: none;
+  }
+  
+  .custom-scrollbar {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-track {
+    display: none;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    display: none;
+  }
+  
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    display: none;
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-track {
+    display: none;
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb {
+    display: none;
+  }
+  
+  .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    display: none;
+  }
+`;
+
+const styleSheet = document.createElement('style');
+styleSheet.textContent = customScrollbarStyles;
+document.head.appendChild(styleSheet);
+
+const formatTimeForDisplay = (time: string, use24Hour: boolean = true): string => {
+  if (!time) return '';
+  
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = use24Hour ? hours : hours % 12 || 12;
+  
+  return `${displayHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
+
+const getTimeLockStatus = (timeLock: Playlist['timeLock']) => {
+  if (!timeLock?.enabled) return { status: 'unlocked', message: 'Playlist is accessible 24/7' };
+  
+  const now = new Date();
+  const currentDay = now.getDay();
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
+  const currentTimeInMinutes = currentHours * 60 + currentMinutes;
+  
+  const [startHours, startMinutes] = timeLock.startTime.split(':').map(Number);
+  const [endHours, endMinutes] = timeLock.endTime.split(':').map(Number);
+  const startTimeInMinutes = startHours * 60 + startMinutes;
+  const endTimeInMinutes = endHours * 60 + endMinutes;
+  
+  const isDayAllowed = timeLock.days.includes(currentDay);
+  
+  // Check if current time is within the allowed range
+  let isTimeInRange = false;
+  if (endTimeInMinutes > startTimeInMinutes) {
+    // Normal case: start time is before end time on the same day
+    isTimeInRange = currentTimeInMinutes >= startTimeInMinutes && currentTimeInMinutes <= endTimeInMinutes;
+  } else {
+    // Special case: end time is on the next day
+    isTimeInRange = currentTimeInMinutes >= startTimeInMinutes || currentTimeInMinutes <= endTimeInMinutes;
+  }
+  
+  if (!isDayAllowed) {
+    const nextAllowedDay = timeLock.days.find(day => day > currentDay) || timeLock.days[0];
+    const daysUntilNext = (nextAllowedDay - currentDay + 7) % 7;
+    return { 
+      status: 'locked', 
+      message: `Available on ${['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][nextAllowedDay]} at ${formatTimeForDisplay(timeLock.startTime)} (${daysUntilNext} day${daysUntilNext !== 1 ? 's' : ''} from now)` 
+    };
+  }
+  
+  if (!isTimeInRange) {
+    const nextAvailableDate = new Date(now);
+    
+    // If current time is past end time, set next available time to tomorrow
+    if (currentTimeInMinutes > endTimeInMinutes) {
+      nextAvailableDate.setDate(now.getDate() + 1);
+    }
+    
+    nextAvailableDate.setHours(startHours, startMinutes, 0, 0);
+    
+    const timeUntilNext = nextAvailableDate.getTime() - now.getTime();
+    const hoursUntilNext = Math.floor(timeUntilNext / (1000 * 60 * 60));
+    const minutesUntilNext = Math.floor((timeUntilNext % (1000 * 60 * 60)) / (1000 * 60));
+    
+    let timeMessage = '';
+    if (hoursUntilNext > 0) {
+      timeMessage = `${hoursUntilNext} hour${hoursUntilNext !== 1 ? 's' : ''}`;
+      if (minutesUntilNext > 0) {
+        timeMessage += ` and ${minutesUntilNext} minute${minutesUntilNext !== 1 ? 's' : ''}`;
+      }
+    } else {
+      timeMessage = `${minutesUntilNext} minute${minutesUntilNext !== 1 ? 's' : ''}`;
+    }
+    
+    return { 
+      status: 'locked', 
+      message: `Available in ${timeMessage} (at ${formatTimeForDisplay(timeLock.startTime)})` 
+    };
+  }
+  
+  return { status: 'unlocked', message: 'Currently accessible' };
+};
+
+const TimeLockInfo = ({ timeLock }: { timeLock: Playlist['timeLock'] }) => {
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const lockStatus = getTimeLockStatus(timeLock);
+
+  return (
+    <>
+      <Card 
+        className="bg-white/80 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-xl hover:shadow-2xl transition-all duration-200 animate-fade-in cursor-pointer"
+        onClick={() => setIsDialogOpen(true)}
+      >
+        <CardHeader>
+          <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Access Schedule</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center gap-3">
+            <div className={`p-2 rounded-full ${lockStatus.status === 'unlocked' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+              {lockStatus.status === 'unlocked' ? (
+                <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
+              ) : (
+                <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+              )}
+            </div>
+            <p className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
+              {lockStatus.message}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Access Schedule Details</DialogTitle>
+            <DialogDescription>
+              Detailed information about when this playlist is accessible
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="flex items-center gap-2">
+              <div className={`p-2 rounded-full ${lockStatus.status === 'unlocked' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                {lockStatus.status === 'unlocked' ? (
+                  <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
+                ) : (
+                  <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                )}
+              </div>
+              <div>
+                <h4 className="font-medium">Current Status</h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400">{lockStatus.message}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <h4 className="font-medium">Time Range</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {timeLock?.enabled 
+                      ? `Available from ${formatTimeForDisplay(timeLock.startTime)} to ${formatTimeForDisplay(timeLock.endTime)}`
+                      : 'Available 24/7'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                <div>
+                  <h4 className="font-medium">Available Days</h4>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                      <span
+                        key={day}
+                        className={`text-xs px-2 py-1 rounded-full ${
+                          timeLock?.enabled && timeLock.days.includes(index)
+                            ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                        }`}
+                      >
+                        {day}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+};
+
 const PlaylistDetail = () => {
   const { playlistId } = useParams();
   const navigate = useNavigate();
@@ -34,6 +245,7 @@ const PlaylistDetail = () => {
   const [isPublic, setIsPublic] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [fetchedPlaylistVideos, setFetchedPlaylistVideos] = useState<Video[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { updateTotalVideosCount } = usePlaylists();
 
   const loadPlaylistData = () => {
@@ -377,7 +589,8 @@ const PlaylistDetail = () => {
         ...(playlist.invitedUsers || []),
         {
           email: inviteEmail,
-          status: 'pending',
+          username: inviteEmail.split('@')[0], // Use part before @ as username
+          status: 'pending' as const,
           invitedAt: new Date().toISOString()
         }
       ]
@@ -439,10 +652,11 @@ const PlaylistDetail = () => {
 
   const uncompletedVideos = playlist.videos.filter(video => video.progress < 100);
   const completedVideosList = playlist.videos.filter(video => video.progress >= 100);
+  const lockStatus = getTimeLockStatus(playlist.timeLock);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800/95 dark:to-indigo-950/95 transition-colors duration-200">
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 pb-8 max-w-6xl">
         <div className="mb-8 animate-fade-in">
           <Button
             variant="ghost"
@@ -453,171 +667,337 @@ const PlaylistDetail = () => {
             Back to Library
           </Button>
           
-          <div className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-gray-200/50 dark:border-slate-700/30 transition-colors duration-200">
-            <div className="flex justify-between items-start mb-4">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold text-gray-800 dark:text-gray-50 mb-2 transition-colors duration-200">{playlist.title}</h1>
-                <p className="text-gray-600 dark:text-gray-200 mb-4 transition-colors duration-200">{playlist.description}</p>
+          <div className="relative w-full h-[400px] mb-8 rounded-2xl overflow-hidden shadow-2xl">
+            {playlist.thumbnail ? (
+              <img
+                src={playlist.thumbnail}
+                alt={playlist.title}
+                className="w-full h-full object-cover"
+              />
+            ) : playlist.videos.length > 0 ? (
+              <img
+                src={playlist.videos[0].thumbnail}
+                alt={playlist.title}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex items-center justify-center">
+                <div className="text-center">
+                  <Play className="w-16 h-16 text-gray-400 dark:text-gray-600 mx-auto mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">No videos in playlist</p>
+                </div>
+              </div>
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 p-8">
+              <h1 className="text-5xl font-bold text-white mb-3 drop-shadow-lg">{playlist.title}</h1>
+              <p className="text-gray-200 text-lg max-w-3xl drop-shadow-md">{playlist.description}</p>
+            </div>
+          </div>
+          
+          <div className="bg-white/80 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm rounded-2xl p-8 shadow-xl border border-gray-200/50 dark:border-slate-700/30 transition-colors duration-200 mb-8">
+            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+              <div className="flex flex-wrap gap-6">
+                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 transition-colors duration-200">
+                  <div className="p-2 bg-green-100 dark:bg-green-900/30 rounded-lg">
+                    <Target className="w-5 h-5 text-green-600 dark:text-green-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Progress</p>
+                    <p className="font-semibold">{completedVideos}/{playlist.videos.length} completed</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-gray-700 dark:text-gray-200 transition-colors duration-200">
+                  <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
+                    <Clock className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Watch Time</p>
+                    <p className="font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">{Math.round(watchedTime)}/{Math.round(totalDuration)} min</p>
+                  </div>
+                </div>
               </div>
               <div className="flex gap-3">
                 <Button
                   onClick={() => setIsInviteModalOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 dark:from-purple-500 dark:to-indigo-500 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 dark:from-purple-500 dark:to-indigo-500 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
                 >
                   <Share2 className="w-4 h-4 mr-2" />
                   Invite
                 </Button>
                 <Button
                   onClick={handlePlayAll}
-                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-500 dark:to-emerald-500 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-500 dark:to-emerald-500 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Play All
                 </Button>
                 <Button
                   onClick={() => setIsAddVideoModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg"
+                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
                 >
                   <Plus className="w-4 h-4 mr-2" />
                   Add Video
                 </Button>
               </div>
             </div>
-            
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-1 text-gray-700 dark:text-gray-200 transition-colors duration-200">
-                <Target className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span className="font-medium">{completedVideos}/{playlist.videos.length} completed</span>
-              </div>
-              <div className="flex items-center gap-1 text-gray-700 dark:text-gray-200 transition-colors duration-200">
-                <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span className="font-medium">{Math.round(watchedTime)}/{Math.round(totalDuration)} min</span>
-              </div>
-            </div>
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-lg hover:shadow-xl transition-all duration-200 animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Overall Progress</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Progress value={totalProgress} className="h-3 mb-2 bg-gray-200 dark:bg-slate-700/50 [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-purple-500" />
-              <p className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">{Math.round(totalProgress)}% Complete</p>
-            </CardContent>
-          </Card>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <Card className="bg-white/80 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-xl hover:shadow-2xl transition-all duration-200 animate-fade-in">
+              <CardHeader>
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Overall Progress</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Progress value={totalProgress} className="h-3 mb-2 bg-gray-200 dark:bg-slate-700/50 [&>div]:bg-gradient-to-r [&>div]:from-blue-500 [&>div]:to-purple-500" />
+                <p className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">{Math.round(totalProgress)}% Complete</p>
+              </CardContent>
+            </Card>
 
-          <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-lg hover:shadow-xl transition-all duration-200 animate-fade-in">
-            <CardHeader>
-              <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Time Tracking</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">Watched:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">{Math.round(watchedTime)} min</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">Remaining:</span>
-                  <span className="font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">{Math.round(totalDuration - watchedTime)} min</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        <div className="space-y-8">
-          <div className="space-y-4">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
-                Uncompleted Videos
-              </h2>
-              <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
-                {uncompletedVideos.length} {uncompletedVideos.length === 1 ? 'video' : 'videos'}
-              </span>
-            </div>
-            <div className="space-y-4">
-              {uncompletedVideos.length > 0 ? (
-                uncompletedVideos.map((video, index) => (
-                  <div 
-                    key={video.id}
-                    className="relative transform transition-all duration-200 hover:scale-[1.01]"
-                  >
-                    <div className="absolute right-4 top-4 z-10">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          deleteVideoFromPlaylist(video.id);
-                        }}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                    <div 
-                      className="cursor-pointer"
-                      onClick={() => handleVideoClick(video)}
-                    >
-                      <VideoCard
-                        video={video}
-                        onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
-                        delay={index * 50}
-                        index={index}
-                      />
-                    </div>
+            <Card className="bg-white/80 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-xl hover:shadow-2xl transition-all duration-200 animate-fade-in">
+              <CardHeader>
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Time Tracking</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">Watched:</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">{Math.round(watchedTime)} min</span>
                   </div>
-                ))
-              ) : (
-                <div className="text-center py-12 bg-white/50 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 rounded-lg border border-gray-200/50 dark:border-slate-700/30">
-                  <p className="text-gray-600 dark:text-gray-200 transition-colors duration-200">
-                    All videos are completed! 🎉
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">Remaining:</span>
+                    <span className="font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">{Math.round(totalDuration - watchedTime)} min</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card 
+              className="bg-white/80 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-xl hover:shadow-2xl transition-all duration-200 animate-fade-in cursor-pointer"
+              onClick={() => setIsDialogOpen(true)}
+            >
+              <CardHeader>
+                <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Access Schedule</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center gap-3">
+                  <div className={`p-2 rounded-full ${lockStatus.status === 'unlocked' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                    {lockStatus.status === 'unlocked' ? (
+                      <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
+                    {lockStatus.message}
                   </p>
                 </div>
-              )}
-            </div>
+              </CardContent>
+            </Card>
           </div>
 
-          {completedVideosList.length > 0 && (
+          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+            <DialogContent className="sm:max-w-[425px]">
+              <DialogHeader>
+                <DialogTitle>Access Schedule Details</DialogTitle>
+                <DialogDescription>
+                  Detailed information about when this playlist is accessible
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4 py-4">
+                <div className="flex items-center gap-2">
+                  <div className={`p-2 rounded-full ${lockStatus.status === 'unlocked' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
+                    {lockStatus.status === 'unlocked' ? (
+                      <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
+                    ) : (
+                      <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
+                    )}
+                  </div>
+                  <div>
+                    <h4 className="font-medium">Current Status</h4>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{lockStatus.message}</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <h4 className="font-medium">Time Range</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        {playlist.timeLock?.enabled 
+                          ? `Available from ${formatTimeForDisplay(playlist.timeLock.startTime)} to ${formatTimeForDisplay(playlist.timeLock.endTime)}`
+                          : 'Available 24/7'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                    <div>
+                      <h4 className="font-medium">Available Days</h4>
+                      <div className="flex flex-wrap gap-1 mt-1">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                          <span
+                            key={day}
+                            className={`text-xs px-2 py-1 rounded-full ${
+                              playlist.timeLock?.enabled && playlist.timeLock.days.includes(index)
+                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
+                                : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                            }`}
+                          >
+                            {day}
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
+                  Uncompleted Videos
+                </h2>
+                <span className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full text-sm">
+                  {uncompletedVideos.length} {uncompletedVideos.length === 1 ? 'video' : 'videos'}
+                </span>
+              </div>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
+                {uncompletedVideos.length > 0 ? (
+                  uncompletedVideos.map((video, index) => (
+                    <div 
+                      key={video.id}
+                      className="relative transform transition-all duration-200 hover:scale-[1.01]"
+                    >
+                      <div className="absolute right-4 top-4 z-10">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteVideoFromPlaylist(video.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div 
+                        className="cursor-pointer relative"
+                        onClick={() => handleVideoClick(video)}
+                      >
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full rounded-lg shadow-md"
+                        />
+                        <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          #{index + 1}
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-white/50 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 rounded-lg border border-gray-200/50 dark:border-slate-700/30">
+                    <p className="text-gray-600 dark:text-gray-200 transition-colors duration-200">
+                      All videos are completed! 🎉
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {completedVideosList.length > 0 && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between mb-6">
+                  <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
+                    Completed Videos
+                  </h2>
+                  <span className="px-3 py-1 bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 rounded-full text-sm">
+                    {completedVideosList.length} {completedVideosList.length === 1 ? 'video' : 'videos'}
+                  </span>
+                </div>
+                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar opacity-80">
+                  {completedVideosList.map((video, index) => (
+                    <div 
+                      key={video.id}
+                      className="relative transform transition-all duration-200 hover:scale-[1.01]"
+                    >
+                      <div className="absolute right-4 top-4 z-10">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            deleteVideoFromPlaylist(video.id);
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      <div 
+                        className="cursor-pointer relative"
+                        onClick={() => handleVideoClick(video)}
+                      >
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
+                          className="w-full rounded-lg shadow-md"
+                        />
+                        <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
+                          #{playlist.videos.findIndex(v => v.id === video.id) + 1}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          {fetchedPlaylistVideos.length > 0 && (
             <div className="space-y-4 mt-8 pt-8 border-t border-gray-200 dark:border-slate-700">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
-                  Completed Videos
+                  Fetched Playlist Videos
                 </h2>
                 <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
-                  {completedVideosList.length} {completedVideosList.length === 1 ? 'video' : 'videos'}
+                  {fetchedPlaylistVideos.length} {fetchedPlaylistVideos.length === 1 ? 'video' : 'videos'}
                 </span>
               </div>
-              <div className="space-y-4 opacity-80">
-                {completedVideosList.map((video, index) => (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[400px] overflow-y-auto pr-4 custom-scrollbar">
+                {fetchedPlaylistVideos.map((video, index) => (
                   <div 
                     key={video.id}
-                    className="relative transform transition-all duration-200 hover:scale-[1.01]"
+                    className="relative transform transition-all duration-200 hover:scale-[1.02]"
                   >
-                    <div className="absolute right-4 top-4 z-10">
+                    <div className="absolute right-2 top-2 z-10 flex gap-2">
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
+                        className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors duration-200"
                         onClick={(e) => {
                           e.stopPropagation();
-                          deleteVideoFromPlaylist(video.id);
+                          addFetchedVideoToPlaylist(video);
                         }}
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Plus className="h-4 w-4" />
                       </Button>
                     </div>
                     <div 
                       className="cursor-pointer"
-                      onClick={() => handleVideoClick(video)}
+                      onClick={() => handlePlayFetchedVideo(video)}
                     >
-                      <VideoCard
-                        video={video}
-                        onProgressUpdate={(progress) => updateVideoProgress(video.id, progress)}
-                        delay={index * 50}
-                        index={index}
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="w-full h-48 object-cover rounded-lg shadow-md"
                       />
                     </div>
                   </div>
@@ -627,51 +1007,7 @@ const PlaylistDetail = () => {
           )}
         </div>
 
-        {fetchedPlaylistVideos.length > 0 && (
-          <div className="space-y-4 mt-8 pt-8 border-t border-gray-200 dark:border-slate-700">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="text-2xl font-semibold text-gray-800 dark:text-gray-50 transition-colors duration-200">
-                Fetched Playlist Videos
-              </h2>
-              <span className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
-                {fetchedPlaylistVideos.length} {fetchedPlaylistVideos.length === 1 ? 'video' : 'videos'}
-              </span>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {fetchedPlaylistVideos.map((video, index) => (
-                <div 
-                  key={video.id}
-                  className="relative transform transition-all duration-200 hover:scale-[1.02]"
-                >
-                  <div className="absolute right-2 top-2 z-10 flex gap-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-green-100 dark:hover:bg-green-900/30 text-green-600 dark:text-green-400 hover:text-green-700 dark:hover:text-green-300 transition-colors duration-200"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        addFetchedVideoToPlaylist(video);
-                      }}
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div 
-                    className="cursor-pointer"
-                    onClick={() => handlePlayFetchedVideo(video)}
-                  >
-                    <VideoCard
-                      video={video}
-                      onProgressUpdate={() => {}}
-                      delay={index * 50}
-                      index={index}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+        <div className="custom-scrollbar-styles" />
 
         <AddVideoModal
           isOpen={isAddVideoModalOpen}
@@ -680,7 +1016,6 @@ const PlaylistDetail = () => {
           onFetchedVideos={handleFetchedVideos}
         />
 
-        {/* Invite Modal */}
         <Dialog open={isInviteModalOpen} onOpenChange={setIsInviteModalOpen}>
           <DialogContent className="sm:max-w-[425px]">
             <DialogHeader>
