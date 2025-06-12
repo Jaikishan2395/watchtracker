@@ -205,7 +205,7 @@ This project is private and proprietary. All rights reserved.
 
 ## 👥 Authors
 
-- Your Name - Initial work
+- Your Name - SHIVANSHU PAL
 
 ## 🙏 Acknowledgments
 
