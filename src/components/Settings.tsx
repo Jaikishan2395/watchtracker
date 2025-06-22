@@ -15,12 +15,22 @@ interface TimerSettings {
   autoStartPomodoros: boolean;
   notifications: boolean;
   sound: boolean;
+  language: string;
+  country: string;
 }
 
 interface SettingsProps {
   settings: TimerSettings;
   onSave: (settings: TimerSettings) => void;
 }
+
+const INDIAN_LANGUAGES = [
+  'Hindi', 'Bengali', 'Telugu', 'Marathi', 'Tamil', 'Urdu', 'Gujarati', 'Kannada', 'Odia', 'Punjabi', 'Malayalam', 'Assamese', 'Maithili', 'Santali', 'Kashmiri', 'Nepali', 'Konkani', 'Sindhi', 'Dogri', 'Manipuri', 'Bodo', 'Santhali', 'Sanskrit', 'English'
+];
+
+const COUNTRIES = [
+  'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'UAE', 'Germany', 'France', 'Nepal', 'Bangladesh', 'Sri Lanka', 'Pakistan', 'Other'
+];
 
 export function Settings({ settings, onSave }: SettingsProps) {
   const handleSubmit = (e: React.FormEvent) => {
@@ -34,7 +44,9 @@ export function Settings({ settings, onSave }: SettingsProps) {
       autoStartBreaks: formData.get('autoStartBreaks') === 'on',
       autoStartPomodoros: formData.get('autoStartPomodoros') === 'on',
       notifications: formData.get('notifications') === 'on',
-      sound: formData.get('sound') === 'on'
+      sound: formData.get('sound') === 'on',
+      language: String(formData.get('language')),
+      country: String(formData.get('country'))
     };
     onSave(newSettings);
   };
@@ -97,6 +109,34 @@ export function Settings({ settings, onSave }: SettingsProps) {
                 defaultValue={settings.longBreakInterval}
                 className="w-full"
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="language">Language</Label>
+              <select
+                id="language"
+                name="language"
+                defaultValue={settings.language}
+                className="w-full border rounded px-3 py-2"
+                required
+              >
+                {INDIAN_LANGUAGES.map(lang => (
+                  <option key={lang} value={lang}>{lang}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="country">Country</Label>
+              <select
+                id="country"
+                name="country"
+                defaultValue={settings.country}
+                className="w-full border rounded px-3 py-2"
+                required
+              >
+                {COUNTRIES.map(country => (
+                  <option key={country} value={country}>{country}</option>
+                ))}
+              </select>
             </div>
           </div>
 

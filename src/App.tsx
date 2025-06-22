@@ -17,10 +17,12 @@ import Login from "./pages/Login";
 import CreateAccount from "./pages/CreateAccount";
 import Library from "./pages/Library";
 import { SettingsPage } from "./pages/SettingsPage";
-import AllQuestions from "./pages/AllQuestions";
 import Todo from "./pages/Todo";
 import Pomodoro from "./pages/Pomodoro";
 import Premium from "./pages/Premium";
+import Classroom from "./pages/Classroom";
+import Clubs from "./pages/Clubs";
+import BridgeLab from "./pages/BridgeLab";
 import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
 import { loadQuestionsFromFile } from './utils/loadQuestions';
@@ -56,10 +58,12 @@ const AppContent = () => {
             <Route path="/create-account" element={<CreateAccount />} />
             <Route path="/dashboard" element={<Index />} />
             <Route path="/library" element={<Library />} />
-            <Route path="/all-questions" element={<AllQuestions />} />
+            <Route path="/classroom" element={<Classroom />} />
+            <Route path="/clubs" element={<Clubs />} />
             <Route path="/todo" element={<Todo />} />
             <Route path="/pomodoro" element={<Pomodoro />} />
             <Route path="/premium" element={<Premium />} />
+            <Route path="/bridgelab" element={<BridgeLab />} />
             <Route 
               path="/playlist/:playlistId" 
               element={<PlaylistDetailWrapper />} 
@@ -67,7 +71,6 @@ const AppContent = () => {
             <Route path="/playlist/:playlistId/play" element={<VideoPlayer />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/questions" element={<AllQuestions />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </main>

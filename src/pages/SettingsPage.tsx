@@ -44,6 +44,14 @@ interface ParsedCategory {
 
 const DATA_VERSION = '1.0';
 
+const INDIAN_LANGUAGES = [
+  'Hindi', 'Bengali', 'Telugu', 'Marathi', 'Tamil', 'Urdu', 'Gujarati', 'Kannada', 'Odia', 'Punjabi', 'Malayalam', 'Assamese', 'Maithili', 'Santali', 'Kashmiri', 'Nepali', 'Konkani', 'Sindhi', 'Dogri', 'Manipuri', 'Bodo', 'Santhali', 'Sanskrit', 'English'
+];
+
+const COUNTRIES = [
+  'India', 'United States', 'United Kingdom', 'Canada', 'Australia', 'Singapore', 'UAE', 'Germany', 'France', 'Nepal', 'Bangladesh', 'Sri Lanka', 'Pakistan', 'Other'
+];
+
 export function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
@@ -80,6 +88,8 @@ export function SettingsPage() {
     planningPreference: '',
     motivation: ''
   });
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [selectedCountry, setSelectedCountry] = useState('India');
 
   const resetAllData = () => {
     localStorage.removeItem('youtubePlaylists');
@@ -246,18 +256,30 @@ export function SettingsPage() {
                   <Icons.Globe className="w-4 h-4" />
                   Language
                 </Label>
-                <Select defaultValue="en">
-                  <SelectTrigger className="w-[200px]">
-                    <SelectValue placeholder="Select language" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {languages.map((lang) => (
-                      <SelectItem key={lang.code} value={lang.code}>
-                        {lang.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <select
+                  className="border rounded px-3 py-2 w-[200px] max-h-40 overflow-y-auto"
+                  value={selectedLanguage}
+                  onChange={e => setSelectedLanguage(e.target.value)}
+                >
+                  {INDIAN_LANGUAGES.map(lang => (
+                    <option key={lang} value={lang}>{lang}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2">
+                  <Icons.Globe className="w-4 h-4" />
+                  Country
+                </Label>
+                <select
+                  className="border rounded px-3 py-2 w-[200px] max-h-40 overflow-y-auto"
+                  value={selectedCountry}
+                  onChange={e => setSelectedCountry(e.target.value)}
+                >
+                  {COUNTRIES.map(country => (
+                    <option key={country} value={country}>{country}</option>
+                  ))}
+                </select>
               </div>
 
               <div className="space-y-2">

@@ -1,5 +1,6 @@
-import { Home, User, Code, LogIn, Library, Settings, ListChecks, CheckSquare, Crown } from 'lucide-react';
+import { Home, User, Code, LogIn, Library, Settings, ListChecks, CheckSquare, Crown, School } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import logo from '../assets/logo.png';
 import {
   Sidebar,
   SidebarContent,
@@ -26,9 +27,9 @@ const menuItems = [
     icon: Library,
   },
   {
-    title: 'All Questions',
-    url: '/all-questions',
-    icon: ListChecks,
+    title: 'Classroom',
+    url: '/classroom',
+    icon: School,
   },
   {
     title: 'To-Do',
@@ -53,58 +54,47 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-      <SidebarHeader className="p-4">
-        <div className="flex items-center justify-center">
-          <div className="p-2 rounded-lg bg-gradient-to-r from-blue-600 to-purple-600">
-            <Code className="w-5 h-5 text-white" />
-          </div>
-        </div>
+      <SidebarHeader className="flex flex-col items-center justify-center w-full pt-8 pb-4">
+        <span className="text-3xl font-extrabold text-blue-900 tracking-wide">EduBridge</span>
+        <div className="w-3/4 h-0.5 bg-gray-200 mt-4 mb-2 rounded-full" />
       </SidebarHeader>
-      <SidebarContent>
+      <SidebarContent className="bg-white rounded-br-3xl shadow-xl flex-1 px-2 py-4 border-r border-gray-100">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton
-                    isActive={location.pathname === item.url}
-                    onClick={() => navigate(item.url)}
-                    className={cn(
-                      "flex items-center justify-center w-14 h-14",
-                      "transition-all duration-300 ease-in-out",
-                      "hover:scale-105 hover:shadow-xl",
-                      "active:scale-95",
-                      location.pathname === item.url 
-                        ? "bg-gradient-to-br from-blue-500/30 via-purple-500/20 to-blue-500/30 shadow-lg ring-2 ring-blue-500/20" 
-                        : "bg-gradient-to-br from-transparent to-transparent",
-                      "hover:bg-gradient-to-br hover:from-blue-500/20 hover:via-purple-500/10 hover:to-blue-500/20",
-                      "border border-transparent hover:border-blue-500/30",
-                      "rounded-2xl",
-                      "backdrop-blur-sm",
-                      "group",
-                      "p-0"
-                    )}
-                    iconOnly={true}
-                  >
-                    <div className="flex items-center justify-center w-full h-full">
+              {menuItems.map((item) => {
+                const isActive = location.pathname === item.url;
+                return (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      isActive={isActive}
+                      onClick={() => navigate(item.url)}
+                      className={cn(
+                        "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200",
+                        "rounded-xl",
+                        isActive
+                          ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500 shadow-sm"
+                          : "text-gray-500 hover:bg-gray-100 hover:text-blue-700",
+                        "group"
+                      )}
+                      iconOnly={false}
+                    >
                       <item.icon className={cn(
-                        "w-5 h-5 transition-all duration-300",
-                        "group-hover:scale-110 group-hover:rotate-3",
-                        "group-active:scale-95 group-active:rotate-0",
-                        location.pathname === item.url 
-                          ? "text-blue-600 dark:text-blue-400" 
-                          : "text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
+                        "w-6 h-6 transition-all duration-200",
+                        isActive
+                          ? "text-blue-600"
+                          : "text-gray-400 group-hover:text-blue-600"
                       )} />
-                    </div>
-                    <span className="sr-only">{item.title}</span>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      <span>{item.title}</span>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter>
+      <SidebarFooter className="bg-white rounded-br-3xl shadow-xl px-2 py-4 border-t border-gray-100">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -112,59 +102,27 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   onClick={() => navigate('/settings')}
                   className={cn(
-                    "flex items-center justify-center w-14 h-14",
-                    "transition-all duration-300 ease-in-out",
-                    "hover:scale-105 hover:shadow-xl",
-                    "active:scale-95",
-                    "bg-gradient-to-br from-transparent to-transparent",
-                    "hover:bg-gradient-to-br hover:from-gray-500/20 hover:via-gray-600/10 hover:to-gray-500/20",
-                    "border border-transparent hover:border-gray-500/30",
-                    "rounded-2xl",
-                    "backdrop-blur-sm",
-                    "group",
-                    "p-0"
+                    "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200",
+                    "rounded-xl text-gray-500 hover:bg-gray-100 hover:text-blue-700 group"
                   )}
                   tooltip="Settings"
-                  iconOnly={true}
+                  iconOnly={false}
                 >
-                  <div className="flex items-center justify-center w-full h-full">
-                    <Settings className={cn(
-                      "w-5 h-5 transition-all duration-300",
-                      "group-hover:scale-110 group-hover:rotate-3",
-                      "group-active:scale-95 group-active:rotate-0",
-                      "text-gray-600 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400"
-                    )} />
-                  </div>
-                  <span className="sr-only">Settings</span>
+                  <Settings className="w-6 h-6 text-gray-400 group-hover:text-blue-600 transition-all duration-200" />
+                  <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
               <SidebarMenuItem>
                 <SidebarMenuButton
                   onClick={() => navigate('/login')}
                   className={cn(
-                    "flex items-center justify-center w-14 h-14",
-                    "transition-all duration-300 ease-in-out",
-                    "hover:scale-105 hover:shadow-xl",
-                    "active:scale-95",
-                    "bg-gradient-to-br from-blue-600 via-purple-600 to-blue-600",
-                    "hover:from-blue-700 hover:via-purple-700 hover:to-blue-700",
-                    "border border-transparent hover:border-blue-500/30",
-                    "rounded-2xl",
-                    "shadow-lg hover:shadow-xl",
-                    "group",
-                    "p-0"
+                    "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200",
+                    "rounded-xl bg-blue-600 text-white shadow-md hover:bg-blue-700 group"
                   )}
-                  iconOnly={true}
+                  iconOnly={false}
                 >
-                  <div className="flex items-center justify-center w-full h-full">
-                    <LogIn className={cn(
-                      "w-5 h-5 transition-all duration-300",
-                      "group-hover:scale-110 group-hover:rotate-3",
-                      "group-active:scale-95 group-active:rotate-0",
-                      "text-white"
-                    )} />
-                  </div>
-                  <span className="sr-only">Login</span>
+                  <LogIn className="w-6 h-6 text-white transition-all duration-200" />
+                  <span>Login</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>

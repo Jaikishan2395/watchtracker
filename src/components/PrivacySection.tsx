@@ -42,9 +42,9 @@ export function PrivacySection() {
             <div className="space-y-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">App Capabilities</h3>
               <div className="space-y-3 text-sm text-gray-600 dark:text-slate-300">
-                <p>As a web application, WatchTrack can:</p>
+                <p>As a web application, Watch can:</p>
                 <ul className="list-disc pl-5 space-y-1">
-                  <li>Track time spent within WatchTrack</li>
+                  <li>Track time spent within Watch</li>
                   <li>Store your watch history and preferences</li>
                   <li>Provide focus timers and reminders</li>
                   <li>Save your progress and achievements</li>
@@ -74,12 +74,12 @@ export function PrivacySection() {
                   <li>Monitor time spent on different websites</li>
                   <li>Set up website blocking during focus sessions</li>
                   <li>Track browsing habits (with your consent)</li>
-                  <li>Sync data with WatchTrack (optional)</li>
+                  <li>Sync data with Watch (optional)</li>
                 </ul>
                 <div className="mt-4 p-3 bg-blue-50/50 dark:bg-blue-900/20 rounded-lg">
                   <p className="text-sm text-blue-800 dark:text-blue-200">
                     <strong>Note:</strong> The extension requires explicit permission to access browser data. 
-                    All data is stored locally unless you choose to sync with WatchTrack.
+                    All data is stored locally unless you choose to sync with Watch.
                   </p>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export function PrivacySection() {
           <p className="text-sm">
             <strong className="text-blue-900 dark:text-blue-200 font-semibold">Important:</strong>
             <span className="text-blue-800 dark:text-blue-100 ml-1">
-              WatchTrack is a client-side application that runs entirely in your browser. While we take privacy seriously, 
+              Watch is a client-side application that runs entirely in your browser. While we take privacy seriously, 
               please be aware that this means we cannot monitor or block other websites you visit. For enhanced features 
               like website monitoring and blocking, please consider using our browser extension.
             </span>

@@ -137,6 +137,9 @@ export default function Premium() {
     window.open(shareUrl, '_blank', 'width=600,height=400');
   };
 
+  const [selectedCategory, setSelectedCategory] = useState<string | 'all'>('all');
+  const [selectedPriority, setSelectedPriority] = useState<'low' | 'medium' | 'high' | 'all'>('all');
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-yellow-50 via-amber-50 to-orange-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 p-8">
       <div className="max-w-7xl mx-auto">

@@ -29,6 +29,8 @@ interface TimerSettings {
   autoStartPomodoros: boolean;
   notifications: boolean;
   sound: boolean;
+  language: string;
+  country: string;
 }
 
 interface Session {
@@ -62,7 +64,9 @@ export function PomodoroTimer() {
     autoStartBreaks: false,
     autoStartPomodoros: false,
     notifications: true,
-    sound: true
+    sound: true,
+    language: 'English',
+    country: 'India'
   });
 
   const formatTime = (seconds: number) => {
