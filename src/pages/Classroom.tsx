@@ -19,6 +19,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+// 1. Import the logo at the top
+import BridgeLabLogo from '../assets/bridgelab_logo.png';
+import Work from "./pages/Work"; // Add this import
 
 interface AttachedFile {
   id: number;
@@ -1488,7 +1491,7 @@ const Classroom: React.FC = () => {
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" onClick={() => onUpvote(reply.id)} className="hover:bg-blue-100">
+                    <Button size="icon" variant="ghost" onClick={() => onUpvote(reply.id)} className="bg-black text-white hover:bg-white hover:text-black border border-black">
                       <ThumbsUp className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
@@ -1496,7 +1499,7 @@ const Classroom: React.FC = () => {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" onClick={() => onReply(reply.id)} className="hover:bg-indigo-100">
+                    <Button size="icon" variant="ghost" onClick={() => onReply(reply.id)} className="bg-black text-white hover:bg-white hover:text-black border border-black">
                       <MessageCircle className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
@@ -1504,23 +1507,23 @@ const Classroom: React.FC = () => {
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" onClick={() => onReport(reply.id)} className="hover:bg-red-100">
-                      <AlertCircle className="w-4 h-4 text-red-500" />
+                    <Button size="icon" variant="ghost" onClick={() => onReport(reply.id)} className="bg-black text-white hover:bg-white hover:text-black border border-black">
+                      <AlertCircle className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Report</TooltipContent>
                 </Tooltip>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Button size="icon" variant="ghost" onClick={() => onDelete(reply.id)} className="hover:bg-gray-100">
-                      <Trash2 className="w-4 h-4 text-gray-400" />
+                    <Button size="icon" variant="ghost" onClick={() => onDelete(reply.id)} className="bg-black text-white hover:bg-white hover:text-black border border-black">
+                      <Trash2 className="w-4 h-4" />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>Delete</TooltipContent>
                 </Tooltip>
               </TooltipProvider>
               <span className="text-xs text-gray-500">{reply.upvotes} upvotes</span>
-              <Button size="sm" variant="ghost" className="text-indigo-600 hover:text-indigo-800 px-2 py-1 text-xs font-semibold ml-2" onClick={() => onReply(reply.id)}>
+              <Button size="sm" variant="ghost" className="bg-white text-black border border-black hover:bg-black hover:text-white px-2 py-1 text-xs font-semibold ml-2" onClick={() => onReply(reply.id)}>
                 <Send className="w-3 h-3 mr-1" />
                 Reply
               </Button>
@@ -1550,7 +1553,7 @@ const Classroom: React.FC = () => {
                   variant="outline" 
                   size="sm" 
                   onClick={handleCancelReply}
-                  className="text-gray-600 text-xs"
+                  className="bg-white text-black border border-black hover:bg-black hover:text-white text-xs"
                 >
                   Cancel
                 </Button>
@@ -1558,7 +1561,7 @@ const Classroom: React.FC = () => {
                   size="sm" 
                   onClick={handlePostReply}
                   disabled={!replyText.trim()}
-                  className="bg-indigo-600 text-white hover:bg-indigo-700"
+                  className="bg-black text-white hover:bg-white hover:text-black border border-black"
                 >
                   <Send className="w-3 h-3 mr-1" />
                   Post Reply
@@ -1661,13 +1664,13 @@ const Classroom: React.FC = () => {
         tabIndex={0}
         aria-label="Add your status"
       >
-        <div className="relative transition-transform duration-200 group-hover:scale-110 group-hover:shadow-2xl">
-          <div className="w-16 h-16 rounded-full border-4 border-dashed border-pink-400 bg-gradient-to-tr from-pink-100 to-yellow-100 flex items-center justify-center shadow-lg">
-            <span className="text-4xl text-pink-400 font-bold">+</span>
+        <div className="relative transition-transform duration-200 group-hover:scale-105">
+          <div className="w-16 h-16 rounded-full border-4 border-dashed border-blue-400 bg-gradient-to-tr from-blue-100 to-blue-200 flex items-center justify-center transition-all duration-200 group-hover:bg-gradient-to-tr group-hover:from-blue-200 group-hover:to-blue-100">
+            <span className="text-4xl text-blue-600 font-bold select-none">+</span>
           </div>
-          <span className="absolute bottom-0 right-0 bg-white rounded-full p-1 shadow text-pink-500 font-bold text-lg border border-pink-300">+</span>
+          <span className="absolute bottom-0 right-0 bg-blue-400 rounded-full p-1 text-white font-bold text-lg border border-blue-500 transition-all duration-200 group-hover:scale-110">+</span>
         </div>
-        <span className="text-xs font-semibold text-pink-700 mt-2">Add Status</span>
+        <span className="text-xs font-semibold text-blue-700 mt-2 tracking-wide group-hover:underline">Add Status</span>
       </div>
       {/* Other Users' Statuses */}
       {statusUsers.filter(u => !u.isSelf).map(({ user }) => {
@@ -1685,26 +1688,29 @@ const Classroom: React.FC = () => {
             aria-label={`View ${user}'s status`}
           >
             <div
-              className={`relative w-16 h-16 rounded-full flex items-center justify-center shadow-lg border-4 transition-all duration-300 group-hover:scale-110 group-hover:shadow-2xl ${
+              className={`relative w-16 h-16 rounded-full flex items-center justify-center border-4 transition-all duration-300 group-hover:scale-105 ${
                 allSeen
-                  ? 'border-gray-300'
-                  : 'border-transparent bg-gradient-to-tr from-pink-400 via-yellow-400 to-pink-400 animate-spin-slow ring-4 ring-pink-300/40'
+                  ? 'border-green-400 bg-gradient-to-tr from-green-100 to-green-50'
+                  : 'border-blue-400 bg-gradient-to-tr from-blue-200 via-blue-100 to-blue-400 animate-spin-slow ring-4 ring-blue-200/40'
               }`}
               style={{
                 background: allSeen
                   ? undefined
-                  : 'conic-gradient(from 0deg, #ec4899, #f59e42, #ec4899 100%)',
-                boxShadow: allSeen ? undefined : '0 0 16px 2px #ec489988, 0 0 32px 8px #f59e4288',
+                  : 'conic-gradient(from 0deg, #3b82f6, #22d3ee, #3b82f6 100%)',
+                boxShadow: undefined,
               }}
             >
-              <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center">
-                <span className="text-xl font-bold text-pink-500">{user[0]}</span>
+              <div className={`w-12 h-12 rounded-full flex items-center justify-center border transition-all duration-200 group-hover:bg-blue-50 ${allSeen ? 'bg-green-50 border-green-200' : 'bg-white border-blue-200'}`}>
+                <span className={`text-xl font-bold select-none tracking-wide ${allSeen ? 'text-green-700' : 'text-blue-700'}`}>{user[0]}</span>
               </div>
               {!allSeen && (
-                <span className="absolute bottom-1 right-1 w-2 h-2 bg-pink-500 rounded-full shadow-lg animate-pulse"></span>
+                <span className="absolute bottom-1 right-1 w-2 h-2 bg-blue-400 rounded-full animate-pulse"></span>
+              )}
+              {allSeen && (
+                <span className="absolute bottom-1 right-1 w-2 h-2 bg-green-400 rounded-full"></span>
               )}
             </div>
-            <span className="text-xs font-semibold text-gray-700 mt-2 truncate w-16 text-center">{user}</span>
+            <span className={`text-xs font-semibold mt-2 truncate w-16 text-center tracking-wide group-hover:underline ${allSeen ? 'text-green-700' : 'text-blue-700'}`}>{user}</span>
           </div>
         );
       })}
@@ -1738,45 +1744,45 @@ const Classroom: React.FC = () => {
     const status = userStatuses[statusViewer.idx];
     if (!status) return null;
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/90 animate-fade-in">
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-gradient-to-br from-blue-100 via-green-100 to-blue-50 animate-fade-in">
         {/* Progress Bars */}
         <div className="absolute top-0 left-0 right-0 flex gap-1 px-8 pt-6 z-30">
           {userStatuses.map((s, i) => (
-            <div key={s.id} className={`flex-1 h-1.5 rounded-full ${i < statusViewer.idx ? 'bg-white/70' : i === statusViewer.idx ? 'bg-white animate-progress-bar' : 'bg-white/30'}`}></div>
+            <div key={s.id} className={`flex-1 h-1.5 rounded-full transition-all duration-300 ${i < statusViewer.idx ? 'bg-green-400/80' : i === statusViewer.idx ? 'bg-blue-400 animate-progress-bar' : 'bg-green-200/60'}`}></div>
           ))}
         </div>
         {/* Top left: avatar, name, time */}
-        <div className="absolute top-6 left-8 z-30 flex items-center gap-3 bg-black/40 rounded-full px-4 py-2 shadow-2xl backdrop-blur-md">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-pink-400 to-yellow-400 flex items-center justify-center text-white font-bold text-lg">{status.user[0]}</div>
+        <div className="absolute top-6 left-8 z-30 flex items-center gap-3 bg-blue-400/80 rounded-full px-4 py-2 backdrop-blur-md border border-blue-300">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-400 to-blue-500 flex items-center justify-center text-white font-bold text-lg border border-blue-200 select-none">{status.user[0]}</div>
           <div>
-            <div className="font-semibold text-white text-base drop-shadow-lg">{status.user}</div>
-            <div className="text-xs text-gray-200 drop-shadow">{status.time}</div>
+            <div className="font-semibold text-blue-900 text-base tracking-wide">{status.user}</div>
+            <div className="text-xs text-blue-800 font-mono">{status.time}</div>
           </div>
         </div>
         {/* Close button */}
-        <button className="absolute top-6 right-8 z-30 bg-black/60 hover:bg-black/80 text-white rounded-full p-2 shadow-2xl backdrop-blur-md" onClick={() => setStatusViewer(null)}>
+        <button className="absolute top-6 right-8 z-30 bg-blue-400/80 hover:bg-blue-500 text-white rounded-full p-2 backdrop-blur-md border border-blue-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={() => setStatusViewer(null)}>
           <svg width="28" height="28" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M6 6l12 12M6 18L18 6"/></svg>
         </button>
         {/* Left arrow */}
-        <button className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/60 text-white rounded-full p-3 shadow-lg" onClick={() => setStatusViewer(v => v && v.idx > 0 ? { ...v, idx: v.idx - 1 } : v)} disabled={statusViewer.idx === 0} style={{ opacity: statusViewer.idx === 0 ? 0.2 : 1 }}>
+        <button className="absolute left-2 top-1/2 -translate-y-1/2 z-20 bg-green-200/80 hover:bg-green-400 text-green-900 rounded-full p-3 border border-green-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-green-400" onClick={() => setStatusViewer(v => v && v.idx > 0 ? { ...v, idx: v.idx - 1 } : v)} disabled={statusViewer.idx === 0} style={{ opacity: statusViewer.idx === 0 ? 0.2 : 1 }}>
           <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M15 19l-7-7 7-7"/></svg>
         </button>
         {/* Right arrow */}
-        <button className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-black/30 hover:bg-black/60 text-white rounded-full p-3 shadow-lg" onClick={() => setStatusViewer(v => v && v.idx < userStatuses.length - 1 ? { ...v, idx: v.idx + 1 } : v)} disabled={statusViewer.idx === userStatuses.length - 1} style={{ opacity: statusViewer.idx === userStatuses.length - 1 ? 0.2 : 1 }}>
+        <button className="absolute right-2 top-1/2 -translate-y-1/2 z-20 bg-blue-200/80 hover:bg-blue-400 text-blue-900 rounded-full p-3 border border-blue-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400" onClick={() => setStatusViewer(v => v && v.idx < userStatuses.length - 1 ? { ...v, idx: v.idx + 1 } : v)} disabled={statusViewer.idx === userStatuses.length - 1} style={{ opacity: statusViewer.idx === userStatuses.length - 1 ? 0.2 : 1 }}>
           <svg width="36" height="36" fill="none" viewBox="0 0 24 24"><path stroke="currentColor" strokeWidth="2" d="M9 5l7 7-7 7"/></svg>
         </button>
         {/* Media display */}
         <div className="flex flex-col items-center justify-center w-full h-full animate-fade-in">
           {status.mediaType === 'image' && status.media && (
-            <img src={status.media} alt="status" className="max-h-[70vh] max-w-[90vw] rounded-2xl shadow-2xl object-contain border-4 border-white/10" />
+            <img src={status.media} alt="status" className="max-h-[70vh] max-w-[90vw] rounded-2xl object-contain border-4 border-blue-200 bg-white/10 transition-all duration-300" />
           )}
           {status.mediaType === 'video' && status.media && (
-            <video src={status.media} controls autoPlay className="max-h-[70vh] max-w-[90vw] rounded-2xl shadow-2xl bg-black border-4 border-white/10" />
+            <video src={status.media} controls autoPlay className="max-h-[70vh] max-w-[90vw] rounded-2xl bg-blue-50 border-4 border-blue-200 transition-all duration-300" />
           )}
           {/* Bottom overlay: status text and thoughts */}
-          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-8 pb-12 text-white flex flex-col items-center">
-            <div className="text-3xl font-extrabold mb-3 text-center drop-shadow-glow animate-fade-in" style={{ textShadow: '0 2px 16px #000, 0 0 8px #fff3' }}>{status.status}</div>
-            {status.thoughts && <div className="text-pink-200 italic mb-2 text-lg text-center drop-shadow animate-fade-in" style={{ textShadow: '0 2px 8px #000, 0 0 4px #fff2' }}>{status.thoughts}</div>}
+          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-blue-400/95 via-green-200/60 to-blue-200/80 p-8 pb-12 text-blue-900 flex flex-col items-center">
+            <div className="text-3xl font-extrabold mb-3 text-center animate-fade-in tracking-tight leading-tight" style={{ textShadow: '0 2px 16px #60a5fa, 0 0 8px #fff3', letterSpacing: '-0.02em' }}>{status.status}</div>
+            {status.thoughts && <div className="text-green-800/80 italic mb-2 text-lg text-center animate-fade-in font-light tracking-wide" style={{ textShadow: '0 2px 8px #34d399, 0 0 4px #fff2' }}>{status.thoughts}</div>}
           </div>
         </div>
       </div>
@@ -1784,9 +1790,50 @@ const Classroom: React.FC = () => {
   };
   // --- STATUS FEATURE REWRITE END ---
 
+  // --- Add at the top of the Classroom component, after useState hooks ---
+  const [assignmentUploads, setAssignmentUploads] = useState({}); // { [assignmentId]: { file: File | null, name: string } }
+
+  // Helper to handle file selection for assignments
+  const handleAssignmentFileChange = (assignmentId, file) => {
+    setAssignmentUploads(prev => ({
+      ...prev,
+      [assignmentId]: { file, name: file.name }
+    }));
+  };
+
+  const removeAssignmentFile = (assignmentId) => {
+    setAssignmentUploads(prev => ({
+      ...prev,
+      [assignmentId]: undefined
+    }));
+  };
+
+  // Helper to calculate countdown
+  const getCountdown = (dueDate) => {
+    const now = new Date();
+    const due = new Date(dueDate);
+    const diff = due.getTime() - now.getTime();
+    if (diff <= 0) return null;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+    const minutes = Math.floor((diff / (1000 * 60)) % 60);
+    const seconds = Math.floor((diff / 1000) % 60);
+    return { days, hours, minutes, seconds };
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 py-12 px-4 md:px-8 flex flex-col items-center">
-      <div className="w-full max-w-6xl">
+      <div className="w-full max-w-6xl relative">
+        {/* BridgeLab Button - Top Right */}
+        <div className="absolute top-0 right-0 mt-4 mr-4 z-20">
+          <Button
+            className="flex items-center justify-center rounded-full p-0 w-20 h-20 bg-gradient-to-r from-yellow-500 to-orange-400 text-white shadow-xl hover:from-yellow-600 hover:to-orange-500 transition-all duration-300"
+            onClick={() => navigate('/bridgelab')}
+            aria-label="BridgeLab"
+          >
+            <img src={BridgeLabLogo} alt="BridgeLab Logo" className="h-16 w-16 object-contain" />
+          </Button>
+        </div>
         {/* Status Feature (moved above top-right controls) */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
@@ -1800,17 +1847,12 @@ const Classroom: React.FC = () => {
         {/* Top-right controls: Join Classroom button, Club button, and Notification Bell */}
         <div className="flex justify-end gap-3 mb-6">
           <Button
-            className="rounded-full px-8 py-3 text-lg font-semibold bg-gradient-to-r from-blue-500 to-green-400 text-white shadow-xl hover:from-blue-600 hover:to-green-500 transition-all duration-300"
+            className="rounded-full px-8 py-3 text-xl font-extrabold tracking-wider bg-gradient-to-r from-purple-500 via-blue-500 to-indigo-500 text-white shadow-2xl border border-white/30 backdrop-blur-md bg-opacity-80 flex items-center gap-3 transition-all duration-300 hover:scale-105 hover:shadow-3xl hover:bg-gradient-to-r hover:from-blue-600 hover:to-purple-600"
+            style={{ WebkitBackdropFilter: 'blur(8px)', backdropFilter: 'blur(8px)' }}
             onClick={() => setJoinOpen(true)}
           >
-            + Join Classroom
-          </Button>
-          {/* BridgeLab Button */}
-          <Button
-            className="rounded-full px-8 py-3 text-lg font-semibold bg-gradient-to-r from-yellow-500 to-orange-400 text-white shadow-xl hover:from-yellow-600 hover:to-orange-500 transition-all duration-300"
-            onClick={() => navigate('/bridgelab')}
-          >
-            BridgeLab
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="mr-2"><path d="M12 3L2 8.5L12 14L22 8.5L12 3Z" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/><path d="M6 10.5V16.5C6 17.3284 8.68629 18 12 18C15.3137 18 18 17.3284 18 16.5V10.5" stroke="currentColor" strokeWidth="2" strokeLinejoin="round"/></svg>
+            <span>Classroom</span>
           </Button>
           <Button
             className="rounded-full px-8 py-3 text-lg font-semibold bg-gradient-to-r from-purple-500 to-pink-400 text-white shadow-xl hover:from-purple-600 hover:to-pink-500 transition-all duration-300"
@@ -1927,33 +1969,80 @@ const Classroom: React.FC = () => {
                   </div>
                 </div>
                 <div className="space-y-4">
-                  {dummyAssignments.map(assn => (
-                    <Card key={assn.id} className="border-0 bg-gradient-to-r from-green-50 to-blue-50 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
-                      <CardHeader className="flex flex-row items-center gap-3 pb-3">
-                        <div className="p-2 rounded-lg bg-gradient-to-r from-green-400 to-blue-500 shadow-md">
-                          <FileText className="w-5 h-5 text-white" />
-                        </div>
-                        <div className="flex-1">
-                          <CardTitle className="text-lg text-gray-900 font-bold group-hover:text-blue-700 transition-colors">{assn.title}</CardTitle>
-                          <p className="text-gray-600 text-sm mt-1">{assn.description}</p>
-                        </div>
-                        <Badge className="bg-white/80 border-green-200 text-green-700 font-semibold px-3 py-1 shadow-md" variant="outline">
-                          {assn.status}
-                        </Badge>
-                      </CardHeader>
-                      <CardContent className="pt-0">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2 text-gray-600">
-                            <Calendar className="w-4 h-4" />
-                            <span className="font-medium text-sm">Due: {assn.due}</span>
+                  {dummyAssignments.map(assn => {
+                    const countdown = getCountdown(assn.due);
+                    const upload = assignmentUploads[assn.id];
+                    return (
+                      <Card key={assn.id} className="border-0 bg-gradient-to-r from-green-50 to-blue-50 shadow-lg rounded-2xl hover:shadow-xl transition-all duration-300 hover:scale-[1.02] group">
+                        <CardHeader className="flex flex-row items-center gap-3 pb-3">
+                          <div className="p-2 rounded-lg bg-gradient-to-r from-green-400 to-blue-500 shadow-md">
+                            <FileText className="w-5 h-5 text-white" />
                           </div>
-                          <Button size="sm" className="rounded-full px-6 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold shadow-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200">
-                            View / Submit
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                          <div className="flex-1">
+                            <CardTitle className="text-lg text-gray-900 font-bold group-hover:text-blue-700 transition-colors">{assn.title}</CardTitle>
+                            <p className="text-gray-600 text-sm mt-1">{assn.description}</p>
+                          </div>
+                          <Badge className="bg-white/80 border-green-200 text-green-700 font-semibold px-3 py-1 shadow-md" variant="outline">
+                            {assn.status}
+                          </Badge>
+                        </CardHeader>
+                        <CardContent className="pt-0">
+                          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+                            <div className="flex items-center gap-2 text-gray-600">
+                              <Calendar className="w-4 h-4" />
+                              <span className="font-medium text-sm">Due: {assn.due}</span>
+                              {/* Countdown Timer */}
+                              {countdown ? (
+                                <span className="ml-4 px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-semibold">
+                                  {countdown.days > 0 && `${countdown.days}d `}
+                                  {countdown.hours}h {countdown.minutes}m {countdown.seconds}s left
+                                </span>
+                              ) : (
+                                <span className="ml-4 px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-semibold">Overdue</span>
+                              )}
+                            </div>
+                            {/* Upload Work Feature */}
+                            <div className="flex items-center gap-2">
+                              <input
+                                id={`upload-assignment-${assn.id}`}
+                                type="file"
+                                className="hidden"
+                                onChange={e => {
+                                  if (e.target.files && e.target.files[0]) {
+                                    handleAssignmentFileChange(assn.id, e.target.files[0]);
+                                  }
+                                }}
+                              />
+                              <Button
+                                size="sm"
+                                className="rounded-full px-4 py-2 bg-gradient-to-r from-green-500 to-blue-500 text-white font-semibold shadow-lg hover:from-green-600 hover:to-blue-600 transition-all duration-200"
+                                onClick={() => document.getElementById(`upload-assignment-${assn.id}`).click()}
+                              >
+                                {upload ? 'Change File' : 'Upload Work'}
+                              </Button>
+                              {upload && (
+                                <span className="text-xs text-gray-700 bg-white border border-gray-200 rounded px-2 py-1 flex items-center gap-2">
+                                  {upload.name}
+                                  <Button size="icon" variant="ghost" className="h-5 w-5 p-0 text-red-500" onClick={() => removeAssignmentFile(assn.id)}>
+                                    <X className="w-3 h-3" />
+                                  </Button>
+                                </span>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="rounded-full px-4 py-2 border-blue-400 text-blue-700 hover:bg-blue-50 ml-2"
+                                onClick={() => navigate('/work', { state: { assignment: assn, upload: assignmentUploads[assn.id] } })}
+                                disabled={!assignmentUploads[assn.id]}
+                              >
+                                Watch Work
+                              </Button>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    );
+                  })}
                 </div>
               </TabsContent>
               
@@ -3839,26 +3928,26 @@ const Classroom: React.FC = () => {
                     <div className="space-y-4">
                       {/* Large Preview Area */}
                       {(newStatusMedia.url || newStatusText) && (
-                        <div className="rounded-xl border-2 border-pink-200 bg-pink-50 p-4 flex flex-col items-center justify-center min-h-[120px] mb-2">
+                        <div className="rounded-xl border-2 border-blue-400 bg-gradient-to-tr from-blue-50 to-blue-100 p-4 flex flex-col items-center justify-center min-h-[120px] mb-2 transition-all duration-200">
                           {newStatusMedia.url && newStatusMedia.type === 'image' && (
-                            <img src={newStatusMedia.url} alt="preview" className="rounded-lg max-h-40 mb-2" />
+                            <img src={newStatusMedia.url} alt="preview" className="rounded-lg max-h-40 mb-2 border border-blue-200" />
                           )}
                           {newStatusMedia.url && newStatusMedia.type === 'video' && (
-                            <video src={newStatusMedia.url} controls className="rounded-lg max-h-40 w-full mb-2" />
+                            <video src={newStatusMedia.url} controls className="rounded-lg max-h-40 w-full mb-2 border border-blue-200" />
                           )}
                           {newStatusText && (
-                            <div className="text-lg font-semibold text-pink-700 text-center whitespace-pre-line">{newStatusText}</div>
+                            <div className="text-lg font-semibold text-blue-900 text-center whitespace-pre-line tracking-tight leading-tight">{newStatusText}</div>
                           )}
                         </div>
                       )}
                       {/* Drag and Drop Area */}
                       <div
-                        className="border-2 border-dashed border-pink-300 rounded-xl p-4 text-center bg-pink-50 hover:bg-pink-100 transition-colors cursor-pointer"
-                        onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('bg-pink-100'); }}
-                        onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove('bg-pink-100'); }}
+                        className="border-2 border-dashed border-blue-400 rounded-xl p-4 text-center bg-gradient-to-tr from-blue-50 to-blue-100 hover:bg-gradient-to-tr hover:from-blue-100 hover:to-blue-50 transition-colors cursor-pointer"
+                        onDragOver={e => { e.preventDefault(); e.currentTarget.classList.add('bg-blue-100'); }}
+                        onDragLeave={e => { e.preventDefault(); e.currentTarget.classList.remove('bg-blue-100'); }}
                         onDrop={e => {
                           e.preventDefault();
-                          e.currentTarget.classList.remove('bg-pink-100');
+                          e.currentTarget.classList.remove('bg-blue-100');
                           const file = e.dataTransfer.files?.[0];
                           if (file) {
                             const url = URL.createObjectURL(file);
@@ -3868,8 +3957,8 @@ const Classroom: React.FC = () => {
                         }}
                         onClick={() => document.getElementById('status-file-upload')?.click()}
                       >
-                        <span className="block text-pink-400 text-2xl mb-1">📷</span>
-                        <span className="text-pink-700 font-medium">Click or drag & drop to add photo/video</span>
+                        <span className="block text-blue-500 text-2xl mb-1">📷</span>
+                        <span className="text-blue-700 font-medium">Click or drag & drop to add photo/video</span>
                         <input
                           id="status-file-upload"
                           type="file"
@@ -3887,11 +3976,11 @@ const Classroom: React.FC = () => {
                       </div>
                       {/* Emoji Picker */}
                       <div className="flex items-center gap-2">
-                        <span className="text-pink-400 text-xl">😊</span>
-                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '😊')}>Add Emoji</Button>
-                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '🎉')}>🎉</Button>
-                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '🔥')}>🔥</Button>
-                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '💡')}>💡</Button>
+                        <span className="text-blue-500 text-xl">😊</span>
+                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '😊')} className="text-blue-700">Add Emoji</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '🎉')} className="text-green-700">🎉</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '🔥')} className="text-green-700">🔥</Button>
+                        <Button variant="ghost" size="sm" onClick={() => setNewStatusText(newStatusText + '💡')} className="text-blue-700">💡</Button>
                       </div>
                       {/* Status Text Input */}
                       <Textarea
@@ -3899,20 +3988,20 @@ const Classroom: React.FC = () => {
                         value={newStatusText}
                         onChange={e => setNewStatusText(e.target.value)}
                         rows={3}
-                        className="rounded-lg border-pink-200 focus:border-pink-400"
+                        className="rounded-lg border-blue-400 focus:border-blue-500 bg-gradient-to-tr from-blue-50 to-blue-100 text-blue-900 tracking-tight leading-tight"
                       />
                       {/* Thoughts Input */}
                       <Input
                         placeholder="Thoughts (optional)"
                         value={newStatusThoughts}
                         onChange={e => setNewStatusThoughts(e.target.value)}
-                        className="mt-1 border-pink-200 focus:border-pink-400"
+                        className="mt-1 border-green-400 focus:border-green-500 bg-gradient-to-tr from-green-50 to-green-100 text-green-900"
                       />
                       {/* Progress Indicator (simulate upload) */}
                       {isUploading && (
-                        <div className="w-full bg-pink-100 rounded-full h-2 mt-2">
+                        <div className="w-full bg-green-100 rounded-full h-2 mt-2">
                           <div
-                            className="bg-pink-400 h-2 rounded-full transition-all duration-300"
+                            className="bg-blue-400 h-2 rounded-full transition-all duration-300"
                             style={{ width: `${uploadProgress}%` }}
                           ></div>
                         </div>
@@ -3924,7 +4013,7 @@ const Classroom: React.FC = () => {
                           setNewStatusText('');
                           setNewStatusMedia({ url: '', type: null });
                           setNewStatusThoughts('');
-                        }} className="border-pink-300 text-pink-700">Cancel</Button>
+                        }} className="border-blue-400 text-blue-700 hover:bg-blue-100 transition-all duration-200">Cancel</Button>
                         <Button onClick={() => {
                           if (newStatusText.trim() || newStatusMedia.url) {
                             setStatuses([{ id: Date.now(), user: 'You', status: newStatusText, time: 'Just now', media: newStatusMedia.url || undefined, mediaType: newStatusMedia.type, thoughts: newStatusThoughts || undefined }, ...statuses]);
@@ -3933,7 +4022,7 @@ const Classroom: React.FC = () => {
                             setNewStatusMedia({ url: '', type: null });
                             setNewStatusThoughts('');
                           }
-                        }} disabled={!newStatusText.trim() && !newStatusMedia.url} className="bg-pink-500 text-white hover:bg-pink-600">Add Status</Button>
+                        }} disabled={!newStatusText.trim() && !newStatusMedia.url} className="bg-blue-400 text-white hover:bg-blue-500 transition-all duration-200">Add Status</Button>
                       </div>
                     </div>
                   </DialogContent>
@@ -4034,8 +4123,8 @@ const Classroom: React.FC = () => {
                           )}
                           {/* Bottom overlay: status text and thoughts */}
                           <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/40 to-transparent p-8 pb-12 text-white flex flex-col items-center">
-                            <div className="text-3xl font-extrabold mb-3 text-center drop-shadow-glow animate-fade-in" style={{ textShadow: '0 2px 16px #000, 0 0 8px #fff3' }}>{getCurrentStatus()?.status}</div>
-                            {getCurrentStatus()?.thoughts && <div className="text-pink-200 italic mb-2 text-lg text-center drop-shadow animate-fade-in" style={{ textShadow: '0 2px 8px #000, 0 0 4px #fff2' }}>{getCurrentStatus()?.thoughts}</div>}
+                            <div className="text-3xl font-extrabold mb-3 text-center animate-fade-in" style={{ textShadow: '0 2px 16px #000, 0 0 8px #fff3' }}>{getCurrentStatus()?.status}</div>
+                            {getCurrentStatus()?.thoughts && <div className="text-white italic mb-2 text-lg text-center animate-fade-in" style={{ textShadow: '0 2px 8px #000, 0 0 4px #fff2' }}>{getCurrentStatus()?.thoughts}</div>}
                           </div>
                         </div>
                       </div>

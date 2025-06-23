@@ -14,6 +14,7 @@ import '@uiw/react-md-editor/markdown-editor.css';
 import '@uiw/react-markdown-preview/markdown.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Switch } from '../components/ui/switch';
+import BridgeLabLogo from '../assets/bridgelab_logo.png';
 
 // 1. BlogPost and Comment types
 interface Comment {
@@ -101,7 +102,6 @@ const BridgeLab: React.FC = () => {
   const [tab, setTab] = useState('discover');
   const [posts, setPosts] = useState<BlogPost[]>(dummyPosts);
   const [search, setSearch] = useState('');
-  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const postsPerPage = 5;
   const navigate = useNavigate();
@@ -290,8 +290,7 @@ const BridgeLab: React.FC = () => {
 
   // Filtering
   const filtered = posts.filter(post =>
-    (search === '' || post.title.toLowerCase().includes(search.toLowerCase()) || post.content.toLowerCase().includes(search.toLowerCase())) &&
-    (!tagFilter || post.tags.includes(tagFilter))
+    search === '' || post.title.toLowerCase().includes(search.toLowerCase()) || post.content.toLowerCase().includes(search.toLowerCase())
   );
   const paginated = filtered.slice((page-1)*postsPerPage, page*postsPerPage);
 
@@ -313,9 +312,6 @@ const BridgeLab: React.FC = () => {
 
   // Comment add (dummy)
   const addComment = (postId: number, text: string) => setPosts(ps => ps.map(p => p.id === postId ? { ...p, comments: [...p.comments, { id: Date.now(), author: 'You', avatar: 'https://randomuser.me/api/portraits/lego/1.jpg', content: text, createdAt: new Date().toISOString() }] } : p));
-
-  // Tag list
-  const allTags = Array.from(new Set(posts.flatMap(p => p.tags)));
 
   // Media upload handlers
   const handleFileUpload = (files: FileList) => {
@@ -355,20 +351,54 @@ const BridgeLab: React.FC = () => {
     handleFileUpload(e.dataTransfer.files);
   };
 
+  // --- Chat mock data and logic (correct placement) ---
+  const chatRooms = [
+    { id: '1', name: 'Team Alpha', avatar: 'https://randomuser.me/api/portraits/men/32.jpg', type: 'group', unread: 2 },
+    { id: '2', name: 'Mentor: Dr. Smith', avatar: 'https://randomuser.me/api/portraits/men/75.jpg', type: 'mentor', unread: 0 },
+    { id: '3', name: 'Alice Johnson', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', type: 'direct', unread: 0 },
+    { id: '4', name: 'Circle: Eco Innovators', avatar: 'https://randomuser.me/api/portraits/women/22.jpg', type: 'group', unread: 1 },
+  ];
+  const chatMessages = {
+    '1': [
+      { id: 1, sender: 'Bob', text: 'Hey team, ready for the hackathon?', time: '2024-06-07T10:00:00Z' },
+      { id: 2, sender: 'You', text: 'Absolutely! Let\'s sync up at 5pm.', time: '2024-06-07T10:01:00Z' },
+      { id: 3, sender: 'Carol', text: 'I\'ll bring the snacks!', time: '2024-06-07T10:02:00Z' },
+    ],
+    '2': [
+      { id: 1, sender: 'Dr. Smith', text: 'Let me know if you need help with your project proposal.', time: '2024-06-07T09:00:00Z' },
+      { id: 2, sender: 'You', text: 'Thank you! I\'ll send a draft soon.', time: '2024-06-07T09:05:00Z' },
+    ],
+    '3': [
+      { id: 1, sender: 'Alice Johnson', text: 'Can you review my code?', time: '2024-06-07T08:00:00Z' },
+      { id: 2, sender: 'You', text: 'Sure, send it over!', time: '2024-06-07T08:01:00Z' },
+    ],
+    '4': [
+      { id: 1, sender: 'Emma', text: 'Let\'s brainstorm eco-friendly ideas!', time: '2024-06-07T07:00:00Z' },
+      { id: 2, sender: 'You', text: 'I have a few concepts to share.', time: '2024-06-07T07:05:00Z' },
+    ],
+  };
+  const [activeRoom, setActiveRoom] = useState<string | null>(chatRooms[0].id);
+  const [messageText, setMessageText] = useState('');
+  const [messages, setMessages] = useState(chatMessages);
+  const activeRoomObj = chatRooms.find(r => r.id === activeRoom);
+  const activeRoomMessages = activeRoom ? messages[activeRoom] || [] : [];
+  // Send message handler
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageText.trim() || !activeRoom) return;
+    setMessages(prev => ({
+      ...prev,
+      [activeRoom]: [
+        ...prev[activeRoom],
+        { id: Date.now(), sender: 'You', text: messageText, time: new Date().toISOString() },
+      ],
+    }));
+    setMessageText('');
+  };
+
   // 3. DiscoverBlogFeed component
   const DiscoverBlogFeed = () => (
     <div className="w-full max-w-3xl mx-auto mt-10">
-      {/* Search & Tag Filter */}
-      <div className="flex flex-wrap gap-3 mb-8 items-center">
-        <Input placeholder="Search posts..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
-        <div className="flex gap-2 flex-wrap">
-          <span className="text-xs text-neutral-400">Tags:</span>
-          <button onClick={() => setTagFilter(null)} className={`px-3 py-1 rounded-full text-xs font-bold ${!tagFilter ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-600'}`}>All</button>
-          {allTags.map(tag => (
-            <button key={tag} onClick={() => setTagFilter(tag)} className={`px-3 py-1 rounded-full text-xs font-bold ${tagFilter === tag ? 'bg-black text-white' : 'bg-neutral-100 text-neutral-600'}`}>{tag}</button>
-          ))}
-        </div>
-      </div>
       {/* Blog Feed */}
       <div className="flex flex-col gap-10">
         {paginated.map(post => (
@@ -381,9 +411,6 @@ const BridgeLab: React.FC = () => {
               </div>
             </div>
             <h2 className="text-2xl font-extrabold mb-2 uppercase tracking-wide font-brand">{post.title}</h2>
-            <div className="flex flex-wrap gap-2 mb-3">
-              {post.tags.map(tag => <Badge key={tag} className="bg-neutral-100 text-neutral-600 text-xs font-semibold uppercase tracking-widest">#{tag}</Badge>)}
-            </div>
             <div className="prose max-w-none mb-4" dangerouslySetInnerHTML={{ __html: post.content }} />
             <div className="flex items-center gap-6 mb-2">
               <button onClick={() => toggleLike(post.id)} className={`flex items-center gap-1 text-base font-bold transition-all ${post.liked ? 'text-blue-600' : 'text-neutral-400 hover:text-blue-600'}`}>{post.liked ? '♥' : '♡'} {post.likes}</button>
@@ -399,9 +426,9 @@ const BridgeLab: React.FC = () => {
       </div>
       {/* Pagination */}
       <div className="flex justify-center gap-4 mt-10">
-        <Button disabled={page === 1} onClick={() => setPage(p => p-1)}>Prev</Button>
+        <Button disabled={page === 1} onClick={() => setPage(p => p-1)} className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Prev</Button>
         <span className="text-neutral-500">Page {page}</span>
-        <Button disabled={page*postsPerPage >= filtered.length} onClick={() => setPage(p => p+1)}>Next</Button>
+        <Button disabled={page*postsPerPage >= filtered.length} onClick={() => setPage(p => p+1)} className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Next</Button>
       </div>
     </div>
   );
@@ -440,7 +467,7 @@ const BridgeLab: React.FC = () => {
         </div>
         <form onSubmit={e => { e.preventDefault(); if (text.trim()) { addComment(post.id, text); setText(''); } }} className="flex gap-2 mt-2">
           <Input value={text} onChange={e => setText(e.target.value)} placeholder="Add a comment..." className="flex-1" />
-          <Button type="submit" className="bg-black text-white rounded-full px-6">Post</Button>
+          <Button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Post</Button>
         </form>
       </div>
     );
@@ -616,21 +643,24 @@ const BridgeLab: React.FC = () => {
       <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
       {/* Faint background pattern */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(circle, #e5e5e5 1px, transparent 1.5px)', backgroundSize: '32px 32px', opacity: 0.18 }} />
-      <div className="w-full max-w-7xl z-10">
-        {/* Top left: Logo, Heading, Back Button */}
-        <div className="flex items-center gap-4 pt-8 pb-4 pl-4">
-          <Button size="icon" variant="ghost" className="rounded-full p-2 mr-2" aria-label="Back to Classroom" onClick={() => navigate('/classroom')}>
-            <ArrowLeft className="w-6 h-6" />
-          </Button>
+      {/* Fixed Logo at top left */}
+      <div className="fixed top-6 left-6 z-50 flex flex-col items-center">
+        <div className="bg-gradient-to-r from-yellow-500 to-orange-400 text-white shadow-xl hover:from-yellow-600 hover:to-orange-500 transition-all duration-300 rounded-full p-1 flex items-center justify-center h-28 w-28">
+          <img src={BridgeLabLogo} alt="BridgeLab Logo" className="h-24 w-24 object-contain" />
+        </div>
+      </div>
+      <div className="w-full max-w-7xl z-10" style={{ marginLeft: '9rem' }}>
+        {/* Top left: Heading, Back Button and Top right: Search */}
+        <div className="flex items-center justify-between gap-4 pt-8 pb-4 pl-4 pr-4">
           <div className="flex items-center gap-3">
-            <div className="rounded-full bg-black w-10 h-10 flex items-center justify-center shadow-xl logo-shadow relative">
-              <svg width="28" height="28" viewBox="0 0 48 48" fill="none" className="text-white" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="24" cy="24" r="22" stroke="white" strokeWidth="3" fill="none" />
-                <path d="M16 32L24 16L32 32" stroke="white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-            </div>
-            <span className="text-2xl font-extrabold text-black tracking-tighter uppercase letter-spacing-wider font-brand" style={{ fontSize: '1.35rem', lineHeight: '1.2' }}>BridgeLab</span>
+            <Button size="icon" variant="ghost" className="rounded-full p-2 mr-2" aria-label="Back to Classroom" onClick={() => navigate('/classroom')}>
+              <ArrowLeft className="w-6 h-6" />
+            </Button>
+            {/* Logo removed from here, now fixed at top left */}
           </div>
+          {!(tab === 'profile' || tab === 'circles' || tab === 'pitch' || tab === 'post') && (
+            <Input placeholder="Search posts..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
+          )}
         </div>
         {/* Divider */}
         <div className="w-full border-t border-neutral-200 mb-8" />
@@ -706,7 +736,7 @@ const BridgeLab: React.FC = () => {
                       <MarkdownPreview source={newContent || ''} />
                     </div>
                   </div>
-                  <button type="submit" className="bg-black text-white rounded-full mt-6 shadow hover:bg-neutral-900 transition-all text-lg py-4 px-10 uppercase tracking-widest btn-hover">Publish</button>
+                  <button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Publish</button>
                 </form>
               </div>
             </div>
@@ -947,7 +977,72 @@ const BridgeLab: React.FC = () => {
           )}
           {tab === 'circles' && (
             <div className="pb-20">
-              <Placeholder icon={<MessageCircle className="w-16 h-16 text-neutral-300" strokeWidth={1.5} />} title="Build Circles" prompt="Create or join focused micro-communities to brainstorm, prototype, and build — with mentorship and peer feedback." />
+              {/* --- Circles Chat UI --- */}
+              <div className="w-full max-w-6xl mx-auto mt-10 flex gap-8 animate-fade-in">
+                {/* Sidebar: Chat Rooms */}
+                <div className="w-80 bg-white rounded-2xl shadow-xl border-0 p-6 flex flex-col gap-4 h-[600px] min-h-[400px] max-h-[80vh] overflow-y-auto">
+                  <h2 className="text-xl font-bold text-black uppercase tracking-wide font-brand mb-2">Chats & Circles</h2>
+                  <div className="flex flex-col gap-2">
+                    {chatRooms.map(room => (
+                      <button
+                        key={room.id}
+                        onClick={() => setActiveRoom(room.id)}
+                        className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-150 text-left font-semibold text-base ${activeRoom === room.id ? 'bg-blue-50 text-blue-700 shadow' : 'bg-neutral-50 text-neutral-700 hover:bg-neutral-100'}`}
+                      >
+                        <img src={room.avatar} alt={room.name} className="w-10 h-10 rounded-full" />
+                        <div className="flex-1">
+                          <div className="font-bold">{room.name}</div>
+                          <div className="text-xs text-neutral-400 truncate">{room.type === 'group' ? 'Group' : room.type === 'mentor' ? 'Mentor' : 'Direct'}</div>
+                        </div>
+                        {room.unread > 0 && (
+                          <span className="bg-blue-600 text-white text-xs rounded-full px-2 py-0.5 font-bold">{room.unread}</span>
+                        )}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Chat Window */}
+                <div className="flex-1 bg-white rounded-2xl shadow-xl border-0 p-6 flex flex-col h-[600px] min-h-[400px] max-h-[80vh]">
+                  {activeRoomObj ? (
+                    <>
+                      {/* Chat Header */}
+                      <div className="flex items-center gap-4 border-b border-neutral-100 pb-4 mb-4">
+                        <img src={activeRoomObj.avatar} alt={activeRoomObj.name} className="w-12 h-12 rounded-full" />
+                        <div>
+                          <div className="font-bold text-lg text-black">{activeRoomObj.name}</div>
+                          <div className="text-xs text-neutral-400">{activeRoomObj.type === 'group' ? 'Group Discussion' : activeRoomObj.type === 'mentor' ? 'Mentorship' : 'Direct Message'}</div>
+                        </div>
+                      </div>
+                      {/* Messages */}
+                      <div className="flex-1 overflow-y-auto mb-4 pr-2" style={{ maxHeight: '380px' }}>
+                        <div className="flex flex-col gap-4">
+                          {activeRoomMessages.map(msg => (
+                            <div key={msg.id} className={`flex ${msg.sender === 'You' ? 'justify-end' : 'justify-start'}`}>
+                              <div className={`max-w-xs px-4 py-2 rounded-2xl shadow ${msg.sender === 'You' ? 'bg-blue-600 text-white' : 'bg-neutral-100 text-black'}`} style={{ wordBreak: 'break-word' }}>
+                                <div className="text-xs font-bold mb-1">{msg.sender}</div>
+                                <div className="text-sm">{msg.text}</div>
+                                <div className="text-[10px] text-neutral-300 mt-1 text-right">{new Date(msg.time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      {/* Message Input */}
+                      <form onSubmit={handleSendMessage} className="flex gap-2 mt-auto">
+                        <Input
+                          value={messageText}
+                          onChange={e => setMessageText(e.target.value)}
+                          placeholder="Type your message..."
+                          className="flex-1"
+                        />
+                        <Button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Send</Button>
+                      </form>
+                    </>
+                  ) : (
+                    <div className="flex-1 flex items-center justify-center text-neutral-400 text-lg">Select a chat to start messaging.</div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
           {tab === 'pitch' && (
@@ -1106,25 +1201,29 @@ const BridgeLab: React.FC = () => {
 
                 {/* Profile Tabs */}
                 <Tabs value={profileTab} onValueChange={setProfileTab} className="w-full">
-                  <TabsList className="mb-8 flex flex-row gap-2 bg-transparent rounded-none shadow-none border-0 max-w-4xl mx-auto justify-center px-2 py-2 overflow-x-auto scrollbar-hide" style={{ minHeight: '3.5rem' }}>
+                  <TabsList
+                    className="flex flex-row gap-0 bg-white/90 backdrop-blur-md border border-neutral-200 rounded-xl shadow-2xl w-full justify-between px-2 py-2 mb-0 mt-0 transition-all duration-300"
+                    style={{ minHeight: '3.5rem' }}
+                  >
                     {profileTabItems.map(({ value, label, icon }) => (
                       <TabsTrigger
                         key={value}
                         value={value}
-                        className={`group relative flex flex-col md:flex-row items-center justify-center px-4 py-2 bg-transparent border-0 rounded-none font-brand text-base md:text-sm font-semibold transition-all duration-200
-                          ${profileTab === value ? 'text-blue-600 font-bold' : 'text-neutral-500 hover:text-blue-500'}
+                        className={`mx-1 group relative flex flex-col items-center justify-center px-4 py-2 rounded-lg font-brand text-sm font-semibold transition-all duration-200 flex-1 max-w-[90px] cursor-pointer
+                          hover:scale-105 hover:bg-neutral-200 hover:shadow
+                          ${profileTab === value
+                            ? 'text-blue-700 bg-gradient-to-r from-blue-100 via-pink-100 to-blue-50 shadow-xl border-2 border-blue-400 scale-105 z-10 font-bold'
+                            : 'text-neutral-500 hover:text-blue-600'
+                          }
                         `}
                         style={{ minWidth: 0 }}
                       >
-                        <span className="flex items-center justify-center w-full">
-                          {React.cloneElement(icon, { className: `w-5 h-5 mx-auto transition-all duration-200 ${profileTab === value ? 'text-blue-600' : 'text-neutral-400 group-hover:text-blue-500'}` })}
+                        <span className="flex items-center justify-center w-full mb-1">
+                          {React.cloneElement(icon, {
+                            className: `w-6 h-6 transition-all duration-200 ${profileTab === value ? 'text-blue-600 drop-shadow-tabicon' : 'text-neutral-400 group-hover:text-blue-500'}`
+                          })}
                         </span>
-                        <span className="ml-2 md:inline hidden transition-all duration-200">
-                          {label}
-                        </span>
-                        {profileTab === value && (
-                          <span className="absolute left-1/2 -translate-x-1/2 -bottom-1 h-1.5 w-3/4 bg-gradient-to-r from-blue-400 via-pink-400 to-blue-400 rounded-full animate-underline-fade" />
-                        )}
+                        <span className="text-center transition-all duration-200 leading-tight">{label}</span>
                       </TabsTrigger>
                     ))}
                   </TabsList>
@@ -1143,33 +1242,32 @@ const BridgeLab: React.FC = () => {
         </div>
         
         {/* Bottom Navigation Tabs */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-neutral-200 shadow-2xl">
-          <div className="max-w-7xl mx-auto">
+        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
+          <div className="w-full max-w-xl mx-auto pointer-events-auto">
             <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className="flex flex-row gap-1 bg-white rounded-none shadow-none border-0 w-full justify-between px-4 py-3 overflow-x-auto scrollbar-hide" style={{ minHeight: '4rem' }}>
+              <TabsList
+                className="flex flex-row gap-0 bg-white/90 backdrop-blur-md border border-neutral-200 rounded-xl shadow-2xl w-full justify-between px-2 py-2 mb-0 mt-0 transition-all duration-300"
+                style={{ minHeight: '3.5rem' }}
+              >
                 {tabItems.map(({ value, label, icon }) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className={`group relative flex flex-col items-center justify-center px-3 py-2 bg-transparent border-0 rounded-xl font-brand text-xs font-semibold transition-all duration-200 flex-1 max-w-[120px]
-                      ${tab === value 
-                        ? 'text-blue-600 bg-blue-50 shadow-md' 
-                        : 'text-neutral-500 hover:text-blue-500 hover:bg-neutral-50'
+                    className={`mx-1 group relative flex flex-col items-center justify-center px-4 py-2 rounded-lg font-brand text-sm font-semibold transition-all duration-200 flex-1 max-w-[90px] cursor-pointer
+                      hover:scale-105 hover:bg-neutral-200 hover:shadow
+                      ${tab === value
+                        ? 'text-blue-700 bg-gradient-to-r from-blue-100 via-pink-100 to-blue-50 shadow-xl border-2 border-blue-400 scale-105 z-10 font-bold'
+                        : 'text-neutral-500 hover:text-blue-600'
                       }
                     `}
                     style={{ minWidth: 0 }}
                   >
                     <span className="flex items-center justify-center w-full mb-1">
-                      {React.cloneElement(icon, { 
-                        className: `w-5 h-5 transition-all duration-200 ${tab === value ? 'text-blue-600' : 'text-neutral-400 group-hover:text-blue-500'}` 
+                      {React.cloneElement(icon, {
+                        className: `w-6 h-6 transition-all duration-200 ${tab === value ? 'text-blue-600 drop-shadow-tabicon' : 'text-neutral-400 group-hover:text-blue-500'}`
                       })}
                     </span>
-                    <span className="text-center transition-all duration-200 leading-tight">
-                      {label}
-                    </span>
-                    {tab === value && (
-                      <span className="absolute -top-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-blue-600 rounded-full" />
-                    )}
+                    <span className="text-center transition-all duration-200 leading-tight">{label}</span>
                   </TabsTrigger>
                 ))}
               </TabsList>
@@ -1199,7 +1297,7 @@ const BridgeLab: React.FC = () => {
           box-shadow: 0 4px 24px 0 rgba(60, 120, 255, 0.18), 0 1.5px 8px 0 rgba(60, 120, 255, 0.10);
         }
         .drop-shadow-tabicon {
-          filter: drop-shadow(0 0 6px #60a5fa88);
+          filter: drop-shadow(0 2px 8px #60a5fa44);
         }
         .tabs-trigger:hover {
           transform: translateY(-2px) scale(1.06);
@@ -1224,6 +1322,8 @@ const BridgeLab: React.FC = () => {
           color: #2563eb;
           font-size: 1.08rem;
         }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
       `}</style>
     </div>
   );

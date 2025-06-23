@@ -1,6 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useTheme } from "next-themes";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -53,7 +52,6 @@ const COUNTRIES = [
 ];
 
 export function SettingsPage() {
-  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [notifications, setNotifications] = useState({
     email: true,
@@ -216,7 +214,6 @@ export function SettingsPage() {
     // Clear any other app-specific data
     localStorage.removeItem('appState');
     localStorage.removeItem('userSettings');
-    localStorage.removeItem('theme');
     localStorage.removeItem('language');
     localStorage.removeItem('timezone');
     
@@ -233,7 +230,6 @@ export function SettingsPage() {
       <Tabs defaultValue="general" className="space-y-4">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
-          <TabsTrigger value="appearance">Appearance</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="focus">Focus Mode</TabsTrigger>
           <TabsTrigger value="shortcuts">Shortcuts</TabsTrigger>
@@ -664,51 +660,6 @@ export function SettingsPage() {
                       )}
                     </div>
                   </div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="appearance">
-          <Card>
-            <CardHeader>
-              <CardTitle>Appearance Settings</CardTitle>
-              <CardDescription>
-                Customize how the application looks
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label className="flex items-center gap-2">
-                  <Icons.Monitor className="w-4 h-4" />
-                  Theme
-                </Label>
-                <div className="flex items-center space-x-4">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    onClick={() => setTheme("light")}
-                    className="gap-2"
-                  >
-                    <Icons.Sun className="w-4 h-4" />
-                    Light
-                  </Button>
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    onClick={() => setTheme("dark")}
-                    className="gap-2"
-                  >
-                    <Icons.Moon className="w-4 h-4" />
-                    Dark
-                  </Button>
-                  <Button
-                    variant={theme === "system" ? "default" : "outline"}
-                    onClick={() => setTheme("system")}
-                    className="gap-2"
-                  >
-                    <Icons.Monitor className="w-4 h-4" />
-                    System
-                  </Button>
                 </div>
               </div>
             </CardContent>

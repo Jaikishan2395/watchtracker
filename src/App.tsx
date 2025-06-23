@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Routes, Route, useLocation, useParams, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -31,6 +31,21 @@ import { Button } from "@/components/ui/button";
 
 const queryClient = new QueryClient();
 
+function SidebarDoubleClickCloser({ children }: { children: React.ReactNode }) {
+  const { open, setOpen, openMobile, setOpenMobile } = useSidebar();
+  return (
+    <div
+      style={{ height: '100%' }}
+      onDoubleClick={() => {
+        setOpen(!open);
+        setOpenMobile(!openMobile);
+      }}
+    >
+      {children}
+    </div>
+  );
+}
+
 const AppContent = () => {
   const location = useLocation();
   const isAuthPage = ['/', '/login', '/create-account'].includes(location.pathname);
@@ -47,32 +62,29 @@ const AppContent = () => {
       <div className="min-h-screen flex w-full">
         {!isAuthPage && <AppSidebar />}
         <main className={`flex-1 ${!isAuthPage ? '' : 'w-full'}`}>
-          {!isAuthPage && (
-            <div className="p-2">
-              <SidebarTrigger />
-            </div>
-          )}
-          <Routes>
-            <Route path="/" element={<Splash />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/create-account" element={<CreateAccount />} />
-            <Route path="/dashboard" element={<Index />} />
-            <Route path="/library" element={<Library />} />
-            <Route path="/classroom" element={<Classroom />} />
-            <Route path="/clubs" element={<Clubs />} />
-            <Route path="/todo" element={<Todo />} />
-            <Route path="/pomodoro" element={<Pomodoro />} />
-            <Route path="/premium" element={<Premium />} />
-            <Route path="/bridgelab" element={<BridgeLab />} />
-            <Route 
-              path="/playlist/:playlistId" 
-              element={<PlaylistDetailWrapper />} 
-            />
-            <Route path="/playlist/:playlistId/play" element={<VideoPlayer />} />
-            <Route path="/profile" element={<Profile />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
+          <SidebarDoubleClickCloser>
+            <Routes>
+              <Route path="/" element={<Splash />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/create-account" element={<CreateAccount />} />
+              <Route path="/dashboard" element={<Index />} />
+              <Route path="/library" element={<Library />} />
+              <Route path="/classroom" element={<Classroom />} />
+              <Route path="/clubs" element={<Clubs />} />
+              <Route path="/todo" element={<Todo />} />
+              <Route path="/pomodoro" element={<Pomodoro />} />
+              <Route path="/premium" element={<Premium />} />
+              <Route path="/bridgelab" element={<BridgeLab />} />
+              <Route 
+                path="/playlist/:playlistId" 
+                element={<PlaylistDetailWrapper />} 
+              />
+              <Route path="/playlist/:playlistId/play" element={<VideoPlayer />} />
+              <Route path="/profile" element={<Profile />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </SidebarDoubleClickCloser>
         </main>
       </div>
     </SidebarProvider>
@@ -162,7 +174,7 @@ const PlaylistDetailWrapper = () => {
 };
 
 const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
     <PlaylistProvider>
       <QueryClientProvider client={queryClient}>
         <TooltipProvider>
