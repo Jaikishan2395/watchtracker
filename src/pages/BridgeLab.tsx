@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '../components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -15,6 +15,9 @@ import '@uiw/react-markdown-preview/markdown.css';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../components/ui/dialog';
 import { Switch } from '../components/ui/switch';
 import BridgeLabLogo from '../assets/bridgelab_logo.png';
+import ImageEditor from '../components/ImageEditor';
+import { toast } from '../hooks/use-toast';
+import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogTrigger as ConfirmDialogTrigger } from '../components/ui/dialog';
 
 // 1. BlogPost and Comment types
 interface Comment {
@@ -37,6 +40,7 @@ interface BlogPost {
   liked: boolean;
   bookmarked: boolean;
   comments: Comment[];
+  media?: { type: 'image' | 'video', file: File, url: string }[];
 }
 
 // 2. Dummy posts data
@@ -400,26 +404,69 @@ const BridgeLab: React.FC = () => {
   const DiscoverBlogFeed = () => (
     <div className="w-full max-w-3xl mx-auto mt-10">
       {/* Blog Feed */}
-      <div className="flex flex-col gap-10">
+      <div className="flex flex-col gap-12">
         {paginated.map(post => (
-          <div key={post.id} className="bg-white rounded-2xl shadow-xl p-8 border-0 animate-fade-in">
-            <div className="flex items-center gap-4 mb-2">
-              <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full cursor-pointer" onClick={() => navigate(`/profile?user=${encodeURIComponent(post.author)}`)} />
+          <div
+            key={post.id}
+            className="discover-post-card bg-white rounded-3xl shadow-2xl p-0 border border-neutral-200 hover:shadow-3xl transition-all duration-300 group overflow-hidden relative"
+            style={{ minHeight: '420px' }}
+          >
+            {/* Header */}
+            <div className="flex items-center gap-4 px-8 pt-8 pb-2">
+              <img src={post.avatar} alt={post.author} className="w-14 h-14 rounded-full border-2 border-blue-200 shadow group-hover:scale-105 transition-transform duration-200" />
               <div>
-                <span className="font-bold text-lg cursor-pointer hover:underline" onClick={() => navigate(`/profile?user=${encodeURIComponent(post.author)}`)}>{post.author}</span>
+                <span className="font-bold text-xl cursor-pointer hover:underline text-black" onClick={() => navigate(`/profile?user=${encodeURIComponent(post.author)}`)}>{post.author}</span>
                 <span className="ml-2 text-xs text-neutral-400">{new Date(post.createdAt).toLocaleString()}</span>
               </div>
             </div>
-            <h2 className="text-2xl font-extrabold mb-2 uppercase tracking-wide font-brand">{post.title}</h2>
-            <div className="prose max-w-none mb-4" dangerouslySetInnerHTML={{ __html: post.content }} />
-            <div className="flex items-center gap-6 mb-2">
-              <button onClick={() => toggleLike(post.id)} className={`flex items-center gap-1 text-base font-bold transition-all ${post.liked ? 'text-blue-600' : 'text-neutral-400 hover:text-blue-600'}`}>{post.liked ? '♥' : '♡'} {post.likes}</button>
-              <button onClick={() => toggleBookmark(post.id)} className={`flex items-center gap-1 text-base font-bold transition-all ${post.bookmarked ? 'text-yellow-500' : 'text-neutral-400 hover:text-yellow-500'}`}>{post.bookmarked ? '★' : '☆'}</button>
-              <span className="text-neutral-400 text-sm">{post.comments.length} comments</span>
+            {/* Title */}
+            <h2 className="text-3xl font-extrabold mb-2 px-8 text-black tracking-wide font-brand uppercase mt-2">{post.title}</h2>
+            {/* Tags */}
+            <div className="flex flex-wrap gap-2 px-8 mb-2">
+              {post.tags && post.tags.map(tag => (
+                <Badge key={tag} className="bg-blue-100 text-blue-700 font-semibold uppercase tracking-widest px-3 py-1 text-xs rounded-full shadow-sm">{tag}</Badge>
+              ))}
+            </div>
+            {/* Media */}
+            {post.media && post.media.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-8 mb-4">
+                {post.media.map((media, idx) => (
+                  <div key={idx} className="relative rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-200">
+                    {media.type === 'image' ? (
+                      <img src={media.url} alt="Post Media" className="w-full h-64 object-cover rounded-xl" />
+                    ) : (
+                      <video src={media.url} className="w-full h-64 object-cover rounded-xl" controls />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {/* Content */}
+            <div className="prose max-w-none mb-4 px-8 text-lg text-neutral-800" dangerouslySetInnerHTML={{ __html: post.content }} />
+            {/* Divider */}
+            <div className="w-full border-t border-neutral-200 my-4" />
+            {/* Actions */}
+            <div className="flex items-center gap-8 px-8 pb-6">
+              <button onClick={() => toggleLike(post.id)} className={`flex items-center gap-2 text-lg font-bold transition-all ${post.liked ? 'text-blue-600' : 'text-neutral-400 hover:text-blue-600'}`}>
+                {post.liked ? '♥' : '♡'} <span>{post.likes}</span>
+              </button>
+              <button onClick={() => toggleBookmark(post.id)} className={`flex items-center gap-2 text-lg font-bold transition-all ${post.bookmarked ? 'text-yellow-500' : 'text-neutral-400 hover:text-yellow-500'}`}>
+                {post.bookmarked ? '★' : '☆'}
+              </button>
+              <span className="text-neutral-400 text-base">{post.comments.length} comments</span>
             </div>
             {/* Comments */}
-            <div className="mt-4">
-              <CommentSection post={post} addComment={addComment} />
+            <div className="bg-neutral-50 rounded-b-3xl px-8 pb-8 pt-4">
+              {activeCommentPostId === post.id ? (
+                <CommentSection post={post} addComment={addComment} activeCommentPostId={activeCommentPostId} setActiveCommentPostId={setActiveCommentPostId} />
+              ) : (
+                <button
+                  className="mt-2 px-6 py-2 bg-black text-white rounded-full shadow-md hover:bg-white hover:text-black border border-black transition-colors duration-200 font-semibold focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                  onClick={() => setActiveCommentPostId(post.id)}
+                >
+                  Comment
+                </button>
+              )}
             </div>
           </div>
         ))}
@@ -434,11 +481,21 @@ const BridgeLab: React.FC = () => {
   );
 
   // 4. CommentSection component
-  const CommentSection = ({ post, addComment }: { post: BlogPost, addComment: (postId: number, text: string) => void }) => {
+  const CommentSection = ({ post, addComment, activeCommentPostId, setActiveCommentPostId }: { post: BlogPost, addComment: (postId: number, text: string) => void, activeCommentPostId: number | null, setActiveCommentPostId: (id: number | null) => void }) => {
     const [text, setText] = useState('');
+    const scrollClass = post.comments.length > 1 ? 'max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50' : '';
+    const inputRef = useRef<HTMLInputElement>(null);
+
+    // Focus input if this post is active
+    useEffect(() => {
+      if (activeCommentPostId === post.id && inputRef.current) {
+        inputRef.current.focus();
+      }
+    }, [activeCommentPostId, post.id]);
+
     return (
       <div className="bg-neutral-50 rounded-xl p-4 mt-2">
-        <div className="flex flex-col gap-2 mb-2">
+        <div className={`flex flex-col gap-2 mb-2 ${scrollClass}`} style={{ minHeight: 0 }}>
           {post.comments.map(comment => (
             <div key={comment.id} className="flex items-start gap-3 mb-2">
               <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full" />
@@ -465,8 +522,20 @@ const BridgeLab: React.FC = () => {
             </div>
           ))}
         </div>
-        <form onSubmit={e => { e.preventDefault(); if (text.trim()) { addComment(post.id, text); setText(''); } }} className="flex gap-2 mt-2">
-          <Input value={text} onChange={e => setText(e.target.value)} placeholder="Add a comment..." className="flex-1" />
+        <form
+          onSubmit={e => {
+            e.preventDefault();
+            if (text.trim()) { addComment(post.id, text); setText(''); }
+          }}
+          className="flex gap-2 mt-2"
+        >
+          <Input
+            ref={inputRef}
+            value={text}
+            onChange={e => setText(e.target.value)}
+            placeholder="Add a comment..."
+            className="flex-1"
+          />
           <Button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Post</Button>
         </form>
       </div>
@@ -637,10 +706,32 @@ const BridgeLab: React.FC = () => {
     </Card>
   );
 
+  const [editingImageIndex, setEditingImageIndex] = useState<number | null>(null);
+  const [imageEditorSrc, setImageEditorSrc] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // Helper for tag validation
+  const parseTags = (tags: string) => tags.split(',').map(t => t.trim()).filter(Boolean).slice(0, 5);
+
+  // Add state to track the active comment input post
+  const [activeCommentPostId, setActiveCommentPostId] = useState<number | null>(null);
+
+  // Add effect to close comment input when clicking outside any post
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      // If the click is outside any .discover-post-card, close all comment inputs
+      if (!(e.target as Element).closest('.discover-post-card')) {
+        setActiveCommentPostId(null);
+      }
+    };
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, []);
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center animate-fade-in font-sans relative" style={{ fontFamily: 'Space Grotesk, Inter, Helvetica Neue, Arial, sans-serif' }}>
-      {/* Google Fonts import for Space Grotesk */}
-      <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap" rel="stylesheet" />
       {/* Faint background pattern */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(circle, #e5e5e5 1px, transparent 1.5px)', backgroundSize: '32px 32px', opacity: 0.18 }} />
       {/* Fixed Logo at top left */}
@@ -671,10 +762,60 @@ const BridgeLab: React.FC = () => {
           {tab === 'post' && (
             <div className="pb-20">
               <div className="max-w-2xl mx-auto bg-white rounded-2xl shadow-xl p-12 mt-10 flex flex-col gap-8 border-0 animate-fade-in">
-                <form onSubmit={e => { e.preventDefault(); if (!newTitle || !newContent) return; setPosts([{ id: Date.now(), title: newTitle, content: newContent, author: 'You', avatar: 'https://randomuser.me/api/portraits/lego/1.jpg', tags: newTags.split(',').map(t => t.trim()).filter(Boolean), createdAt: new Date().toISOString(), likes: 0, liked: false, bookmarked: false, comments: [] }, ...posts]); setNewTitle(''); setNewContent(''); setNewTags(''); setNewMedia([]); }}>
-                  <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title" className="w-full mb-4 px-4 py-2 rounded-lg border-0 bg-neutral-100 text-lg font-bold" required />
-                  <input value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="Tags (comma separated)" className="w-full mb-4 px-4 py-2 rounded-lg border-0 bg-neutral-100 text-base" />
-                  
+                {/* Preview Card */}
+                {showPreview && (
+                  <div className="mb-8">
+                    <Card className="mb-4">
+                      <CardHeader className="flex flex-row items-center gap-4">
+                        <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="You" className="w-10 h-10 rounded-full" />
+                        <div>
+                          <CardTitle className="text-lg font-bold">{newTitle}</CardTitle>
+                          <CardDescription className="text-xs text-neutral-400">Now</CardDescription>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="prose max-w-none mb-2" dangerouslySetInnerHTML={{ __html: newContent }} />
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {parseTags(newTags).map(tag => (
+                            <Badge key={tag} className="bg-neutral-100 text-neutral-700 font-semibold uppercase tracking-widest">{tag}</Badge>
+                          ))}
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          {newMedia.map((media, idx) => (
+                            <div key={idx} className="relative">
+                              {media.type === 'image' ? (
+                                <img src={media.url} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                              ) : (
+                                <video src={media.url} className="w-full h-32 object-cover rounded-lg" controls />
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </CardContent>
+                    </Card>
+                    <div className="flex gap-4">
+                      <Button variant="outline" onClick={() => setShowPreview(false)}>Edit</Button>
+                      <Button className="bg-black text-white" onClick={() => setShowConfirm(true)}>Publish</Button>
+                    </div>
+                  </div>
+                )}
+                {/* New Post Form */}
+                {!showPreview && (
+                  <form onSubmit={e => {
+                    e.preventDefault();
+                    if (!newContent) {
+                      toast({ title: 'Content is required', description: '', });
+                      return;
+                    }
+                    const tagsArr = parseTags(newTags);
+                    if (tagsArr.length > 5) {
+                      toast({ title: 'Maximum 5 tags allowed', description: '', });
+                      return;
+                    }
+                    setShowPreview(true);
+                  }}>
+                    <input value={newTitle} onChange={e => setNewTitle(e.target.value)} placeholder="Title (optional)" className="w-full mb-4 px-4 py-2 rounded-lg border-0 bg-neutral-100 text-lg font-bold" />
+                    <input value={newTags} onChange={e => setNewTags(e.target.value)} placeholder="Tags (comma separated, max 5)" className="w-full mb-4 px-4 py-2 rounded-lg border-0 bg-neutral-100 text-base" />
                   {/* Media Upload Section */}
                   <div className="mb-4">
                     <label className="text-sm font-medium text-neutral-700 mb-2 block">Add Media (Images/Videos)</label>
@@ -692,7 +833,9 @@ const BridgeLab: React.FC = () => {
                         type="file"
                         multiple
                         accept="image/*,video/*"
-                        onChange={(e) => e.target.files && handleFileUpload(e.target.files)}
+                          onChange={(e) => {
+                            if (e.target.files) handleFileUpload(e.target.files);
+                          }}
                         className="hidden"
                         id="media-upload"
                       />
@@ -702,7 +845,7 @@ const BridgeLab: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Media Preview */}
+                    {/* Media Preview with Edit Button */}
                   {newMedia.length > 0 && (
                     <div className="mb-4">
                       <h4 className="text-sm font-medium text-neutral-700 mb-2">Media Preview</h4>
@@ -710,7 +853,20 @@ const BridgeLab: React.FC = () => {
                         {newMedia.map((media, index) => (
                           <div key={index} className="relative group">
                             {media.type === 'image' ? (
+                                <>
                               <img src={media.url} alt="Preview" className="w-full h-32 object-cover rounded-lg" />
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setEditingImageIndex(index);
+                                      setImageEditorSrc(media.url);
+                                    }}
+                                    className="absolute top-2 right-8 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-sm hover:bg-blue-600 transition-colors z-10"
+                                    title="Edit Image"
+                                  >
+                                    ✎
+                                  </button>
+                                </>
                             ) : (
                               <video src={media.url} className="w-full h-32 object-cover rounded-lg" controls />
                             )}
@@ -727,6 +883,26 @@ const BridgeLab: React.FC = () => {
                     </div>
                   )}
 
+                    {/* Image Editor Modal */}
+                    {imageEditorSrc && editingImageIndex !== null && (
+                      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                        <div className="bg-white rounded-xl p-6 shadow-2xl relative">
+                          <ImageEditor
+                            image={imageEditorSrc}
+                            onSave={(editedDataUrl) => {
+                              setNewMedia(prev => prev.map((m, i) => i === editingImageIndex ? { ...m, url: editedDataUrl } : m));
+                              setImageEditorSrc(null);
+                              setEditingImageIndex(null);
+                            }}
+                            onCancel={() => {
+                              setImageEditorSrc(null);
+                              setEditingImageIndex(null);
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
                   <div data-color-mode="light">
                     <MDEditor value={newContent} onChange={setNewContent} height={300} />
                   </div>
@@ -736,8 +912,54 @@ const BridgeLab: React.FC = () => {
                       <MarkdownPreview source={newContent || ''} />
                     </div>
                   </div>
-                  <button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">Publish</button>
+                    <Button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black" disabled={loading}>{loading ? 'Loading...' : 'Preview & Publish'}</Button>
                 </form>
+                )}
+                {/* Confirm Dialog */}
+                <ConfirmDialog open={showConfirm} onOpenChange={setShowConfirm}>
+                  <ConfirmDialogContent>
+                    <ConfirmDialogHeader>
+                      <ConfirmDialogTitle>Are you sure you want to publish this post?</ConfirmDialogTitle>
+                    </ConfirmDialogHeader>
+                    <div className="flex gap-4 mt-6 justify-end">
+                      <Button variant="outline" onClick={() => setShowConfirm(false)}>Cancel</Button>
+                      <Button className="bg-black text-white" onClick={async () => {
+                        setLoading(true);
+                        try {
+                          setPosts(prev => [{
+                            id: Date.now(),
+                            title: newTitle,
+                            content: newContent,
+                            author: 'You',
+                            avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+                            tags: parseTags(newTags),
+                            createdAt: new Date().toISOString(),
+                            likes: 0,
+                            liked: false,
+                            bookmarked: false,
+                            comments: [],
+                            media: newMedia
+                          }, ...prev]);
+                          setShowPreview(false);
+                          setShowConfirm(false);
+                          setNewTitle('');
+                          setNewContent('');
+                          setNewTags('');
+                          setNewMedia([]);
+                          toast({ title: 'Post published!', description: 'Your post is now live.' });
+                          setTab('discover');
+                          setTimeout(() => {
+                            window.scrollTo({ top: 0, behavior: 'smooth' });
+                          }, 300);
+                        } catch (err) {
+                          toast({ title: 'Error publishing post', description: String(err) });
+                        } finally {
+                          setLoading(false);
+                        }
+                      }}>Publish</Button>
+                    </div>
+                  </ConfirmDialogContent>
+                </ConfirmDialog>
               </div>
             </div>
           )}
@@ -1274,57 +1496,7 @@ const BridgeLab: React.FC = () => {
             </Tabs>
           </div>
         </div>
-        
-        {/* Bottom padding to account for fixed navigation */}
-        <div className="h-20"></div>
       </div>
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;700&display=swap');
-        .animate-fade-in { animation: fadeIn 0.7s cubic-bezier(.4,0,.2,1); }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(16px);} to { opacity: 1; transform: none; } }
-        .animate-underline { animation: underlineGrow 0.4s cubic-bezier(.4,0,.2,1); }
-        @keyframes underlineGrow { from { width: 0; opacity: 0.2; } to { width: 66%; opacity: 1; } }
-        .animate-logo-underline { animation: logoUnderline 1.2s cubic-bezier(.4,0,.2,1) infinite alternate; }
-        @keyframes logoUnderline { from { width: 2rem; opacity: 0.5; } to { width: 4.5rem; opacity: 1; } }
-        .letter-spacing-wider { letter-spacing: 0.08em; }
-        .letter-spacing-wide { letter-spacing: 0.04em; }
-        .font-sans { font-family: 'Space Grotesk', Inter, Helvetica Neue, Arial, sans-serif; }
-        .font-brand { font-family: 'Space Grotesk', Inter, Helvetica Neue, Arial, sans-serif; }
-        .logo-shadow { box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18), 0 1.5px 8px 0 rgba(0,0,0,0.10); }
-        .card-hover:hover { box-shadow: 0 8px 32px 0 rgba(0,0,0,0.18), 0 1.5px 8px 0 rgba(0,0,0,0.10); transform: scale(1.025) translateY(-2px); }
-        .btn-hover:hover { transform: scale(1.04); opacity: 0.92; }
-        .tab-active-glow {
-          box-shadow: 0 4px 24px 0 rgba(60, 120, 255, 0.18), 0 1.5px 8px 0 rgba(60, 120, 255, 0.10);
-        }
-        .drop-shadow-tabicon {
-          filter: drop-shadow(0 2px 8px #60a5fa44);
-        }
-        .tabs-trigger:hover {
-          transform: translateY(-2px) scale(1.06);
-          box-shadow: 0 6px 24px 0 rgba(60,120,255,0.10), 0 1.5px 8px 0 rgba(0,0,0,0.10);
-        }
-        .animate-underline-fade {
-          animation: underlineFade 0.5s cubic-bezier(.4,0,.2,1);
-        }
-        @keyframes underlineFade {
-          from { width: 0; opacity: 0.2; }
-          to { width: 75%; opacity: 1; }
-        }
-        .tabs-trigger {
-          background: none;
-          border: none;
-          box-shadow: none;
-          font-size: 1rem;
-          font-weight: 500;
-          letter-spacing: 0.02em;
-        }
-        .tabs-trigger:hover {
-          color: #2563eb;
-          font-size: 1.08rem;
-        }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-      `}</style>
     </div>
   );
 };

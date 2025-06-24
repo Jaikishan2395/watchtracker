@@ -21,7 +21,6 @@ import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 // 1. Import the logo at the top
 import BridgeLabLogo from '../assets/bridgelab_logo.png';
-import Work from "./pages/Work"; // Add this import
 
 interface AttachedFile {
   id: number;
@@ -1985,6 +1984,9 @@ const Classroom: React.FC = () => {
                           <Badge className="bg-white/80 border-green-200 text-green-700 font-semibold px-3 py-1 shadow-md" variant="outline">
                             {assn.status}
                           </Badge>
+                          <Button size="sm" className="ml-2 bg-blue-500 text-white" onClick={() => navigate('/view-create')}>
+                            View/Submit
+                          </Button>
                         </CardHeader>
                         <CardContent className="pt-0">
                           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
@@ -2028,15 +2030,6 @@ const Classroom: React.FC = () => {
                                   </Button>
                                 </span>
                               )}
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="rounded-full px-4 py-2 border-blue-400 text-blue-700 hover:bg-blue-50 ml-2"
-                                onClick={() => navigate('/work', { state: { assignment: assn, upload: assignmentUploads[assn.id] } })}
-                                disabled={!assignmentUploads[assn.id]}
-                              >
-                                Watch Work
-                              </Button>
                             </div>
                           </div>
                         </CardContent>
