@@ -660,11 +660,15 @@ const PlaylistDetail = () => {
         <div className="mb-8 animate-fade-in">
           <Button
             variant="ghost"
-            onClick={() => navigate('/library')}
+            onClick={() =>
+              playlist.id === 'yt-V979Wd1gmTU'
+                ? navigate('/acceleratorlibrary')
+                : navigate('/library')
+            }
             className="mb-4 hover:bg-white/50 dark:hover:bg-slate-800/50 text-gray-700 dark:text-gray-300 transition-colors duration-200"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Library
+            {playlist.id === 'yt-V979Wd1gmTU' ? 'Back to Accelerator Library' : 'Back to Library'}
           </Button>
           
           <div className="relative w-full h-[400px] mb-8 rounded-2xl overflow-hidden shadow-2xl">
@@ -718,26 +722,30 @@ const PlaylistDetail = () => {
                 </div>
               </div>
               <div className="flex gap-3">
-                <Button
-                  onClick={() => setIsInviteModalOpen(true)}
-                  className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 dark:from-purple-500 dark:to-indigo-500 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
-                >
-                  <Share2 className="w-4 h-4 mr-2" />
-                  Invite
-                </Button>
+                {playlist.id !== 'yt-V979Wd1gmTU' && (
+                  <>
+                    <Button
+                      onClick={() => setIsInviteModalOpen(true)}
+                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 dark:from-purple-500 dark:to-indigo-500 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
+                    >
+                      <Share2 className="w-4 h-4 mr-2" />
+                      Invite
+                    </Button>
+                    <Button
+                      onClick={() => setIsAddVideoModalOpen(true)}
+                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Video
+                    </Button>
+                  </>
+                )}
                 <Button
                   onClick={handlePlayAll}
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-500 dark:to-emerald-500 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
                 >
                   <Play className="w-4 h-4 mr-2" />
                   Play All
-                </Button>
-                <Button
-                  onClick={() => setIsAddVideoModalOpen(true)}
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
-                >
-                  <Plus className="w-4 h-4 mr-2" />
-                  Add Video
                 </Button>
               </div>
             </div>
@@ -772,90 +780,10 @@ const PlaylistDetail = () => {
               </CardContent>
             </Card>
 
-            <Card 
-              className="bg-white/80 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30 shadow-xl hover:shadow-2xl transition-all duration-200 animate-fade-in cursor-pointer"
-              onClick={() => setIsDialogOpen(true)}
-            >
-              <CardHeader>
-                <CardTitle className="text-lg text-gray-800 dark:text-gray-50 transition-colors duration-200">Access Schedule</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="flex items-center gap-3">
-                  <div className={`p-2 rounded-full ${lockStatus.status === 'unlocked' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                    {lockStatus.status === 'unlocked' ? (
-                      <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-600 dark:text-gray-200 transition-colors duration-200">
-                    {lockStatus.message}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
+            {playlist.id !== 'yt-V979Wd1gmTU' && (
+              <TimeLockInfo timeLock={playlist.timeLock} />
+            )}
           </div>
-
-          <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-            <DialogContent className="sm:max-w-[425px]">
-              <DialogHeader>
-                <DialogTitle>Access Schedule Details</DialogTitle>
-                <DialogDescription>
-                  Detailed information about when this playlist is accessible
-                </DialogDescription>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="flex items-center gap-2">
-                  <div className={`p-2 rounded-full ${lockStatus.status === 'unlocked' ? 'bg-green-100 dark:bg-green-900/30' : 'bg-red-100 dark:bg-red-900/30'}`}>
-                    {lockStatus.status === 'unlocked' ? (
-                      <Unlock className="w-5 h-5 text-green-600 dark:text-green-400" />
-                    ) : (
-                      <Lock className="w-5 h-5 text-red-600 dark:text-red-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h4 className="font-medium">Current Status</h4>
-                    <p className="text-sm text-gray-600 dark:text-gray-400">{lockStatus.message}</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <div>
-                      <h4 className="font-medium">Time Range</h4>
-                      <p className="text-sm text-gray-600 dark:text-gray-400">
-                        {playlist.timeLock?.enabled 
-                          ? `Available from ${formatTimeForDisplay(playlist.timeLock.startTime)} to ${formatTimeForDisplay(playlist.timeLock.endTime)}`
-                          : 'Available 24/7'}
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                    <div>
-                      <h4 className="font-medium">Available Days</h4>
-                      <div className="flex flex-wrap gap-1 mt-1">
-                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                          <span
-                            key={day}
-                            className={`text-xs px-2 py-1 rounded-full ${
-                              playlist.timeLock?.enabled && playlist.timeLock.days.includes(index)
-                                ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
-                                : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
-                            }`}
-                          >
-                            {day}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
             <div className="space-y-4">

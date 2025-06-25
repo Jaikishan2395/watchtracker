@@ -23,6 +23,7 @@ import Premium from "./pages/Premium";
 import Classroom from "./pages/Classroom";
 import Clubs from "./pages/Clubs";
 import BridgeLab from "./pages/BridgeLab";
+import AcceleratorLibrary from "./pages/AcceleratorLibrary";
 import ViewCreate from './pages/viewCreate';
 import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
@@ -76,6 +77,7 @@ const AppContent = () => {
               <Route path="/pomodoro" element={<Pomodoro />} />
               <Route path="/premium" element={<Premium />} />
               <Route path="/bridgelab" element={<BridgeLab />} />
+              <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
               <Route path="/view-create" element={<ViewCreate />} />
               <Route 
                 path="/playlist/:playlistId" 

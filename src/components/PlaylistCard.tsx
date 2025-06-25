@@ -18,9 +18,10 @@ interface PlaylistCardProps {
   playlist: Playlist;
   onDelete: (id: string) => void;
   delay: number;
+  readOnly?: boolean;
 }
 
-const PlaylistCard = ({ playlist, onDelete, delay = 0 }: PlaylistCardProps) => {
+const PlaylistCard = ({ playlist, onDelete, delay = 0, readOnly = false }: PlaylistCardProps) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
   const [unlockTime, setUnlockTime] = useState<string>('');
@@ -189,58 +190,60 @@ const PlaylistCard = ({ playlist, onDelete, delay = 0 }: PlaylistCardProps) => {
               </TooltipProvider>
             )}
           </div>
-          <div className="flex items-center gap-2">
-            {hasTimeSchedule && !isLocked && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => {
-                  const updatedPlaylist = {
-                    ...playlist,
-                    timeLock: {
-                      ...playlist.timeLock,
-                      enabled: !playlist.timeLock?.enabled
-                    }
-                  };
-                  updatePlaylist(playlist.id, updatedPlaylist);
-                }}
-                className={`${playlist.timeLock?.enabled ? 'text-blue-500' : 'text-gray-500'} hover:bg-gray-100`}
-              >
-                {playlist.timeLock?.enabled ? (
-                  <Lock className="w-5 h-5" />
-                ) : (
-                  <Unlock className="w-5 h-5" />
-                )}
-              </Button>
-            )}
-            {!isLocked && (
-              <AlertDialog>
-                <AlertDialogTrigger asChild>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                  >
-                    <Trash2 className="w-5 h-5" />
-                  </Button>
-                </AlertDialogTrigger>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle className="text-black">Delete {isCodingPlaylist ? 'Coding Practice' : 'Playlist'}</AlertDialogTitle>
-                    <AlertDialogDescription className="text-black">
-                      Are you sure you want to delete "{playlist.title}"? This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel className="text-black">Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
-            )}
-          </div>
+          {!readOnly && (
+            <div className="flex items-center gap-2">
+              {hasTimeSchedule && !isLocked && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    const updatedPlaylist = {
+                      ...playlist,
+                      timeLock: {
+                        ...playlist.timeLock,
+                        enabled: !playlist.timeLock?.enabled
+                      }
+                    };
+                    updatePlaylist(playlist.id, updatedPlaylist);
+                  }}
+                  className={`${playlist.timeLock?.enabled ? 'text-blue-500' : 'text-gray-500'} hover:bg-gray-100`}
+                >
+                  {playlist.timeLock?.enabled ? (
+                    <Lock className="w-5 h-5" />
+                  ) : (
+                    <Unlock className="w-5 h-5" />
+                  )}
+                </Button>
+              )}
+              {!isLocked && (
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="w-5 h-5" />
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle className="text-black">Delete {isCodingPlaylist ? 'Coding Practice' : 'Playlist'}</AlertDialogTitle>
+                      <AlertDialogDescription className="text-black">
+                        Are you sure you want to delete "{playlist.title}"? This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel className="text-black">Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleDelete} className="bg-red-600 hover:bg-red-700">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              )}
+            </div>
+          )}
         </div>
         {playlist.description && (
           <p className="text-base text-black line-clamp-2 mt-2">{playlist.description}</p>
