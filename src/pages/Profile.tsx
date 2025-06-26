@@ -644,6 +644,17 @@ const Profile = () => {
     }
   };
 
+  // Add Google Fonts link for DM Serif Display
+  useEffect(() => {
+    const fontLink = document.createElement('link');
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital,wght@0,400;1,400&display=swap';
+    fontLink.rel = 'stylesheet';
+    document.head.appendChild(fontLink);
+    return () => {
+      document.head.removeChild(fontLink);
+    };
+  }, []);
+
   if (isLoading) {
     return (
       <div className={`min-h-screen ${bgGradient} flex items-center justify-center`}>
@@ -674,9 +685,20 @@ const Profile = () => {
   }
 
   return (
-    <div className={`min-h-screen ${bgGradient} transition-colors duration-300`}>
+    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300" style={{ fontFamily: 'DM Serif Display, serif' }}>
       {/* Enhanced Header Section */}
-      <div className={`relative ${headerGradient} border-b border-border/50 shadow-lg`}>
+      <div className={`relative border-b border-border/50 shadow-lg mt-8 md:mt-12
+        bg-gradient-to-br from-blue-100 via-pink-100 to-purple-100
+        dark:from-slate-900 dark:via-indigo-900 dark:to-purple-950
+        transition-colors duration-500
+      `}>
+        {/* Colorful overlay for extra vibrance */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/10 via-pink-400/10 to-purple-400/10" />
+          <div className="absolute left-1/2 top-0 -translate-x-1/2 w-2/3 h-32 bg-gradient-to-r from-blue-400/20 via-pink-400/20 to-purple-400/20 rounded-b-full blur-2xl opacity-70" />
+          <div className="absolute right-0 bottom-0 w-40 h-40 bg-pink-400/20 rounded-full blur-3xl opacity-40" />
+          <div className="absolute left-0 top-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl opacity-40" />
+        </div>
         <div className="absolute inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none" />
         <div className="container mx-auto px-4 py-0">
           <div className={`${cardBg} rounded-xl p-6 shadow-xl transition-all duration-300 ${cardHoverEffect} relative overflow-hidden`}>
@@ -723,13 +745,18 @@ const Profile = () => {
                     
                     <CardHeader className="pb-2 relative z-10">
                       <div className="flex items-center justify-between">
-                        <CardTitle className={`text-sm font-medium ${textMuted} flex items-center gap-2`}>
+                        <CardTitle className={`text-base md:text-lg font-bold ${textMuted} flex items-center gap-2`}>
                           <div className={`p-2.5 rounded-xl ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'} transition-transform duration-300 group-hover:scale-110`}>
-                            <Calendar className={`w-5 h-5 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
+                            <Calendar className={`w-6 h-6 ${theme === 'dark' ? 'text-blue-400' : 'text-blue-500'}`} />
                           </div>
                           <span className="bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent font-semibold">
                             Days Active
                           </span>
+                          {userStats.currentStreak >= 3 && (
+                            <span className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-500 text-xs font-semibold animate-pulse">
+                              <Flame className="w-4 h-4" /> {userStats.currentStreak}d streak
+                            </span>
+                          )}
                         </CardTitle>
                         <Dialog>
                           <DialogTrigger asChild>
@@ -763,151 +790,100 @@ const Profile = () => {
                         </Dialog>
                       </div>
                     </CardHeader>
-                    <CardContent className="relative z-10">
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <div className="text-5xl font-bold bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
+                    <CardContent className="relative z-10 flex flex-col items-center gap-4">
+                      {/* Circular Progress for Monthly Goal */}
+                      <div className="relative flex items-center justify-center mb-2">
+                        <svg width="90" height="90" viewBox="0 0 90 90" className="block">
+                          <circle cx="45" cy="45" r="40" fill="none" stroke="#e0e7ef" strokeWidth="8" />
+                          <circle
+                            cx="45" cy="45" r="40" fill="none"
+                            stroke="url(#active-gradient)"
+                            strokeWidth="8"
+                            strokeDasharray={2 * Math.PI * 40}
+                            strokeDashoffset={2 * Math.PI * 40 * (1 - Math.min(1, userStats.daysActive / 30))}
+                            strokeLinecap="round"
+                            style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,2,.6,1)' }}
+                          />
+                          <defs>
+                            <linearGradient id="active-gradient" x1="0" y1="0" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+                              <stop stopColor="#3b82f6" />
+                              <stop offset="1" stopColor="#6366f1" />
+                            </linearGradient>
+                          </defs>
+                        </svg>
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                          <span className="text-4xl font-extrabold bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 bg-clip-text text-transparent">
                             {userStats.daysActive}
-                          </div>
-                          <div className="flex items-center gap-2 mt-1">
-                            <p className={`text-sm ${textMuted}`}>
-                              Consecutive learning days
-                            </p>
-                            {userStats.daysActive >= 7 && (
-                              <Badge className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' : 'bg-blue-100 text-blue-800 border border-blue-200'} shadow-sm`}>
-                                Consistent!
-                              </Badge>
-                            )}
-                          </div>
-                        </div>
-                        <div className={`p-3 rounded-xl ${theme === 'dark' ? 'bg-blue-500/20' : 'bg-blue-500/10'} border ${theme === 'dark' ? 'border-blue-500/30' : 'border-blue-500/20'}`}>
-                          <div className="text-center">
-                            <div className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
-                              {Math.round((userStats.daysActive / 30) * 100)}%
-                            </div>
-                            <div className={`text-xs ${textMuted}`}>Monthly Goal</div>
-                          </div>
+                          </span>
+                          <span className="text-xs text-muted-foreground font-medium">Days</span>
                         </div>
                       </div>
-                      
-                      {/* Enhanced Daily Activity Display */}
-                      <div className="mt-4 space-y-3">
-                        <div className="flex items-center justify-between p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                          <div className="flex items-center gap-2">
-                            <div className={`w-2 h-2 rounded-full ${theme === 'dark' ? 'bg-blue-400' : 'bg-blue-500'} animate-pulse`} />
-                            <span className={`text-sm ${textMuted}`}>Today's Activity</span>
-                          </div>
-                          <span className={`text-sm font-medium ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'} flex items-center gap-1.5`}>
-                            {userStats.lastActivityDate === new Date().toISOString().split('T')[0] ? (
-                              <>
-                                <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                                Active
-                              </>
-                            ) : (
-                              <>
-                                <span className="w-1.5 h-1.5 rounded-full bg-gray-500" />
-                                Not Active
-                              </>
-                            )}
+                      <div className="flex flex-col items-center gap-1">
+                        <span className="text-sm text-muted-foreground">Consecutive learning days</span>
+                        {userStats.daysActive >= 7 && (
+                          <Badge className={`${theme === 'dark' ? 'bg-blue-900/50 text-blue-300 border border-blue-700/50' : 'bg-blue-100 text-blue-800 border border-blue-200'} shadow-sm`}>
+                            Consistent!
+                          </Badge>
+                        )}
+                      </div>
+                      {/* Motivational Message */}
+                      <div className="w-full text-center mt-2">
+                        <span className="text-sm font-semibold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent">
+                          {userStats.currentStreak >= 7
+                            ? '🔥 Amazing! You have a week-long streak!'
+                            : userStats.currentStreak >= 3
+                              ? 'Keep your streak alive!'
+                              : userStats.daysActive >= 3
+                                ? 'Great start! Stay consistent.'
+                                : 'Start your learning streak today!'}
+                        </span>
+                      </div>
+                      {/* Enhanced Daily Activity Timeline */}
+                      <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5 w-full">
+                        {[...Array(7)].map((_, index) => {
+                          const date = new Date();
+                          date.setDate(date.getDate() - (6 - index));
+                          const dateStr = date.toISOString().split('T')[0];
+                          const isActive = userStats.lastActivityDate === dateStr;
+                          const isToday = dateStr === new Date().toISOString().split('T')[0];
+                          return (
+                            <div 
+                              key={index}
+                              className="flex-1 flex flex-col items-center gap-1 group"
+                            >
+                              <div 
+                                className={`w-full h-8 rounded-lg transition-all duration-300 flex items-center justify-center relative
+                                  ${isActive 
+                                    ? theme === 'dark'
+                                      ? 'bg-gradient-to-b from-blue-500/40 to-indigo-500/40 border border-blue-500/60'
+                                      : 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/40'
+                                    : theme === 'dark'
+                                      ? 'bg-gray-700/50'
+                                      : 'bg-gray-200/50'
+                                  } ${isToday ? 'ring-2 ring-blue-500/40' : ''}`}
+                              >
+                                {isActive && <Flame className="w-4 h-4 text-orange-400 animate-pulse absolute left-1 top-1" />}
+                              </div>
+                              <span className={`text-[10px] ${textMuted} ${isToday ? 'font-medium text-blue-500' : ''}`}>
+                                {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {/* Progress Bar for Monthly Goal */}
+                      <div className="mt-2 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5 w-full">
+                        <div className="flex items-center justify-between mb-1">
+                          <span className="text-xs text-muted-foreground">Monthly Progress</span>
+                          <span className="text-xs font-medium text-blue-500">
+                            {Math.round((userStats.daysActive / 30) * 100)}%
                           </span>
                         </div>
-
-                        {/* Enhanced Activity Timeline */}
-                        <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                          {[...Array(7)].map((_, index) => {
-                            const date = new Date();
-                            date.setDate(date.getDate() - (6 - index));
-                            const dateStr = date.toISOString().split('T')[0];
-                            const isActive = userStats.lastActivityDate === dateStr;
-                            const isToday = dateStr === new Date().toISOString().split('T')[0];
-                            
-                            return (
-                              <div 
-                                key={index}
-                                className="flex-1 flex flex-col items-center gap-1"
-                              >
-                                <div 
-                                  className={`w-full h-8 rounded-lg transition-all duration-300 ${
-                                    isActive 
-                                      ? theme === 'dark'
-                                        ? 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/50'
-                                        : 'bg-gradient-to-b from-blue-500/20 to-indigo-500/20 border border-blue-500/30'
-                                      : theme === 'dark'
-                                        ? 'bg-gray-700/50'
-                                        : 'bg-gray-200/50'
-                                  } ${isToday ? 'ring-2 ring-blue-500/30' : ''}`}
-                                />
-                                <span className={`text-[10px] ${textMuted} ${isToday ? 'font-medium text-blue-500' : ''}`}>
-                                  {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                                </span>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        {/* Enhanced Progress Bar */}
-                        <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                          <div className="flex items-center justify-between mb-2">
-                            <span className={`text-xs ${textMuted}`}>Monthly Progress</span>
-                            <span className={`text-xs font-medium ${theme === 'dark' ? 'text-blue-400' : 'text-blue-600'}`}>
-                              {Math.round((userStats.daysActive / 30) * 100)}%
-                            </span>
-                          </div>
-                          <div className={`h-2 w-full rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} overflow-hidden`}>
-                            <div 
-                              className={`h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500`}
-                              style={{ width: `${Math.min(100, (userStats.daysActive / 30) * 100)}%` }}
-                            />
-                          </div>
-                        </div>
-
-                        {/* Learning Streak Box */}
-                        <div className="mt-4 p-2 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <Flame className={`w-4 h-4 ${theme === 'dark' ? 'text-orange-400' : 'text-orange-500'}`} />
-                              <span className={`text-xs ${textMuted}`}>Learning Streak</span>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <div className="flex items-center gap-1">
-                                <span className={`text-xs font-medium ${theme === 'dark' ? 'text-orange-400' : 'text-orange-500'}`}>
-                                  {userStats.currentStreak} days
-                                </span>
-                                <span className={`text-xs ${textMuted}`}>•</span>
-                                <span className={`text-xs ${textMuted}`}>Best: {userStats.longestStreak}</span>
-                              </div>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-1.5">
-                            {[...Array(7)].map((_, index) => (
-                              <div 
-                                key={index}
-                                className={`flex-1 h-1.5 rounded-full ${
-                                  index < userStats.currentStreak
-                                    ? theme === 'dark'
-                                      ? 'bg-gradient-to-r from-orange-500 to-orange-400'
-                                      : 'bg-gradient-to-r from-orange-500 to-orange-400'
-                                    : theme === 'dark'
-                                      ? 'bg-gray-700'
-                                      : 'bg-gray-200'
-                                }`}
-                              />
-                            ))}
-                          </div>
-                          {userStats.currentStreak > 0 && (
-                            <div className="mt-1.5 text-center">
-                              <p className={`text-xs ${textMuted}`}>
-                                {userStats.currentStreak === 1 ? 'First day of streak! 🎉' : 
-                                 userStats.currentStreak === 7 ? 'Week streak achieved! 🎉' :
-                                 `Keep going! ${7 - userStats.currentStreak} days until week streak`}
-                              </p>
-                              {userStats.currentStreak < userStats.longestStreak && (
-                                <p className={`text-xs ${textMuted} mt-0.5`}>
-                                  {userStats.longestStreak - userStats.currentStreak} days to beat your best streak!
-                                </p>
-                              )}
-                            </div>
-                          )}
+                        <div className={`h-2 w-full rounded-full ${theme === 'dark' ? 'bg-gray-700' : 'bg-gray-200'} overflow-hidden`}>
+                          <div 
+                            className={`h-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 transition-all duration-500`}
+                            style={{ width: `${Math.min(100, (userStats.daysActive / 30) * 100)}%` }}
+                          />
                         </div>
                       </div>
                     </CardContent>
@@ -1228,39 +1204,89 @@ const Profile = () => {
             <div className="absolute -left-6 -bottom-6 w-32 h-32 bg-pink-400/10 rounded-full blur-xl" />
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-orange-400/5 rounded-full blur-2xl" />
             <CardHeader className="pb-2 relative z-10">
-              <CardTitle className={`text-sm font-medium ${textMuted} flex items-center gap-2`}>
-                <Crown className={`w-5 h-5 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
+              <CardTitle className={`text-lg md:text-xl font-bold ${textMuted} flex items-center gap-2`}>
+                <Crown className={`w-6 h-6 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
                 <span className="bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent font-semibold">
                   Your Rankings
                 </span>
               </CardTitle>
+              <p className="text-xs md:text-sm mt-2 text-muted-foreground">See how you stack up in your branch, section, college, and globally. Rankings are based on your learning time, activity, and completion rate.</p>
             </CardHeader>
             <CardContent className="relative z-10">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground">Branch</span>
-                  <span className="text-2xl font-bold text-yellow-500 flex items-center gap-1">
-                    <Medal className="w-4 h-4" /> {rankings.branch}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground">Section</span>
-                  <span className="text-2xl font-bold text-orange-500 flex items-center gap-1">
-                    <Flame className="w-4 h-4" /> {rankings.section}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground">College</span>
-                  <span className="text-2xl font-bold text-pink-500 flex items-center gap-1">
-                    <Rocket className="w-4 h-4" /> {rankings.college}
-                  </span>
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs text-muted-foreground">Global</span>
-                  <span className="text-2xl font-bold text-purple-500 flex items-center gap-1">
-                    <Globe className="w-4 h-4" /> {rankings.global}
-                  </span>
-                </div>
+              <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch">
+                {[
+                  {
+                    label: 'Branch',
+                    value: rankings.branch,
+                    icon: <Medal className="w-5 h-5" />,
+                    color: 'text-yellow-500',
+                    trend: rankings.trends.branch,
+                    tooltip: 'Your rank among your branch peers.'
+                  },
+                  {
+                    label: 'Section',
+                    value: rankings.section,
+                    icon: <Flame className="w-5 h-5" />,
+                    color: 'text-orange-500',
+                    trend: rankings.trends.section,
+                    tooltip: 'Your rank within your section.'
+                  },
+                  {
+                    label: 'College',
+                    value: rankings.college,
+                    icon: <Rocket className="w-5 h-5" />,
+                    color: 'text-pink-500',
+                    trend: rankings.trends.college,
+                    tooltip: 'Your rank in your college.'
+                  },
+                  {
+                    label: 'Global',
+                    value: rankings.global,
+                    icon: <Globe className="w-5 h-5" />,
+                    color: 'text-purple-500',
+                    trend: rankings.trends.global,
+                    tooltip: 'Your global rank among all users.'
+                  }
+                ].map((rank, idx) => {
+                  // Highlight top 3
+                  const isTop3 = rank.value <= 3;
+                  // Trend icon
+                  const trendIcon = rank.trend > 0 ? <TrendingUp className="w-4 h-4 text-green-500 animate-bounce" /> : rank.trend < 0 ? <TrendingDown className="w-4 h-4 text-red-500 animate-bounce" /> : null;
+                  // Trend text
+                  const trendText = rank.trend > 0 ? `+${rank.trend}` : rank.trend < 0 ? `${rank.trend}` : '0';
+                  // Badge for top 3
+                  const badge = isTop3 ? (
+                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${idx === 0 ? 'bg-yellow-400/80 text-yellow-900' : idx === 1 ? 'bg-gray-300/80 text-gray-800' : 'bg-amber-700/80 text-amber-100'}`}>{rank.value === 1 ? '🥇' : rank.value === 2 ? '🥈' : '🥉'}</span>
+                  ) : null;
+                  return (
+                    <div key={rank.label} className={`flex-1 min-w-[150px] bg-white/70 dark:bg-slate-900/60 rounded-xl shadow-md border border-border/30 p-4 flex flex-col items-center justify-center relative group transition-all duration-300 hover:scale-105 hover:shadow-xl`}>
+                      {/* Tooltip */}
+                      <div className="absolute top-2 right-2 opacity-70">
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
+                          </TooltipTrigger>
+                          <TooltipContent>{rank.tooltip}</TooltipContent>
+                        </Tooltip>
+                      </div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xl ${rank.color}`}>{rank.icon}</span>
+                        <span className="text-sm font-semibold text-muted-foreground">{rank.label}</span>
+                        {badge}
+                      </div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className={`text-3xl md:text-4xl font-extrabold ${rank.color}`}>{rank.value}</span>
+                        {trendIcon}
+                        <span className="text-xs font-medium text-muted-foreground">{trendText}</span>
+                      </div>
+                      <div className="w-full flex flex-col items-center mt-2">
+                        <span className="text-xs text-muted-foreground">Learning Time: <span className="font-bold text-blue-500">{rankings.metrics.learningTime}h</span></span>
+                        <span className="text-xs text-muted-foreground">Active Days: <span className="font-bold text-green-500">{rankings.metrics.activeDays}</span></span>
+                        <span className="text-xs text-muted-foreground">Completion: <span className="font-bold text-purple-500">{rankings.metrics.completionRate}%</span></span>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </CardContent>
           </Card>

@@ -7,7 +7,7 @@ import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Textarea } from '../components/ui/textarea';
 import { Badge } from '../components/ui/badge';
-import { Upload, Users, Lightbulb, BookOpen, Trophy, ShieldCheck, UserCheck, MessageCircle, FileText, UserCircle, ArrowLeft, User, Globe, Code, Award, Settings, Clock, Filter, Search, ChevronDown, Plus, X, Check, RotateCcw, BarChart3, Smile, Play } from 'lucide-react';
+import { Upload, Users, Lightbulb, BookOpen, Trophy, ShieldCheck, UserCheck, MessageCircle, FileText, UserCircle, ArrowLeft, User, Globe, Code, Award, Settings, Clock, Filter, Search, ChevronDown, Plus, X, Check, RotateCcw, BarChart3, Smile, Play, Video } from 'lucide-react';
 import MDEditor from '@uiw/react-md-editor';
 import MarkdownPreview from '@uiw/react-markdown-preview';
 import '@uiw/react-md-editor/markdown-editor.css';
@@ -1995,7 +1995,18 @@ const BridgeLab: React.FC = () => {
             ) : null}
           </div>
           {!(tab === 'profile' || tab === 'circles' || tab === 'pitch' || tab === 'post') && (
-            <Input placeholder="Search posts..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
+            <div className="flex items-center gap-2">
+              <Input placeholder="Search posts..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="ml-1 rounded-full hover:bg-red-100 hover:text-red-600 transition-colors"
+                aria-label="Open Shorts"
+                onClick={() => navigate('/shorts')}
+              >
+                <Video className="w-7 h-7" />
+              </Button>
+            </div>
           )}
         </div>
         

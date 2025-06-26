@@ -30,6 +30,7 @@ import { Playlist } from '@/types/playlist';
 import { loadQuestionsFromFile } from './utils/loadQuestions';
 import { PlaylistProvider } from '@/context/PlaylistContext';
 import { Button } from "@/components/ui/button";
+import Shorts from "./pages/Shorts";
 
 const queryClient = new QueryClient();
 
@@ -79,6 +80,7 @@ const AppContent = () => {
               <Route path="/bridgelab" element={<BridgeLab />} />
               <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
               <Route path="/view-create" element={<ViewCreate />} />
+              <Route path="/shorts" element={<Shorts />} />
               <Route 
                 path="/playlist/:playlistId" 
                 element={<PlaylistDetailWrapper />} 

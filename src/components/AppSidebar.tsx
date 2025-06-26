@@ -57,13 +57,13 @@ export function AppSidebar() {
     <Sidebar>
       <SidebarHeader className="flex flex-col items-center justify-center w-full pt-8 pb-4">
         <div className="flex flex-col items-center w-full">
-          <div className="bg-white/60 backdrop-blur-md rounded-full p-2 shadow-md mb-2">
+          <div className="bg-white rounded-full p-2 shadow-md mb-2">
             <img src={logo} alt="EduBridge Logo" className="w-14 h-14 object-contain rounded-full" />
           </div>
         </div>
-        <div className="w-3/4 h-0.5 bg-gradient-to-r from-blue-300 via-blue-100 to-blue-300 mt-4 mb-2 rounded-full" />
+        <div className="w-3/4 h-0.5 bg-gray-200 mt-4 mb-2 rounded-full" />
       </SidebarHeader>
-      <SidebarContent className="bg-white rounded-none shadow-xl flex-1 px-2 py-4 border-r border-gray-100">
+      <SidebarContent className="bg-white rounded-none shadow-xl flex-1 px-2 py-4 border-r border-gray-200">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -75,10 +75,10 @@ export function AppSidebar() {
                       isActive={isActive}
                       onClick={() => navigate(item.url)}
                       className={cn(
-                        "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200",
+                        "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200 rounded-md",
                         isActive
-                          ? "bg-blue-50 text-blue-700 border-l-4 border-blue-500 shadow-sm"
-                          : "text-gray-500 hover:bg-gray-100 hover:text-blue-700",
+                          ? "bg-gray-900 text-white border-l-4 border-black shadow-sm"
+                          : "text-black hover:bg-gray-100 hover:text-black",
                         "group"
                       )}
                       iconOnly={false}
@@ -86,8 +86,8 @@ export function AppSidebar() {
                       <item.icon className={cn(
                         "w-6 h-6 transition-all duration-200",
                         isActive
-                          ? "text-blue-600"
-                          : "text-gray-400 group-hover:text-blue-600"
+                          ? "text-white"
+                          : "text-black group-hover:text-black"
                       )} />
                       <span>{item.title}</span>
                     </SidebarMenuButton>
@@ -98,8 +98,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>
-      <SidebarFooter className="bg-white rounded-none shadow-xl px-2 py-4 border-t border-gray-100 flex flex-col items-center">
-        
+      <SidebarFooter className="bg-white rounded-none shadow-xl px-2 py-4 border-t border-gray-200 flex flex-col items-center">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -107,13 +106,12 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   onClick={() => navigate('/settings')}
                   className={cn(
-                    "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200",
-                    "rounded-full text-gray-600 hover:bg-blue-100/70 hover:text-blue-700 group"
+                    "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200 rounded-md text-black hover:bg-gray-100 hover:text-black group"
                   )}
                   tooltip="Settings"
                   iconOnly={false}
                 >
-                  <Settings className="w-6 h-6 text-blue-400 group-hover:text-blue-600 transition-all duration-200" />
+                  <Settings className="w-6 h-6 text-black group-hover:text-black transition-all duration-200" />
                   <span>Settings</span>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -121,8 +119,7 @@ export function AppSidebar() {
                 <SidebarMenuButton
                   onClick={() => navigate('/login')}
                   className={cn(
-                    "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200",
-                    "rounded-full bg-gradient-to-r from-blue-600 to-blue-400 text-white shadow-lg hover:from-blue-700 hover:to-blue-500 group"
+                    "flex items-center gap-4 w-full h-14 px-6 text-lg font-semibold transition-all duration-200 rounded-md bg-black text-white shadow-lg hover:bg-gray-900 hover:text-white group"
                   )}
                   iconOnly={false}
                 >

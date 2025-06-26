@@ -14,6 +14,7 @@ import { toast } from 'sonner';
 import { usePlaylists } from '@/context/PlaylistContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
+import { useSidebar } from '@/components/ui/sidebar';
 
 interface CompletedVideo {
   id: string;
@@ -247,6 +248,7 @@ const PlaylistDetail = () => {
   const [fetchedPlaylistVideos, setFetchedPlaylistVideos] = useState<Video[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { updateTotalVideosCount } = usePlaylists();
+  const { setOpen, setOpenMobile } = useSidebar();
 
   const loadPlaylistData = () => {
     try {
@@ -614,6 +616,12 @@ const PlaylistDetail = () => {
     setIsPublic(!playlist.isPublic);
     toast.success(updatedPlaylist.isPublic ? 'Playlist is now public' : 'Playlist is now private');
   };
+
+  // Auto-close sidebar on mount
+  useEffect(() => {
+    setOpen(false);
+    setOpenMobile(false);
+  }, [setOpen, setOpenMobile]);
 
   if (error) {
     return (

@@ -20,6 +20,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { cn } from '@/lib/utils';
 import Editor from '@monaco-editor/react';
 import * as monaco from 'monaco-editor';
+import React from 'react';
+import { useSidebar } from '@/components/ui/sidebar';
 
 // Update the YouTube API types at the top of the file
 interface YouTubePlayer {
@@ -98,6 +100,7 @@ declare global {
     onYouTubeIframeAPIReady: () => void;
     SpeechRecognition: SpeechRecognitionConstructor;
     webkitSpeechRecognition: SpeechRecognitionConstructor;
+    adsbygoogle?: unknown[];
   }
 }
 
@@ -2159,6 +2162,94 @@ const VideoPlayer = () => {
     };
   }, []);
 
+  // --- Advertisement Popup State and Logic ---
+  const [showAdPopup, setShowAdPopup] = useState(false);
+  const [adPopupTimer, setAdPopupTimer] = useState(0); // seconds since popup appeared
+  const [adPopupCanClose, setAdPopupCanClose] = useState(false);
+  const [adBlockDetected, setAdBlockDetected] = useState(false);
+  const adTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const adCloseTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const adTimerIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Function to show the ad popup
+  const showAd = useCallback(() => {
+    setShowAdPopup(true);
+    setAdPopupTimer(0);
+    setAdPopupCanClose(false);
+    setAdBlockDetected(false);
+    // Auto-pause the video when the ad appears
+    if (playerRef.current) {
+      playerRef.current.pauseVideo();
+    }
+    // Start timer for the popup (for the counter display)
+    if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
+    adTimerIntervalRef.current = setInterval(() => {
+      setAdPopupTimer(prev => prev + 1);
+    }, 1000);
+    // After 20 seconds, allow closing
+    if (adCloseTimeoutRef.current) clearTimeout(adCloseTimeoutRef.current);
+    adCloseTimeoutRef.current = setTimeout(() => {
+      setAdPopupCanClose(true);
+      if (adTimerIntervalRef.current) {
+        clearInterval(adTimerIntervalRef.current);
+      }
+    }, 20000);
+  }, []);
+
+  // Effect to start the first ad after 10 seconds when player is ready
+  useEffect(() => {
+    if (!isPlayerReady) return;
+    if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
+    adTimeoutRef.current = setTimeout(() => {
+      showAd();
+    }, 10000);
+    return () => {
+      if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
+      if (adCloseTimeoutRef.current) clearTimeout(adCloseTimeoutRef.current);
+      if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
+    };
+  }, [isPlayerReady, showAd]);
+
+  // When popup closes, start timer for next ad
+  const handleCloseAdPopup = () => {
+    setShowAdPopup(false);
+    setAdPopupTimer(0);
+    setAdPopupCanClose(false);
+    if (adCloseTimeoutRef.current) clearTimeout(adCloseTimeoutRef.current);
+    if (adTimerIntervalRef.current) clearInterval(adTimerIntervalRef.current);
+    // Start next ad after 10 seconds
+    if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
+    adTimeoutRef.current = setTimeout(() => {
+      showAd();
+    }, 10000);
+  };
+
+  useEffect(() => {
+    if (showAdPopup) {
+      const win = window as unknown as { adsbygoogle?: unknown[] };
+      if (!win.adsbygoogle && !document.querySelector('script[src*="adsbygoogle.js"]')) {
+        const script = document.createElement('script');
+        script.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js';
+        script.async = true;
+        document.body.appendChild(script);
+      }
+      setTimeout(() => {
+        try {
+          (win.adsbygoogle = win.adsbygoogle || []).push({});
+        } catch (e) {
+          /* AdSense push failed, likely not loaded yet. */
+        }
+      }, 500);
+    }
+  }, [showAdPopup]);
+
+  // Auto-close sidebar on mount
+  const { setOpen, setOpenMobile } = useSidebar();
+  useEffect(() => {
+    setOpen(false);
+    setOpenMobile(false);
+  }, [setOpen, setOpenMobile]);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -2225,6 +2316,118 @@ const VideoPlayer = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-200">
+      {/* Advertisement Popup Overlay */}
+      {showAdPopup && (
+        <div
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            width: '100vw',
+            height: '100vh',
+            background: 'rgba(0,0,0,0.6)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              background: 'linear-gradient(135deg, #f8fafc 60%, #e0e7ef 100%)',
+              borderRadius: '32px',
+              boxShadow: '0 16px 64px rgba(0,0,0,0.30)',
+              padding: '80px 64px',
+              minWidth: '900px',
+              minHeight: '600px',
+              width: '70vw',
+              height: '70vh',
+              textAlign: 'center',
+              position: 'relative',
+              maxWidth: '98vw',
+              maxHeight: '90vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '4px solid #2563eb',
+            }}
+          >
+            <div style={{
+              fontSize: '2.5rem',
+              fontWeight: 800,
+              color: '#2563eb',
+              marginBottom: 32,
+              letterSpacing: '2px',
+              textShadow: '0 2px 8px #2563eb22',
+            }}>
+              
+            </div>
+            <div
+              style={{
+                width: '1000px',
+                height: '500px',
+                maxWidth: '100%',
+                maxHeight: '100%',
+                marginBottom: 40,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                background: '#e0e7ef',
+                borderRadius: 24,
+                border: '2px solid #2563eb33',
+                boxShadow: '0 4px 32px rgba(37,99,235,0.10)',
+              }}
+            >
+              <ins
+                className="adsbygoogle"
+                style={{ display: 'block', width: '100%', height: '100%' }}
+                data-ad-client="ca-pub-XXXXXXXXXXXXXXX"
+                data-ad-slot="YYYYYYYYYYYY"
+                data-ad-format="auto"
+              />
+            </div>
+            {/* Timer/Close Button Area */}
+            <div style={{ marginTop: 24 }}>
+              {adPopupCanClose ? (
+                <button
+                  onClick={handleCloseAdPopup}
+                  style={{
+                    padding: '16px 48px',
+                    background: 'linear-gradient(90deg, #2563eb 60%, #1e40af 100%)',
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 16,
+                    fontWeight: 700,
+                    fontSize: '1.5rem',
+                    cursor: 'pointer',
+                    boxShadow: '0 2px 16px rgba(37,99,235,0.15)',
+                    transition: 'background 0.2s',
+                    letterSpacing: '1px',
+                  }}
+                >
+                  Close Advertisement
+                </button>
+              ) : (
+                <div
+                  style={{
+                    fontSize: '1.3rem',
+                    color: '#2563eb',
+                    fontWeight: 600,
+                    background: '#e0e7ef',
+                    borderRadius: 12,
+                    padding: '12px 32px',
+                    display: 'inline-block',
+                    boxShadow: '0 1px 8px #2563eb11',
+                  }}
+                >
+                  Please wait... <b>{20 - adPopupTimer}</b> seconds
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       <div className="container mx-auto px-4 py-8">
         {/* Enhanced Header */}
         <div className="mb-8 animate-fade-in">
