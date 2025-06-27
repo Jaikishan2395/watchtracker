@@ -124,8 +124,11 @@ const Library = () => {
   }, [playlists, addPlaylist]);
 
   // Filter playlists by type
-  const videoPlaylists = playlists.filter(playlist => playlist.type === 'video');
-  const codingPlaylists = playlists.filter(playlist => playlist.type === 'coding');
+  const filteredPlaylists = playlists.filter(
+    playlist => !playlist.title.toLowerCase().includes('y combinator')
+  );
+  const videoPlaylists = filteredPlaylists.filter(playlist => playlist.type === 'video');
+  const codingPlaylists = filteredPlaylists.filter(playlist => playlist.type === 'coding');
 
   return (
     <div className={`min-h-screen transition-colors duration-300 relative overflow-x-hidden ${
@@ -146,7 +149,7 @@ const Library = () => {
           {playlists.length > 0 && (
             <div className="flex flex-col">
               <div className="flex flex-col">
-                <div className="flex justify-end mb-4">
+                <div className="flex justify-end mb-4 gap-4">
                   <Button
                     onClick={() => setIsModalOpen(true)}
                     className={`relative overflow-hidden group transition-all duration-300 shadow-xl rounded-xl px-6 py-2 text-lg font-semibold ${
@@ -158,6 +161,20 @@ const Library = () => {
                     <span className="relative z-10 flex items-center">
                       <Plus className="w-5 h-5 mr-2 transition-transform group-hover:rotate-90 duration-300" />
                       Add Content
+                    </span>
+                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </Button>
+                  <Button
+                    onClick={() => window.location.href = '/learningtrack'}
+                    className={`relative overflow-hidden group transition-all duration-300 shadow-xl rounded-xl px-6 py-2 text-lg font-semibold ${
+                      theme === 'dark'
+                        ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600'
+                        : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700'
+                    } text-white`}
+                  >
+                    <span className="relative z-10 flex items-center">
+                      <Code className="w-5 h-5 mr-2 transition-transform group-hover:rotate-90 duration-300" />
+                      Learning Track
                     </span>
                     <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </Button>
@@ -205,7 +222,7 @@ const Library = () => {
                     </TabsList>
                     <TabsContent value="all" className="mt-6 animate-fade-in-up">
                       <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
-                        {playlists.map((playlist, index) => (
+                        {filteredPlaylists.map((playlist, index) => (
                           <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
                             <PlaylistCard
                               playlist={playlist}

@@ -31,6 +31,7 @@ import { loadQuestionsFromFile } from './utils/loadQuestions';
 import { PlaylistProvider } from '@/context/PlaylistContext';
 import { Button } from "@/components/ui/button";
 import Shorts from "./pages/Shorts";
+import LearningTrack from "./pages/learningtrack";
 
 const queryClient = new QueryClient();
 
@@ -81,6 +82,7 @@ const AppContent = () => {
               <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
               <Route path="/view-create" element={<ViewCreate />} />
               <Route path="/shorts" element={<Shorts />} />
+              <Route path="/learningtrack" element={<LearningTrack />} />
               <Route 
                 path="/playlist/:playlistId" 
                 element={<PlaylistDetailWrapper />} 

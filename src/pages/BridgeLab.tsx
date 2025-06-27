@@ -19,6 +19,7 @@ import ImageEditor from '../components/ImageEditor';
 import { toast } from '../hooks/use-toast';
 import { Dialog as ConfirmDialog, DialogContent as ConfirmDialogContent, DialogHeader as ConfirmDialogHeader, DialogTitle as ConfirmDialogTitle, DialogTrigger as ConfirmDialogTrigger } from '../components/ui/dialog';
 import { Dialog as ConferenceDialog, DialogContent as ConferenceDialogContent, DialogHeader as ConferenceDialogHeader, DialogTitle as ConferenceDialogTitle } from '../components/ui/dialog';
+import { Tooltip, TooltipTrigger, TooltipContent } from '../components/ui/tooltip';
 
 // Add this at the top of the file (after imports) to declare the YT namespace and Player type for TypeScript
 interface YouTubePlayer {
@@ -47,6 +48,17 @@ interface PollOption {
   text: string;
   votes: number;
   votedBy: string[];
+}
+
+// Add coin earning interface
+interface CoinEarning {
+  id: number;
+  type: 'post_created' | 'comment_received' | 'like_received' | 'share_received' | 'save_received' | 'poll_vote_received' | 'daily_login' | 'achievement_unlocked';
+  amount: number;
+  description: string;
+  postId?: number;
+  postTitle?: string;
+  timestamp: string;
 }
 
 interface BlogPost {
@@ -374,6 +386,13 @@ function extractAllYouTubeVideoIds(text: string): string[] {
   return ids;
 }
 
+// Add at the top, after imports
+const maleAvatars = Array.from({ length: 50 }, (_, i) => `https://randomuser.me/api/portraits/men/${i}.jpg`);
+const femaleAvatars = Array.from({ length: 50 }, (_, i) => `https://randomuser.me/api/portraits/women/${i}.jpg`);
+
+// 1. Add a constant for the anonymous avatar URL at the top (after imports):
+const ANONYMOUS_AVATAR = "https://ui-avatars.com/api/?name=Anonymous&background=8b5cf6&color=fff&rounded=true&size=128";
+
 const BridgeLab: React.FC = () => {
   const [showNewPostDialog, setShowNewPostDialog] = useState(false);
   const [tab, setTab] = useState('discover');
@@ -427,6 +446,15 @@ const BridgeLab: React.FC = () => {
       likesReceived: 156,
       projectsJoined: 8
     },
+    // Add coin-related stats
+    coins: {
+      total: 2847,
+      thisWeek: 342,
+      thisMonth: 1247,
+      level: 8,
+      nextLevelCoins: 500,
+      streak: 12
+    },
     preferences: {
       emailNotifications: true,
       publicProfile: true,
@@ -444,21 +472,44 @@ const BridgeLab: React.FC = () => {
     ]
   });
 
-  const [editProfile, setEditProfile] = useState(profile);
+  // Add coin earnings state
+  const [coinEarnings, setCoinEarnings] = useState<CoinEarning[]>([
+    { id: 1, type: 'post_created', amount: 50, description: 'Created post "Smart Campus App Ideas"', postId: 1, postTitle: 'Smart Campus App Ideas', timestamp: '2024-06-07T10:00:00Z' },
+    { id: 2, type: 'like_received', amount: 15, description: 'Received 3 likes on your poll', postId: 6, postTitle: 'Test User Poll', timestamp: '2024-06-07T09:30:00Z' },
+    { id: 3, type: 'comment_received', amount: 25, description: 'Received 2 comments on your post', postId: 7, postTitle: 'Another User Poll', timestamp: '2024-06-07T08:45:00Z' },
+    { id: 4, type: 'share_received', amount: 30, description: 'Your post was shared by 2 users', postId: 1, postTitle: 'Smart Campus App Ideas', timestamp: '2024-06-07T08:00:00Z' },
+    { id: 5, type: 'save_received', amount: 20, description: 'Your post was saved by 1 user', postId: 7, postTitle: 'Another User Poll', timestamp: '2024-06-07T07:30:00Z' },
+    { id: 6, type: 'poll_vote_received', amount: 10, description: 'Received 5 votes on your poll', postId: 6, postTitle: 'Test User Poll', timestamp: '2024-06-07T07:00:00Z' },
+    { id: 7, type: 'daily_login', amount: 5, description: 'Daily login bonus', timestamp: '2024-06-07T06:00:00Z' },
+    { id: 8, type: 'achievement_unlocked', amount: 100, description: 'Unlocked "Top Contributor" achievement', timestamp: '2024-06-06T15:00:00Z' },
+    { id: 9, type: 'post_created', amount: 50, description: 'Created post "Another User Poll"', postId: 7, postTitle: 'Another User Poll', timestamp: '2024-06-06T14:00:00Z' },
+    { id: 10, type: 'like_received', amount: 20, description: 'Received 4 likes on your post', postId: 1, postTitle: 'Smart Campus App Ideas', timestamp: '2024-06-06T13:30:00Z' },
+  ]);
+
+  const [editProfile, setEditProfile] = useState({
+    ...profile,
+    role: 'Student',
+    agreeToMentor: false,
+    gender: 'Male', // Add gender
+    avatar: maleAvatars[0], // Default avatar
+  });
 
   // Profile tab items
   const profileTabItems = [
     { value: 'activity', label: 'Activity Stats', icon: <Trophy className="w-5 h-5" /> },
+    { value: 'coins', label: 'Coins & Rewards', icon: <Award className="w-5 h-5" /> },
     { value: 'skills', label: 'Skills & Expertise', icon: <Code className="w-5 h-5" /> },
     { value: 'contact', label: 'Contact Info', icon: <MessageCircle className="w-5 h-5" /> },
     { value: 'achievements', label: 'Achievements', icon: <Award className="w-5 h-5" /> },
-    { value: 'preferences', label: 'Preferences', icon: <Settings className="w-5 h-5" /> },
-    { value: 'recent', label: 'Recent Activity', icon: <Clock className="w-5 h-5" /> },
+    { value: 'posts', label: 'Posts', icon: <FileText className="w-5 h-5" /> },
   ];
 
   // Save profile function
   const saveProfile = () => {
-    setProfile(editProfile);
+    setProfile({
+      ...editProfile,
+      avatar: uploadedAvatar || editProfile.avatar,
+    });
     setShowEditProfile(false);
   };
 
@@ -632,10 +683,46 @@ const BridgeLab: React.FC = () => {
   );
 
   // Like/bookmark handlers
-  const toggleBookmark = (id: number) => setPosts(ps => ps.map(p => p.id === id ? { ...p, bookmarked: !p.bookmarked } : p));
+  const toggleBookmark = (id: number) => {
+    setPosts(ps => ps.map(p => {
+      if (p.id === id) {
+        const wasBookmarked = p.bookmarked;
+        const newBookmarked = !wasBookmarked;
+        
+        // Add coin earning if someone bookmarks your post
+        if (!wasBookmarked && p.author === 'You') {
+          addCoinEarning('save_received', getCoinAmount('save_received'), `Your post "${p.title}" was saved by a user`, p.id, p.title);
+        }
+        
+        return { ...p, bookmarked: newBookmarked };
+      }
+      return p;
+    }));
+  };
 
   // Comment add (dummy)
-  const addComment = (postId: number, text: string) => setPosts(ps => ps.map(p => p.id === postId ? { ...p, comments: [...p.comments, { id: Date.now(), author: 'You', avatar: 'https://randomuser.me/api/portraits/lego/1.jpg', content: text, createdAt: new Date().toISOString() }] } : p));
+  const addComment = (postId: number, text: string, anonymous = false) => {
+    setPosts(ps => ps.map(p => {
+      if (p.id === postId) {
+        // Add coin earning if someone comments on your post
+        if (p.author === 'You') {
+          addCoinEarning('comment_received', getCoinAmount('comment_received'), `Your post "${p.title}" received a comment`, p.id, p.title);
+        }
+        
+        return {
+          ...p,
+          comments: [...p.comments, {
+            id: Date.now(),
+            author: anonymous ? 'Anonymous' : 'You',
+            avatar: anonymous ? ANONYMOUS_AVATAR : profile.avatar,
+            content: text,
+            createdAt: new Date().toISOString()
+          }]
+        };
+      }
+      return p;
+    }));
+  };
 
   // Media upload handlers
   const handleFileUpload = (files: FileList) => {
@@ -723,12 +810,39 @@ const BridgeLab: React.FC = () => {
       {/* Blog Feed - Full page scroll, no inner scroll container */}
       <div className="flex flex-col gap-12">
         {filtered.filter(post => !post.poll).map(post => (
-          <div key={post.id} className="bg-white rounded-3xl shadow-xl border border-neutral-100 overflow-visible hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01] mb-8 group">
+          <div 
+            key={post.id} 
+            className="bg-white rounded-3xl shadow-xl border border-neutral-100 overflow-visible hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01] mb-8 group"
+            onDoubleClick={e => {
+              // Toggle comment section on double-click, except on input/textarea/button
+              if (
+                !(e.target instanceof HTMLInputElement) &&
+                !(e.target instanceof HTMLTextAreaElement) &&
+                !(e.target instanceof HTMLButtonElement)
+              ) {
+                if (activeCommentPostId === post.id) {
+                  setActiveCommentPostId(null);
+                } else {
+                  setActiveCommentPostId(post.id);
+                }
+              }
+            }}
+          >
             {/* Post Header */}
             <div className="flex items-center justify-between px-8 pt-6 pb-4 bg-gradient-to-r from-neutral-50 to-white">
               <div className="flex items-center gap-3">
-                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-200 shadow-sm hover:scale-105 transition-transform duration-200" />
-              <div>
+                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-200 shadow-sm hover:scale-105 transition-transform duration-200 relative" />
+                {post.author === 'Anonymous' && (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="absolute -bottom-1 -right-1 bg-purple-600 text-white rounded-full p-1 shadow border-2 border-white flex items-center">
+                        <UserCircle className="w-4 h-4" />
+                      </span>
+                    </TooltipTrigger>
+                    <TooltipContent side="top">Anonymous</TooltipContent>
+                  </Tooltip>
+                )}
+                <div>
                   <h3 className="font-bold text-lg text-black hover:text-blue-600 transition-colors duration-200 cursor-pointer">{post.author}</h3>
                   <p className="text-sm text-neutral-500">{new Date(post.createdAt).toLocaleDateString('en-US', { 
                     year: 'numeric', 
@@ -737,8 +851,18 @@ const BridgeLab: React.FC = () => {
                     hour: '2-digit',
                     minute: '2-digit'
                   })}</p>
+                  {/* Follow button logic */}
+                  {post.author !== 'You' && post.author !== 'Anonymous' && !followedUsers.includes(post.author) && (
+                    <Button
+                      size="sm"
+                      className="mt-1 bg-blue-600 text-white rounded-full px-4 py-1 text-xs font-bold shadow hover:bg-blue-700"
+                      onClick={() => setFollowedUsers(prev => [...prev, post.author])}
+                    >
+                      Follow
+                    </Button>
+                  )}
+                </div>
               </div>
-            </div>
               <div className="flex items-center gap-2">
                 {/* Total Views */}
                 <div className="flex items-center gap-1 text-neutral-500 text-sm bg-white px-3 py-1.5 rounded-full shadow-sm border border-neutral-200 hover:bg-neutral-50 transition-colors duration-200">
@@ -750,17 +874,14 @@ const BridgeLab: React.FC = () => {
                 </div>
               </div>
             </div>
-            
             {/* Title */}
             <h2 className="text-3xl font-extrabold mb-3 px-8 text-black tracking-wide font-brand uppercase mt-2">{post.title}</h2>
-            
             {/* Tags */}
             <div className="flex flex-wrap gap-2 px-8 mb-4">
               {post.tags && post.tags.map(tag => (
                 <Badge key={tag} className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-semibold uppercase tracking-widest px-3 py-1 text-xs rounded-full shadow-sm border border-blue-200 hover:from-blue-200 hover:to-purple-200 transition-all duration-200 cursor-pointer">{tag}</Badge>
               ))}
             </div>
-            
             {/* Media */}
             {post.media && post.media.length > 0 && (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-8 mb-6">
@@ -775,7 +896,6 @@ const BridgeLab: React.FC = () => {
                 ))}
               </div>
             )}
-            
             {/* YouTube video preview in Discover (multiple videos, with play/stop button below) */}
             {(() => {
               const videoIds = extractAllYouTubeVideoIds(post.content);
@@ -858,14 +978,10 @@ const BridgeLab: React.FC = () => {
                 </div>
               );
             })()}
-            {/* Content (YouTube links hidden) */}
-            <div
-              className="prose max-w-none mb-6 px-8 text-lg text-neutral-800 leading-relaxed"
-              style={{ overflow: 'visible', maxHeight: 'none' }}
-              dangerouslySetInnerHTML={{
-                __html: post.content.replace(/https?:\/\/(?:www\.|m\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/shorts\/)[\w-]{11}/g, '')
-              }}
-            />
+            {/* Post Content */}
+            <div className="prose max-w-none mb-6 px-8 text-lg text-neutral-800 leading-relaxed" style={{ overflow: 'visible', maxHeight: 'none' }}>
+              {post.content}
+            </div>
             
             {/* Enhanced Emoji Counts Display */}
             <div className="px-8 mb-4">
@@ -1112,10 +1228,12 @@ const BridgeLab: React.FC = () => {
   );
 
   // 4. CommentSection component
-  const CommentSection = ({ post, addComment, activeCommentPostId, setActiveCommentPostId }: { post: BlogPost, addComment: (postId: number, text: string) => void, activeCommentPostId: number | null, setActiveCommentPostId: (id: number | null) => void }) => {
+  const CommentSection = ({ post, addComment, activeCommentPostId, setActiveCommentPostId }: { post: BlogPost, addComment: (postId: number, text: string, anonymous?: boolean) => void, activeCommentPostId: number | null, setActiveCommentPostId: (id: number | null) => void }) => {
     const [text, setText] = useState('');
     const [replyTo, setReplyTo] = useState<number | null>(null);
     const [replyText, setReplyText] = useState('');
+    const [commentAnonymous, setCommentAnonymous] = useState(false);
+    const [replyAnonymous, setReplyAnonymous] = useState(false);
     const [likedComments, setLikedComments] = useState<Set<number>>(new Set());
     const scrollClass = post.comments.length > 1 ? 'max-h-64 overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-blue-200 scrollbar-track-blue-50' : '';
     const inputRef = useRef<HTMLInputElement>(null);
@@ -1135,7 +1253,7 @@ const BridgeLab: React.FC = () => {
       }
     }, [replyTo]);
 
-    const addReply = (commentId: number, replyText: string) => {
+    const addReply = (commentId: number, replyText: string, anonymous = false) => {
       setPosts(ps => ps.map(p => {
         if (p.id !== post.id) return p;
         
@@ -1150,8 +1268,8 @@ const BridgeLab: React.FC = () => {
                 ...(comment.replies || []),
                 {
                   id: Date.now(),
-                  author: 'You',
-                  avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+                  author: anonymous ? 'Anonymous' : 'You',
+                  avatar: anonymous ? ANONYMOUS_AVATAR : profile.avatar,
                   content: replyText,
                   createdAt: new Date().toISOString()
                 }
@@ -1163,6 +1281,7 @@ const BridgeLab: React.FC = () => {
       
       setReplyText('');
       setReplyTo(null);
+      setReplyAnonymous(false);
       
       toast({ 
         title: 'Reply posted!', 
@@ -1198,7 +1317,17 @@ const BridgeLab: React.FC = () => {
       return (
         <div className={`${depth > 0 ? 'ml-6 border-l-2 border-neutral-200 pl-4' : ''}`}>
           <div className="flex items-start gap-3 mb-3 group">
-            <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full border-2 border-neutral-200" />
+            <img src={comment.avatar} alt={comment.author} className="w-8 h-8 rounded-full border-2 border-neutral-200 relative" />
+            {comment.author === 'Anonymous' && (
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <span className="absolute -bottom-1 -right-1 bg-purple-600 text-white rounded-full p-0.5 shadow border-2 border-white flex items-center">
+                    <UserCircle className="w-3 h-3" />
+                  </span>
+                </TooltipTrigger>
+                <TooltipContent side="top">Anonymous</TooltipContent>
+              </Tooltip>
+            )}
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1">
                 <span className="font-bold text-sm text-black">{comment.author}</span>
@@ -1240,7 +1369,9 @@ const BridgeLab: React.FC = () => {
                     onSubmit={e => {
                       e.preventDefault();
                       if (replyText.trim()) {
-                        addReply(comment.id, replyText);
+                        addReply(comment.id, replyText, replyAnonymous);
+                        setReplyText('');
+                        setReplyAnonymous(false);
                       }
                     }}
                     className="flex gap-2"
@@ -1252,6 +1383,34 @@ const BridgeLab: React.FC = () => {
                       placeholder={`Reply to ${comment.author}...`}
                       className="flex-1 text-sm"
                     />
+                    <div className="flex items-center gap-3">
+                      <div className="flex rounded-full bg-neutral-100 border-2 border-neutral-200 overflow-hidden shadow-sm">
+                        <button
+                          type="button"
+                          className={`flex items-center gap-1 px-3 py-1.5 font-semibold text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:z-10
+                            ${!replyAnonymous ? 'bg-blue-500 text-white shadow scale-105' : 'bg-transparent text-neutral-500 hover:bg-neutral-200'}`}
+                          aria-pressed={!replyAnonymous}
+                          tabIndex={0}
+                          onClick={() => setReplyAnonymous(false)}
+                          title="Reply as yourself"
+                        >
+                          <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="avatar" className="w-4 h-4 rounded-full border-2 border-white mr-1" />
+                          You
+                        </button>
+                        <button
+                          type="button"
+                          className={`flex items-center gap-1 px-3 py-1.5 font-semibold text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:z-10
+                            ${replyAnonymous ? 'bg-purple-500 text-white shadow scale-105' : 'bg-transparent text-neutral-500 hover:bg-neutral-200'}`}
+                          aria-pressed={replyAnonymous}
+                          tabIndex={0}
+                          onClick={() => setReplyAnonymous(true)}
+                          title="Reply as Anonymous"
+                        >
+                          <UserCircle className="w-4 h-4 mr-1 text-white" />
+                          Anonymous
+                        </button>
+                      </div>
+                    </div>
                     <Button type="submit" size="sm" className="bg-black text-white hover:bg-white hover:text-black border border-black">
                       Reply
                     </Button>
@@ -1262,6 +1421,7 @@ const BridgeLab: React.FC = () => {
                       onClick={() => {
                         setReplyTo(null);
                         setReplyText('');
+                        setReplyAnonymous(false);
                       }}
                     >
                       Cancel
@@ -1314,28 +1474,60 @@ const BridgeLab: React.FC = () => {
         </div>
         
         {/* Main Comment Input */}
+        <div className="mt-8 mb-2 flex items-center gap-3">
+          <div className="flex-1 h-px bg-neutral-200" />
+          <span className="text-xs text-neutral-400 font-semibold uppercase tracking-wider">Add a comment to this post</span>
+          <div className="flex-1 h-px bg-neutral-200" />
+        </div>
         <div className="bg-white rounded-lg border border-neutral-200 p-4 shadow-sm">
           <form
             onSubmit={e => {
               e.preventDefault();
               if (text.trim()) {
-                addComment(post.id, text);
+                addComment(post.id, text, commentAnonymous);
                 setText('');
-                // Don't close the comment section - keep it open
+                setCommentAnonymous(false);
               }
             }}
-            className="flex gap-2"
+            className="flex flex-col gap-2"
           >
-            <Input
-              ref={inputRef}
+            <textarea
               value={text}
               onChange={e => setText(e.target.value)}
-              placeholder="Add a comment..."
-              className="flex-1"
+              placeholder="Write your comment..."
+              className="w-full min-h-[48px] max-h-32 resize-y border border-neutral-200 rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-blue-400 mb-2"
             />
-            <Button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">
-              Post
-            </Button>
+            <div className="flex items-center gap-3">
+              <div className="flex rounded-full bg-neutral-100 border-2 border-neutral-200 overflow-hidden shadow-sm">
+                <button
+                  type="button"
+                  className={`flex items-center gap-1 px-3 py-1.5 font-semibold text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:z-10
+                    ${!commentAnonymous ? 'bg-blue-500 text-white shadow scale-105' : 'bg-transparent text-neutral-500 hover:bg-neutral-200'}`}
+                  aria-pressed={!commentAnonymous}
+                  tabIndex={0}
+                  onClick={() => setCommentAnonymous(false)}
+                  title="Comment as yourself"
+                >
+                  <img src="https://randomuser.me/api/portraits/lego/1.jpg" alt="avatar" className="w-4 h-4 rounded-full border-2 border-white mr-1" />
+                  You
+                </button>
+                <button
+                  type="button"
+                  className={`flex items-center gap-1 px-3 py-1.5 font-semibold text-xs transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:z-10
+                    ${commentAnonymous ? 'bg-purple-500 text-white shadow scale-105' : 'bg-transparent text-neutral-500 hover:bg-neutral-200'}`}
+                  aria-pressed={commentAnonymous}
+                  tabIndex={0}
+                  onClick={() => setCommentAnonymous(true)}
+                  title="Comment as Anonymous"
+                >
+                  <UserCircle className="w-4 h-4 mr-1 text-white" />
+                  Anonymous
+                </button>
+              </div>
+              <Button type="submit" className="bg-black text-white rounded-full px-6 hover:bg-white hover:text-black border border-black">
+                Post
+              </Button>
+            </div>
           </form>
         </div>
       </div>
@@ -1447,241 +1639,263 @@ const BridgeLab: React.FC = () => {
     </Card>
   );
 
-  const PreferencesTab = () => (
-    <Card className="bg-white rounded-2xl shadow-xl border-0 p-6 animate-fade-in">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-bold text-black uppercase tracking-wide font-brand">Preferences</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-neutral-700">Email Notifications</span>
-          <Switch 
-            checked={profile.preferences.emailNotifications}
-            onCheckedChange={(checked) => setProfile(prev => ({ 
-              ...prev, 
-              preferences: { ...prev.preferences, emailNotifications: checked }
-            }))}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-neutral-700">Public Profile</span>
-          <Switch 
-            checked={profile.preferences.publicProfile}
-            onCheckedChange={(checked) => setProfile(prev => ({ 
-              ...prev, 
-              preferences: { ...prev.preferences, publicProfile: checked }
-            }))}
-          />
-        </div>
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-neutral-700">Mentor Requests</span>
-          <Switch 
-            checked={profile.preferences.mentorRequests}
-            onCheckedChange={(checked) => setProfile(prev => ({ 
-              ...prev, 
-              preferences: { ...prev.preferences, mentorRequests: checked }
-            }))}
-          />
-        </div>
-      </CardContent>
-    </Card>
-  );
-
-  const RecentActivityTab = () => (
-    <Card className="bg-white rounded-2xl shadow-xl border-0 p-6 animate-fade-in">
-      <CardHeader className="pb-4">
-        <CardTitle className="text-xl font-bold text-black uppercase tracking-wide font-brand">Recent Activity</CardTitle>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {profile.recentActivity.map((activity, index) => (
-          <div key={index} className="flex items-start gap-3">
-            <div className={`w-2 h-2 bg-${activity.type === 'post' ? 'blue' : activity.type === 'join' ? 'green' : 'purple'}-500 rounded-full mt-2`}></div>
-            <div>
-              <p className="text-sm font-medium text-black">{activity.action}</p>
-              <p className="text-xs text-neutral-500">{activity.time}</p>
-            </div>
-          </div>
-        ))}
-      </CardContent>
-    </Card>
-  );
-
-  // 5. PollDisplay component
-  const PollDisplay = ({ post }: { post: BlogPost }) => {
-    if (!post.poll) return null;
-
-    const handleVote = (optionIndex: number) => {
-      if (post.poll?.votedByUser !== undefined) {
-        toast({ title: 'Already voted', description: 'You can only vote once per poll.' });
-        return;
-      }
-
-      setPosts(prev => prev.map(p => {
-        if (p.id === post.id && p.poll) {
-          const updatedOptions = [...p.poll.options];
-          updatedOptions[optionIndex] = {
-            ...updatedOptions[optionIndex],
-            votes: updatedOptions[optionIndex].votes + 1,
-            votedBy: [...updatedOptions[optionIndex].votedBy, 'You']
-          };
-          
-          return {
-            ...p,
-            poll: {
-              ...p.poll,
-              options: updatedOptions,
-              votedByUser: optionIndex
-            }
-          };
-        }
-        return p;
-      }));
-      
-      toast({ title: 'Vote recorded!', description: 'Your vote has been counted.' });
-    };
-
-    const totalVotes = post.poll.options.reduce((sum, option) => sum + option.votes, 0);
-    const hasVoted = post.poll.votedByUser !== undefined;
-
+  // PostsTab: shows all posts authored by 'You'
+  const PostsTab = () => {
+    const userPosts = posts.filter(post => post.author === 'You');
     return (
-      <div className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-xl p-4 mb-4 border border-blue-100 shadow-sm">
-        {/* Poll Header */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
-            <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h3 className="text-sm font-bold text-gray-800">{post.poll.question}</h3>
+      <div className="w-full max-w-3xl mx-auto mt-10">
+        {userPosts.length === 0 ? (
+          <div className="text-center py-12">
+            <FileText className="w-16 h-16 mx-auto text-neutral-300 mb-4" />
+            <h3 className="text-xl font-bold text-neutral-600 mb-2">You haven't created any posts yet</h3>
+            <p className="text-neutral-500">Create a post to see it here.</p>
         </div>
-        
-        {/* Poll Options */}
-        <div className="space-y-3 mb-4">
-          {post.poll?.options.map((option, index) => {
-            const totalVotes = post.poll?.options.reduce((sum, opt) => sum + opt.votes, 0) || 0;
+        ) : (
+          <div className="flex flex-col gap-12">
+            {userPosts.map(post => (
+              post.poll ? (
+                <div
+                  key={post.id}
+                  className="w-full max-w-3xl mx-auto bg-white rounded-full border-2 border-black shadow-lg hover:shadow-2xl hover:scale-[1.02] transition-all duration-200 mb-12 flex flex-col group relative overflow-hidden"
+                  style={{ minHeight: 100, borderRadius: '2rem' }}
+                  onDoubleClick={e => {
+                    if (
+                      !(e.target instanceof HTMLInputElement) &&
+                      !(e.target instanceof HTMLTextAreaElement) &&
+                      !(e.target instanceof HTMLButtonElement)
+                    ) {
+                      if (activeCommentPostId === post.id) {
+                        setActiveCommentPostId(null);
+                      } else {
+                        setActiveCommentPostId(post.id);
+                      }
+                    }
+                  }}
+                >
+                  {/* Header Row (minimal, grayscale) */}
+                  <div className="flex items-center gap-4 px-8 pt-7 pb-4 bg-white rounded-t-full border-b border-neutral-200">
+                    <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-300 shadow-sm flex-shrink-0 filter grayscale" />
+                    <div className="flex flex-col min-w-0">
+                      <span className="font-bold text-lg text-black truncate max-w-[180px]">{post.author}</span>
+                      <span className="flex items-center gap-1 text-xs text-neutral-500 mt-0.5">{new Date(post.createdAt).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+          </div>
+                    <div className="flex-1" />
+                    <span className="text-xs text-neutral-400 font-semibold">{Math.floor(Math.random() * 1000) + 500} views</span>
+        </div>
+                  {/* Title/Question (max 2 lines, ellipsis) */}
+                  <div className="px-8 pt-4 pb-2">
+                    <span className="font-extrabold text-2xl text-black leading-tight block" style={{ display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis', lineHeight: '1.25' }} title={post.title || post.poll?.question}>{post.title || post.poll?.question}</span>
+                  </div>
+                  {/* Poll Display (minimal, black/white) */}
+                  <div className="px-8 pb-2">
+                    <div className="flex flex-col gap-3">
+                      {post.poll.options.map((option, idx) => {
+                        const totalVotes = post.poll.options.reduce((sum, o) => sum + o.votes, 0) || 0;
             const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
-            const isVoted = post.poll?.votedByUser === index;
-            const hasVoted = post.poll?.votedByUser !== undefined;
-            
+                        const isVoted = post.poll.votedByUser === idx;
             return (
               <button
                 key={option.id}
                 onClick={() => {
-                  if (!hasVoted) {
-                    // Use the same handleVote logic from PollDisplay
-                    if (post.poll?.votedByUser !== undefined) {
-                      toast({ title: 'Already voted', description: 'You can only vote once per poll.' });
-                      return;
-                    }
-
+                              if (post.poll?.votedByUser === undefined) {
                     setPosts(prev => prev.map(p => {
                       if (p.id === post.id && p.poll) {
                         const updatedOptions = [...p.poll.options];
-                        updatedOptions[index] = {
-                          ...updatedOptions[index],
-                          votes: updatedOptions[index].votes + 1,
-                          votedBy: [...updatedOptions[index].votedBy, 'You']
-                        };
-                        
+                                    updatedOptions[idx] = {
+                                      ...updatedOptions[idx],
+                                      votes: updatedOptions[idx].votes + 1,
+                                      votedBy: [...updatedOptions[idx].votedBy, 'You']
+                                    };
                         return {
                           ...p,
                           poll: {
                             ...p.poll,
                             options: updatedOptions,
-                            votedByUser: index
+                                        votedByUser: idx
                           }
                         };
                       }
                       return p;
                     }));
-                    
                     toast({ title: 'Vote recorded!', description: 'Your vote has been counted.' });
                   }
                 }}
-                disabled={hasVoted}
-                className={`w-full text-left p-3 rounded-lg border transition-all duration-200 ${
-                  hasVoted
-                    ? isVoted
-                      ? 'border-blue-400 bg-gradient-to-r from-blue-100 to-blue-50'
-                      : 'border-gray-200 bg-white'
-                    : 'border-gray-200 bg-white hover:border-blue-300 hover:bg-blue-50 cursor-pointer'
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium text-gray-800">{option.text}</span>
-                  {hasVoted && (
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-bold text-blue-600 bg-white px-2 py-1 rounded-full shadow-sm">
-                        {percentage}%
+                            disabled={post.poll?.votedByUser !== undefined}
+                            className={`flex items-center gap-3 w-full px-6 py-3 rounded-full border-2 text-lg font-semibold transition-all duration-200 relative overflow-hidden group shadow-sm
+                              ${isVoted ? 'bg-black text-white border-black scale-[1.01]' : 'bg-white border-neutral-300 text-black hover:bg-black hover:text-white hover:border-black'}
+                              ${post.poll?.votedByUser === undefined ? 'cursor-pointer' : 'cursor-default'}`}
+                            style={{ minWidth: 0 }}
+                            title={option.text.length > 30 ? option.text : undefined}
+                          >
+                            <span className="truncate max-w-[320px] align-middle text-lg font-semibold z-10">{option.text}</span>
+                            <span className="ml-auto flex items-center gap-2 z-10">
+                              {post.poll?.votedByUser !== undefined && (
+                                <>
+                                  <span className="text-base font-bold text-black">{percentage}%</span>
+                                  <span className="text-base text-neutral-400">({option.votes})</span>
+                                </>
+                              )}
                       </span>
-                      {isVoted && (
-                        <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
-                          <svg className="w-2 h-2 text-white" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" />
+                            {/* Progress bar (gray, minimal) */}
+                            {post.poll?.votedByUser !== undefined && (
+                              <span className="absolute left-0 top-0 h-full rounded-full z-0 animate-progress-bar" style={{ width: `${percentage}%`, background: isVoted ? '#222' : '#e5e5e5', opacity: 0.18, transition: 'width 0.6s cubic-bezier(.4,2,.6,1)' }} />
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    {/* Total votes and poll state */}
+                    <div className="flex items-center gap-2 mt-3 text-sm text-neutral-500 font-semibold">
+                      <span>Total votes: {post.poll.options.reduce((sum, o) => sum + o.votes, 0)}</span>
+                      {post.poll.votedByUser !== undefined && <span className="ml-2 text-black font-bold">You voted</span>}
+                    </div>
+                  </div>
+                  {/* Bottom Info Bar (minimal) */}
+                  <div className="flex items-center gap-3 px-8 py-3 border-t border-neutral-200 bg-white rounded-b-full mt-2">
+                    <div className="flex flex-wrap gap-2">
+                      {post.tags && post.tags.map(tag => (
+                        <Badge key={tag} className="bg-neutral-100 text-black font-semibold px-3 py-1 text-xs rounded-full border border-neutral-300 shadow-sm">{tag}</Badge>
+                      ))}
+                    </div>
+                    <div className="flex-1" />
+                    <span className="text-xs text-neutral-400">{new Date(post.createdAt).toLocaleDateString('en-US', { year: '2-digit', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}</span>
+                    <span className="text-xs text-neutral-400 font-semibold">{Math.floor(Math.random() * 1000) + 500} views</span>
+                  </div>
+                  {/* Actions Row (bottom, icon-only) */}
+                  <div className="flex items-center justify-center gap-6 py-4">
+                    <button
+                      onClick={() => toggleBookmark(post.id)}
+                      className={`p-2 rounded-full shadow transition-colors duration-200 border-2 bg-white hover:bg-black hover:text-white hover:border-black ${post.bookmarked ? 'text-black border-black' : 'text-neutral-400 border-neutral-300'}`}
+                      title={post.bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+                    >
+                      <svg className="w-6 h-6" fill={post.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
                           </svg>
+                    </button>
+                    <div className="relative group/comment">
+                      <button
+                        onClick={() => setActiveCommentPostId(post.id)}
+                        className="p-2 rounded-full text-neutral-400 hover:text-black hover:bg-neutral-200 border-2 border-neutral-300 shadow"
+                        title="Comment on this poll"
+                      >
+                        <MessageCircle className="w-6 h-6" />
+                      </button>
+                      <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover/comment:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">Comment on this poll</span>
                         </div>
-                      )}
+                    <span className="text-base text-neutral-400 ml-1 font-bold">{post.comments.length}</span>
+                  </div>
+                  {/* Comments (collapsible) */}
+                  {activeCommentPostId === post.id && (
+                    <div className="px-8 pb-6">
+                      <CommentSection post={post} addComment={addComment} activeCommentPostId={activeCommentPostId} setActiveCommentPostId={setActiveCommentPostId} />
                     </div>
                   )}
                 </div>
-                
-                {/* Progress bar */}
-                {hasVoted && (
-                  <div className="w-full bg-gray-200 rounded-full h-2 mb-1">
-                    <div
-                      className="bg-gradient-to-r from-blue-500 to-purple-500 h-2 rounded-full transition-all duration-500 ease-out"
-                      style={{ width: `${percentage}%` }}
-                    />
+              ) : (
+                <div
+                  key={post.id}
+                  className="bg-white rounded-3xl shadow-xl border border-neutral-100 overflow-visible hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01] mb-8 group"
+                  onDoubleClick={e => {
+                    if (
+                      !(e.target instanceof HTMLInputElement) &&
+                      !(e.target instanceof HTMLTextAreaElement) &&
+                      !(e.target instanceof HTMLButtonElement)
+                    ) {
+                      if (activeCommentPostId === post.id) {
+                        setActiveCommentPostId(null);
+                      } else {
+                        setActiveCommentPostId(post.id);
+                      }
+                    }
+                  }}
+                >
+                  {/* Post Header */}
+                  <div className="flex items-center justify-between px-8 pt-6 pb-4 bg-gradient-to-r from-neutral-50 to-white">
+                    <div className="flex items-center gap-3">
+                      <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-200 shadow-sm hover:scale-105 transition-transform duration-200 relative" />
+                      <div>
+                        <h3 className="font-bold text-lg text-black hover:text-blue-600 transition-colors duration-200 cursor-pointer">{post.author}</h3>
+                        <p className="text-sm text-neutral-500">{new Date(post.createdAt).toLocaleDateString('en-US', { 
+                          year: 'numeric', 
+                          month: 'short', 
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}</p>
                   </div>
-                )}
-                
-                {/* Vote count */}
-                <div className="text-xs text-gray-500 flex items-center gap-1">
-                  <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  {option.votes} vote{option.votes !== 1 ? 's' : ''}
                 </div>
-              </button>
-            );
-          })}
         </div>
-        
-        {/* Poll Footer */}
-        {hasVoted && (
-          <div className="mt-3 pt-2 border-t border-blue-100">
-            <div className="flex items-center justify-between text-xs text-gray-500">
-              <span className="flex items-center gap-1">
-                <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                  <path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Total votes: {totalVotes}
-              </span>
-              <span className="text-blue-600 font-medium">Poll closed</span>
+                  {/* Title */}
+                  <h2 className="text-3xl font-extrabold mb-3 px-8 text-black tracking-wide font-brand uppercase mt-2">{post.title}</h2>
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-2 px-8 mb-4">
+                    {post.tags && post.tags.map(tag => (
+                      <Badge key={tag} className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-semibold uppercase tracking-widest px-3 py-1 text-xs rounded-full shadow-sm border border-blue-200 hover:from-blue-200 hover:to-purple-200 transition-all duration-200 cursor-pointer">{tag}</Badge>
+                    ))}
             </div>
+                  {/* Media */}
+                  {post.media && post.media.length > 0 && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-8 mb-6">
+                      {post.media.map((media, idx) => (
+                        <div key={idx} className="relative rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-200">
+                          {media.type === 'image' ? (
+                            <img src={media.url} alt="Post Media" className="w-full h-64 object-cover rounded-xl" />
+                          ) : (
+                            <video src={media.url} className="w-full h-64 object-cover rounded-xl" controls />
+                          )}
+                        </div>
+                      ))}
           </div>
         )}
-        
-        {!hasVoted && (
-          <div className="mt-2 text-xs text-gray-500 text-center">
-            Click to vote • {totalVotes} total votes
+                  {/* Post Content */}
+                  <div className="prose max-w-none mb-6 px-8 text-lg text-neutral-800 leading-relaxed" style={{ overflow: 'visible', maxHeight: 'none' }}>
+                    {post.content}
           </div>
+                  {/* Actions */}
+                  <div className="flex items-center gap-4 px-8 pb-6">
+                    {/* Bookmark Button */}
+                    <button 
+                      onClick={() => toggleBookmark(post.id)}
+                      className={`flex items-center gap-2 transition-colors duration-200 px-3 py-2 rounded-full ${
+                        post.bookmarked 
+                          ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50' 
+                          : 'text-neutral-400 hover:text-yellow-600 hover:bg-yellow-50'
+                      }`}
+                      title={post.bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+                    >
+                      <svg className="w-4 h-4" fill={post.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                      </svg>
+                      <span className="text-sm font-medium">{post.bookmarked ? 'Saved' : 'Save'}</span>
+                    </button>
+                    {/* Comments Count */}
+                    <button
+                      onClick={() => setActiveCommentPostId(post.id)}
+                      className="flex items-center gap-2 text-neutral-400 hover:text-neutral-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-neutral-50"
+                      title="View comments"
+                    >
+                      <MessageCircle className="w-4 h-4" />
+                      <span className="text-sm font-medium">{post.comments.length} comments</span>
+                    </button>
+                  </div>
+                  {/* Comments */}
+                  <div className="bg-gradient-to-r from-neutral-50 to-white rounded-b-3xl px-8 pb-8 pt-4">
+                    {activeCommentPostId === post.id ? (
+                      <CommentSection post={post} addComment={addComment} activeCommentPostId={activeCommentPostId} setActiveCommentPostId={setActiveCommentPostId} />
+                    ) : (
+                      <button
+                        className="mt-2 px-6 py-2 bg-black text-white rounded-full shadow-md hover:bg-white hover:text-black border border-black transition-colors duration-200 font-semibold focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
+                        onClick={() => setActiveCommentPostId(post.id)}
+                      >
+                        Comment
+                      </button>
         )}
       </div>
-    );
-  };
-
-  // 6. MyPollsSection component
-  const MyPollsSection = () => {
-    return (
-      <div className="w-full max-w-6xl mx-auto mt-10 pb-20">
-        <div className="text-center py-12">
-          <div className="w-16 h-16 bg-gradient-to-r from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <Trophy className="w-8 h-8 text-blue-600" />
           </div>
-          <h3 className="text-xl font-bold text-neutral-600 mb-2">Poll posts are no longer supported</h3>
-          <p className="text-neutral-500">You can no longer view or vote on poll posts.</p>
+              )
+            ))}
         </div>
+        )}
       </div>
     );
   };
@@ -1692,6 +1906,7 @@ const BridgeLab: React.FC = () => {
   const [showPoll, setShowPoll] = useState(false);
   const [pollOptions, setPollOptions] = useState(['', '']);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [postAnonymous, setPostAnonymous] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const emojiList = ['😀','😂','😍','😎','😢','😡','👍','🎉','🔥','🙏','🥳','🤔','😇','😅','😜','😱','😏','👏','💯','🚀'];
@@ -1739,8 +1954,8 @@ const BridgeLab: React.FC = () => {
       id: Date.now(),
       title: '',
       content: newPostText,
-      author: 'You',
-      avatar: profile.avatar,
+      author: postAnonymous ? 'Anonymous' : 'You',
+      avatar: postAnonymous ? ANONYMOUS_AVATAR : profile.avatar,
       tags: [],
       createdAt: new Date().toISOString(),
       reactions: { '😊': [], '😢': [], '😡': [], '😮': [], '❤️': [], '🤔': [] },
@@ -1759,6 +1974,7 @@ const BridgeLab: React.FC = () => {
     setNewPostMedia([]);
     setShowPoll(false);
     setPollOptions(['', '']);
+    setPostAnonymous(false);
     toast({ title: 'Posted!', description: 'Your post has been published.' });
   };
 
@@ -1770,7 +1986,6 @@ const BridgeLab: React.FC = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-8 pt-8 pb-3">
             <span className="font-bold text-2xl">Create Post</span>
-            <button className="text-neutral-400 hover:text-white text-lg font-semibold" onClick={() => setShowNewPostDialog(false)}>Cancel</button>
           </div>
           {/* Main */}
           <div className="flex px-8 pb-8 gap-6">
@@ -1785,6 +2000,35 @@ const BridgeLab: React.FC = () => {
                 rows={3}
                 style={{ fontFamily: 'inherit' }}
               />
+              <div className="flex items-center gap-4 mb-3">
+                <div className="flex rounded-full bg-neutral-900 border-2 border-neutral-700 overflow-hidden shadow-sm">
+                  <button
+                    type="button"
+                    className={`flex items-center gap-2 px-5 py-2 font-bold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:z-10
+                      ${!postAnonymous ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-transparent text-neutral-300 hover:bg-neutral-800'}`}
+                    aria-pressed={!postAnonymous}
+                    tabIndex={0}
+                    onClick={() => setPostAnonymous(false)}
+                    title="Post as yourself"
+                  >
+                    <img src={profile.avatar} alt="avatar" className="w-6 h-6 rounded-full border-2 border-white mr-2" />
+                    You
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center gap-2 px-5 py-2 font-bold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:z-10
+                      ${postAnonymous ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-transparent text-neutral-300 hover:bg-neutral-800'}`}
+                    aria-pressed={postAnonymous}
+                    tabIndex={0}
+                    onClick={() => setPostAnonymous(true)}
+                    title="Post as Anonymous"
+                  >
+                    <UserCircle className="w-6 h-6 mr-2 text-white" />
+                    Anonymous
+                  </button>
+                </div>
+                <span className="text-xs text-neutral-400">Choose your identity</span>
+              </div>
               {/* YouTube video preview */}
               {(() => {
                 const videoId = extractYouTubeVideoId(newPostText);
@@ -1964,6 +2208,561 @@ const BridgeLab: React.FC = () => {
   const [showConference, setShowConference] = useState(false);
   const [inConference, setInConference] = useState(false);
 
+  const [uploadedAvatar, setUploadedAvatar] = useState<string | null>(null);
+
+  // 1. Add state to track followed users
+  const [followedUsers, setFollowedUsers] = useState<string[]>([]);
+
+  // Add coin earning functions
+  const addCoinEarning = (type: CoinEarning['type'], amount: number, description: string, postId?: number, postTitle?: string) => {
+    const newEarning: CoinEarning = {
+      id: Date.now(),
+      type,
+      amount,
+      description,
+      postId,
+      postTitle,
+      timestamp: new Date().toISOString()
+    };
+    
+    setCoinEarnings(prev => [newEarning, ...prev]);
+    
+    // Update total coins
+    setProfile(prev => ({
+      ...prev,
+      coins: {
+        ...prev.coins,
+        total: prev.coins.total + amount,
+        thisWeek: prev.coins.thisWeek + amount,
+        thisMonth: prev.coins.thisMonth + amount
+      }
+    }));
+  };
+
+  // Function to get coin amount for different activities
+  const getCoinAmount = (type: CoinEarning['type']): number => {
+    const coinValues = {
+      post_created: 50,
+      comment_received: 10,
+      like_received: 5,
+      share_received: 15,
+      save_received: 10,
+      poll_vote_received: 2,
+      daily_login: 5,
+      achievement_unlocked: 100
+    };
+    return coinValues[type] || 0;
+  };
+
+  // Function to get icon for coin earning type
+  const getCoinEarningIcon = (type: CoinEarning['type']) => {
+    switch (type) {
+      case 'post_created': return <FileText className="w-5 h-5" />;
+      case 'comment_received': return <MessageCircle className="w-5 h-5" />;
+      case 'like_received': return <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>;
+      case 'share_received': return <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" /></svg>;
+      case 'save_received': return <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/></svg>;
+      case 'poll_vote_received': return <BarChart3 className="w-5 h-5" />;
+      case 'daily_login': return <Clock className="w-5 h-5" />;
+      case 'achievement_unlocked': return <Trophy className="w-5 h-5" />;
+      default: return <Award className="w-5 h-5" />;
+    }
+  };
+
+  // Function to get color for coin earning type
+  const getCoinEarningColor = (type: CoinEarning['type']): string => {
+    switch (type) {
+      case 'post_created': return 'text-blue-600 bg-blue-100';
+      case 'comment_received': return 'text-green-600 bg-green-100';
+      case 'like_received': return 'text-red-600 bg-red-100';
+      case 'share_received': return 'text-purple-600 bg-purple-100';
+      case 'save_received': return 'text-yellow-600 bg-yellow-100';
+      case 'poll_vote_received': return 'text-indigo-600 bg-indigo-100';
+      case 'daily_login': return 'text-orange-600 bg-orange-100';
+      case 'achievement_unlocked': return 'text-yellow-600 bg-yellow-100';
+      default: return 'text-gray-600 bg-gray-100';
+    }
+  };
+
+  // Add CoinsTab component
+  const CoinsTab = () => {
+    const totalEarnings = coinEarnings.reduce((sum, earning) => sum + earning.amount, 0);
+    const thisWeekEarnings = coinEarnings
+      .filter(earning => {
+        const earningDate = new Date(earning.timestamp);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return earningDate >= weekAgo;
+      })
+      .reduce((sum, earning) => sum + earning.amount, 0);
+
+    const earningsByType = coinEarnings.reduce((acc, earning) => {
+      acc[earning.type] = (acc[earning.type] || 0) + earning.amount;
+      return acc;
+    }, {} as Record<string, number>);
+
+    return (
+      <div className="space-y-6">
+        {/* Coin Overview Card */}
+        <Card className="bg-gradient-to-br from-yellow-50 via-orange-50 to-yellow-100 rounded-2xl shadow-xl border-0 p-6 animate-fade-in">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold text-black uppercase tracking-wide font-brand flex items-center gap-3">
+              <div className="w-8 h-8 bg-yellow-400 rounded-full flex items-center justify-center">
+                <span className="text-yellow-800 font-bold text-lg">🪙</span>
+              </div>
+              Coin Balance & Rewards
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* Main Balance */}
+            <div className="bg-white rounded-xl p-6 shadow-lg border-2 border-yellow-200">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-2xl font-bold text-black">Total Coins</h3>
+                <div className="flex items-center gap-2 bg-yellow-100 px-3 py-1 rounded-full">
+                  <span className="text-yellow-800 font-bold">Level {profile.coins.level}</span>
+                </div>
+              </div>
+              <div className="text-4xl font-bold text-yellow-600 mb-2">{profile.coins.total.toLocaleString()}</div>
+              <div className="text-sm text-neutral-600">Next level in {profile.coins.nextLevelCoins} coins</div>
+              
+              {/* Progress bar */}
+              <div className="mt-4">
+                <div className="flex justify-between text-sm text-neutral-600 mb-1">
+                  <span>Level {profile.coins.level}</span>
+                  <span>Level {profile.coins.level + 1}</span>
+                </div>
+                <div className="w-full bg-neutral-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-yellow-400 to-orange-400 h-2 rounded-full transition-all duration-300"
+                    style={{ width: `${((profile.coins.total % 1000) / 1000) * 100}%` }}
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            {/* Weekly and Monthly Stats */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="bg-white rounded-xl p-4 shadow-lg border border-green-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                    <span className="text-green-600 text-sm">📈</span>
+                  </div>
+                  <h4 className="font-bold text-black">This Week</h4>
+                </div>
+                <div className="text-2xl font-bold text-green-600">{profile.coins.thisWeek}</div>
+                <div className="text-sm text-neutral-600">coins earned</div>
+              </div>
+              
+              <div className="bg-white rounded-xl p-4 shadow-lg border border-blue-200">
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="w-6 h-6 bg-blue-100 rounded-full flex items-center justify-center">
+                    <span className="text-blue-600 text-sm">📅</span>
+                  </div>
+                  <h4 className="font-bold text-black">This Month</h4>
+                </div>
+                <div className="text-2xl font-bold text-blue-600">{profile.coins.thisMonth}</div>
+                <div className="text-sm text-neutral-600">coins earned</div>
+              </div>
+            </div>
+
+            {/* Streak */}
+            <div className="bg-white rounded-xl p-4 shadow-lg border border-purple-200">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center">
+                  <span className="text-purple-600 text-sm">🔥</span>
+                </div>
+                <h4 className="font-bold text-black">Login Streak</h4>
+              </div>
+              <div className="text-2xl font-bold text-purple-600">{profile.coins.streak} days</div>
+              <div className="text-sm text-neutral-600">Keep it up!</div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Earnings Breakdown */}
+        <Card className="bg-white rounded-2xl shadow-xl border-0 p-6 animate-fade-in">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold text-black uppercase tracking-wide font-brand">Earnings Breakdown</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              {Object.entries(earningsByType).map(([type, amount]) => (
+                <div key={type} className="bg-neutral-50 rounded-lg p-4 text-center">
+                  <div className={`w-8 h-8 mx-auto mb-2 rounded-full flex items-center justify-center ${getCoinEarningColor(type as CoinEarning['type'])}`}>
+                    {getCoinEarningIcon(type as CoinEarning['type'])}
+                  </div>
+                  <div className="text-lg font-bold text-black">{amount}</div>
+                  <div className="text-xs text-neutral-600 capitalize">
+                    {type.replace('_', ' ')}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Recent Earnings */}
+        <Card className="bg-white rounded-2xl shadow-xl border-0 p-6 animate-fade-in">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold text-black uppercase tracking-wide font-brand">Recent Earnings</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {coinEarnings.slice(0, 10).map(earning => (
+                <div key={earning.id} className="flex items-center gap-4 p-3 bg-neutral-50 rounded-lg hover:bg-neutral-100 transition-colors">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center ${getCoinEarningColor(earning.type)}`}>
+                    {getCoinEarningIcon(earning.type)}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold text-black truncate">{earning.description}</div>
+                    <div className="text-sm text-neutral-500">
+                      {new Date(earning.timestamp).toLocaleDateString('en-US', { 
+                        month: 'short', 
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-yellow-600 font-bold">
+                    <span className="text-lg">+{earning.amount}</span>
+                    <span className="text-sm">🪙</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Coin Earning Guide */}
+        <Card className="bg-gradient-to-br from-blue-50 to-purple-50 rounded-2xl shadow-xl border-0 p-6 animate-fade-in">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-xl font-bold text-black uppercase tracking-wide font-brand">How to Earn Coins</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                    <FileText className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-black">Create Post</div>
+                    <div className="text-sm text-neutral-600">+50 coins</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <MessageCircle className="w-4 h-4 text-green-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-black">Receive Comment</div>
+                    <div className="text-sm text-neutral-600">+10 coins</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <div className="w-8 h-8 bg-red-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-red-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-black">Receive Like</div>
+                    <div className="text-sm text-neutral-600">+5 coins</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z" />
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-black">Post Shared</div>
+                    <div className="text-sm text-neutral-600">+15 coins</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <div className="w-8 h-8 bg-yellow-100 rounded-full flex items-center justify-center">
+                    <svg className="w-4 h-4 text-yellow-600" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"/>
+                    </svg>
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-black">Post Saved</div>
+                    <div className="text-sm text-neutral-600">+10 coins</div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg shadow-sm">
+                  <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                    <Clock className="w-4 h-4 text-orange-600" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-semibold text-black">Daily Login</div>
+                    <div className="text-sm text-neutral-600">+5 coins</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+
+  // Add MyPollsSection component
+  const MyPollsSection = () => {
+    const userPolls = posts.filter(post => post.poll && (post.author === 'You' || post.author === 'Anonymous'));
+    
+    return (
+      <div className="w-full max-w-6xl mx-auto mt-10">
+        {/* Header */}
+        <div className="text-center mb-12">
+          <h1 className="text-4xl font-extrabold text-black tracking-tight uppercase font-brand mb-4">
+            My Polls
+          </h1>
+          <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
+            Track engagement on your polls and see how the community responds to your questions
+          </p>
+        </div>
+
+        {userPolls.length === 0 ? (
+          <div className="text-center py-16">
+            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
+              <BarChart3 className="w-12 h-12 text-blue-600" />
+            </div>
+            <h3 className="text-2xl font-bold text-neutral-700 mb-3">No polls created yet</h3>
+            <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+              Create your first poll to start engaging with the community and earning insights
+            </p>
+            <Button 
+              onClick={() => setTab('new-post')}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create Your First Poll
+            </Button>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {userPolls.map(post => (
+              <div
+                key={post.id}
+                className="w-full max-w-4xl mx-auto bg-white rounded-2xl border-2 border-black shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 group relative overflow-hidden"
+                style={{ borderRadius: '1.5rem' }}
+                onDoubleClick={e => {
+                  if (
+                    !(e.target instanceof HTMLInputElement) &&
+                    !(e.target instanceof HTMLTextAreaElement) &&
+                    !(e.target instanceof HTMLButtonElement)
+                  ) {
+                    if (activeCommentPostId === post.id) {
+                      setActiveCommentPostId(null);
+                    } else {
+                      setActiveCommentPostId(post.id);
+                    }
+                  }
+                }}
+              >
+                {/* Header Row */}
+                <div className="flex items-center gap-4 px-8 pt-6 pb-4 bg-gradient-to-r from-neutral-50 to-white rounded-t-2xl border-b border-neutral-200">
+                  <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-300 shadow-sm flex-shrink-0" />
+                  <div className="flex flex-col min-w-0">
+                    <span className="font-bold text-lg text-black truncate max-w-[200px]">{post.author}</span>
+                    <span className="flex items-center gap-1 text-xs text-neutral-500 mt-0.5">
+                      {new Date(post.createdAt).toLocaleDateString('en-US', { 
+                        year: '2-digit', 
+                        month: 'short', 
+                        day: 'numeric', 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </span>
+                  </div>
+                  <div className="flex-1" />
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs text-neutral-400 font-semibold">
+                      {Math.floor(Math.random() * 1000) + 500} views
+                    </span>
+                    <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-semibold px-3 py-1 text-xs rounded-full border border-blue-200">
+                      Poll
+                    </Badge>
+                  </div>
+                </div>
+
+                {/* Title/Question */}
+                <div className="px-8 pt-4 pb-3">
+                  <h2 className="font-extrabold text-2xl text-black leading-tight block mb-2" style={{ lineHeight: '1.3' }}>
+                    {post.title || post.poll?.question}
+                  </h2>
+                  {post.content && (
+                    <div className="text-neutral-700 text-base leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: post.content }} />
+                  )}
+                </div>
+
+                {/* Poll Display */}
+                <div className="px-8 pb-4">
+                  <div className="flex flex-col gap-3">
+                    {post.poll?.options.map((option, idx) => {
+                      const totalVotes = post.poll!.options.reduce((sum, o) => sum + o.votes, 0) || 0;
+                      const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
+                      const isVoted = post.poll?.votedByUser === idx;
+                      
+                      return (
+                        <button
+                          key={option.id}
+                          onClick={() => {
+                            if (post.poll?.votedByUser === undefined) {
+                              setPosts(prev => prev.map(p => {
+                                if (p.id === post.id && p.poll) {
+                                  const updatedOptions = [...p.poll.options];
+                                  updatedOptions[idx] = {
+                                    ...updatedOptions[idx],
+                                    votes: updatedOptions[idx].votes + 1,
+                                    votedBy: [...updatedOptions[idx].votedBy, 'You']
+                                  };
+                                  return {
+                                    ...p,
+                                    poll: {
+                                      ...p.poll,
+                                      options: updatedOptions,
+                                      votedByUser: idx
+                                    }
+                                  };
+                                }
+                                return p;
+                              }));
+                              toast({ title: 'Vote recorded!', description: 'Your vote has been counted.' });
+                            }
+                          }}
+                          disabled={post.poll?.votedByUser !== undefined}
+                          className={`flex items-center gap-4 w-full px-6 py-4 rounded-xl border-2 text-lg font-semibold transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md
+                            ${isVoted 
+                              ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-blue-500 scale-[1.02] shadow-lg' 
+                              : 'bg-white border-neutral-300 text-black hover:bg-neutral-50 hover:border-neutral-400'
+                            }
+                            ${post.poll?.votedByUser === undefined ? 'cursor-pointer' : 'cursor-default'}`}
+                          style={{ minWidth: 0 }}
+                          title={option.text.length > 40 ? option.text : undefined}
+                        >
+                          <span className="truncate max-w-[400px] align-middle text-lg font-semibold z-10 flex-1 text-left">
+                            {option.text}
+                          </span>
+                          <span className="ml-auto flex items-center gap-3 z-10">
+                            {post.poll?.votedByUser !== undefined && (
+                              <>
+                                <span className={`text-base font-bold ${isVoted ? 'text-white' : 'text-black'}`}>
+                                  {percentage}%
+                                </span>
+                                <span className={`text-base ${isVoted ? 'text-blue-100' : 'text-neutral-400'}`}>
+                                  ({option.votes})
+                                </span>
+                              </>
+                            )}
+                          </span>
+                          
+                          {/* Progress bar */}
+                          {post.poll?.votedByUser !== undefined && (
+                            <span 
+                              className="absolute left-0 top-0 h-full rounded-xl z-0 animate-progress-bar transition-all duration-700" 
+                              style={{ 
+                                width: `${percentage}%`, 
+                                background: isVoted 
+                                  ? 'linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%)' 
+                                  : 'linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(147,51,234,0.1) 100%)',
+                                transition: 'width 0.8s cubic-bezier(.4,2,.6,1)' 
+                              }} 
+                            />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  {/* Poll Stats */}
+                  <div className="flex items-center justify-between mt-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                    <div className="flex items-center gap-4">
+                      <span className="text-sm text-neutral-600 font-semibold">
+                        Total votes: <span className="text-black font-bold">{post.poll?.options.reduce((sum, o) => sum + o.votes, 0) || 0}</span>
+                      </span>
+                      {post.poll?.votedByUser !== undefined && (
+                        <span className="text-sm text-blue-600 font-bold flex items-center gap-1">
+                          <Check className="w-4 h-4" />
+                          You voted
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {post.tags && post.tags.map(tag => (
+                        <Badge key={tag} className="bg-neutral-100 text-black font-semibold px-3 py-1 text-xs rounded-full border border-neutral-300 shadow-sm">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Actions Row */}
+                <div className="flex items-center justify-center gap-8 py-4 border-t border-neutral-200 bg-gradient-to-r from-neutral-50 to-white rounded-b-2xl">
+                  <button
+                    onClick={() => toggleBookmark(post.id)}
+                    className={`p-3 rounded-full shadow-lg transition-all duration-200 border-2 bg-white hover:scale-110 ${
+                      post.bookmarked 
+                        ? 'text-yellow-600 border-yellow-400 shadow-yellow-200' 
+                        : 'text-neutral-400 border-neutral-300 hover:text-yellow-600 hover:border-yellow-400'
+                    }`}
+                    title={post.bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
+                  >
+                    <svg className="w-6 h-6" fill={post.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+                    </svg>
+                  </button>
+                  
+                  <div className="relative group/comment">
+                    <button
+                      onClick={() => setActiveCommentPostId(activeCommentPostId === post.id ? null : post.id)}
+                      className="p-3 rounded-full text-neutral-400 hover:text-blue-600 hover:bg-blue-50 border-2 border-neutral-300 shadow-lg hover:border-blue-400 transition-all duration-200 hover:scale-110"
+                      title="Comment on this poll"
+                    >
+                      <MessageCircle className="w-6 h-6" />
+                    </button>
+                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover/comment:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
+                      {activeCommentPostId === post.id ? 'Hide comments' : 'Show comments'}
+                    </span>
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-base text-neutral-400 font-bold">{post.comments.length}</span>
+                    <span className="text-sm text-neutral-500">comments</span>
+                  </div>
+                </div>
+
+                {/* Comments Section */}
+                {activeCommentPostId === post.id && (
+                  <div className="px-8 pb-6 bg-gradient-to-br from-neutral-50 to-white">
+                    <CommentSection 
+                      post={post} 
+                      addComment={addComment} 
+                      activeCommentPostId={activeCommentPostId} 
+                      setActiveCommentPostId={setActiveCommentPostId} 
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen bg-white flex flex-col items-center animate-fade-in font-sans relative" style={{ fontFamily: 'Space Grotesk, Inter, Helvetica Neue, Arial, sans-serif' }}>
       {/* Faint background pattern */}
@@ -2017,7 +2816,7 @@ const BridgeLab: React.FC = () => {
         
         {/* Content Areas */}
         <div className="w-full">
-          {tab === 'discover' && <div className="pb-20">{DiscoverBlogFeed()}</div>}
+          {tab === 'discover' && <div className="pb-20"><DiscoverBlogFeed /></div>}
           {tab === 'my-polls' && (
             <div className="pb-20">
               <MyPollsSection />
@@ -2413,122 +3212,378 @@ const BridgeLab: React.FC = () => {
                       <DialogTrigger asChild>
                         <Button className="bg-black text-white rounded-full px-6 py-2 font-bold uppercase tracking-widest">Edit Profile</Button>
                       </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
-                        <DialogHeader>
-                          <DialogTitle className="text-2xl font-bold text-black uppercase tracking-wide font-brand">Edit Profile</DialogTitle>
-                        </DialogHeader>
-                        <div className="space-y-6 mt-6">
-                          {/* Basic Info */}
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-black uppercase tracking-wide">Basic Information</h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">Name</label>
-                                <Input 
-                                  value={editProfile.name} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, name: e.target.value }))}
-                                  className="mt-1"
-                                />
+                      <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto bg-gradient-to-br from-white via-blue-50 to-purple-50 rounded-3xl shadow-2xl border-0 p-0">
+                        <div className="p-8">
+                          <DialogHeader>
+                            <DialogTitle className="text-3xl font-extrabold text-black uppercase tracking-wide font-brand flex items-center gap-3 mb-4">
+                              <User className="w-7 h-7 text-blue-500" /> Edit Profile
+                            </DialogTitle>
+                          </DialogHeader>
+                          <div className="space-y-8">
+                            {/* Profile Photo Upload */}
+                            <div>
+                              <div className="flex items-center gap-4 mb-2">
+                                <span className="text-lg font-bold text-black flex items-center gap-2">
+                                  <UserCircle className="w-6 h-6 text-purple-500" /> Profile Photo
+                                </span>
                               </div>
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">Department</label>
-                                <Input 
-                                  value={editProfile.department} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, department: e.target.value }))}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">Year</label>
-                                <Input 
-                                  value={editProfile.year} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, year: e.target.value }))}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">Avatar URL</label>
-                                <Input 
-                                  value={editProfile.avatar} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, avatar: e.target.value }))}
-                                  className="mt-1"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Contact Info */}
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-black uppercase tracking-wide">Contact Information</h3>
-                            <div className="space-y-4">
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">Email</label>
-                                <Input 
-                                  value={editProfile.email} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, email: e.target.value }))}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">LinkedIn</label>
-                                <Input 
-                                  value={editProfile.linkedin} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, linkedin: e.target.value }))}
-                                  className="mt-1"
-                                />
-                              </div>
-                              <div>
-                                <label className="text-sm font-medium text-neutral-700">GitHub</label>
-                                <Input 
-                                  value={editProfile.github} 
-                                  onChange={(e) => setEditProfile(prev => ({ ...prev, github: e.target.value }))}
-                                  className="mt-1"
-                                />
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Skills */}
-                          <div className="space-y-4">
-                            <h3 className="text-lg font-bold text-black uppercase tracking-wide">Skills & Expertise</h3>
-                            <div className="space-y-4">
-                              <div className="flex gap-2">
-                                <Input 
-                                  placeholder="Add a skill..."
-                                  onKeyPress={(e) => {
-                                    if (e.key === 'Enter') {
-                                      addSkill((e.target as HTMLInputElement).value);
-                                      (e.target as HTMLInputElement).value = '';
+                              <div className="flex items-center gap-6">
+                                <div className="relative">
+                                  <img
+                                    src={uploadedAvatar || editProfile.avatar}
+                                    alt="Profile Preview"
+                                    className="w-20 h-20 rounded-full object-cover border-4 border-blue-400 shadow-lg bg-white"
+                                  />
+                                  {uploadedAvatar && (
+                                    <button
+                                      type="button"
+                                      className="absolute -top-2 -right-2 bg-white text-red-500 rounded-full p-1 shadow hover:bg-red-500 hover:text-white border border-red-200"
+                                      title="Remove uploaded photo"
+                                      onClick={() => setUploadedAvatar(null)}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </button>
+                                  )}
+                                </div>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  id="profile-photo-upload"
+                                  className="hidden"
+                                  ref={fileInputRef}
+                                  onChange={e => {
+                                    const file = e.target.files && e.target.files[0];
+                                    if (file) {
+                                      const reader = new FileReader();
+                                      reader.onload = ev => {
+                                        setUploadedAvatar(ev.target?.result as string);
+                                      };
+                                      reader.readAsDataURL(file);
                                     }
                                   }}
                                 />
-                                <Button onClick={() => {
-                                  const input = document.querySelector('input[placeholder="Add a skill..."]') as HTMLInputElement;
-                                  if (input) {
-                                    addSkill(input.value);
-                                    input.value = '';
-                                  }
-                                }}>Add</Button>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  className="px-6 py-2 font-semibold rounded-full shadow bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 border-2 border-blue-200 hover:from-blue-200 hover:to-purple-200 transition-all duration-200"
+                                  onClick={() => fileInputRef.current?.click()}
+                                >
+                                  Upload Photo
+                                </Button>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                {editProfile.skills.map(skill => (
-                                  <Badge key={skill} className="bg-neutral-100 text-neutral-700 font-semibold uppercase tracking-widest">
-                                    {skill}
-                                    <button 
-                                      onClick={() => removeSkill(skill)}
-                                      className="ml-2 text-neutral-500 hover:text-neutral-700"
-                                    >
-                                      ×
-                                    </button>
-                                  </Badge>
+                              <p className="text-xs text-neutral-400 mt-2">JPG, PNG, or GIF. Max 2MB.</p>
+                            </div>
+                            <div className="border-t border-neutral-200 my-4" />
+                            {/* Role Selector */}
+                            <div>
+                              <span className="text-lg font-bold text-black flex items-center gap-2 mb-2">
+                                <User className="w-6 h-6 text-blue-500" /> Role
+                              </span>
+                              <select
+                                value={editProfile.role}
+                                onChange={e => setEditProfile(prev => ({ ...prev, role: e.target.value }))}
+                                className="mt-1 w-full border border-neutral-300 rounded-lg px-4 py-3 text-base bg-white focus:ring-2 focus:ring-blue-400"
+                              >
+                                <option value="Student">Student</option>
+                                <option value="Professor">Professor</option>
+                              </select>
+                            </div>
+                            <div className="border-t border-neutral-200 my-4" />
+                            {/* Basic Info */}
+                            <div>
+                              <span className="text-lg font-bold text-black flex items-center gap-2 mb-2">
+                                <FileText className="w-6 h-6 text-purple-500" /> Basic Information
+                              </span>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div>
+                                  <label className="text-sm font-medium text-neutral-700">Name</label>
+                                  <Input 
+                                    value={editProfile.name} 
+                                    onChange={(e) => setEditProfile(prev => ({ ...prev, name: e.target.value }))}
+                                    className="mt-1"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-sm font-medium text-neutral-700">Department</label>
+                                  <Input 
+                                    value={editProfile.department} 
+                                    onChange={(e) => setEditProfile(prev => ({ ...prev, department: e.target.value }))}
+                                    className="mt-1"
+                                  />
+                                </div>
+                                {/* Year only for Student */}
+                                {editProfile.role === 'Student' && (
+                                  <div>
+                                    <label className="text-sm font-medium text-neutral-700">Year</label>
+                                    <Input 
+                                      value={editProfile.year} 
+                                      onChange={(e) => setEditProfile(prev => ({ ...prev, year: e.target.value }))}
+                                      className="mt-1"
+                                    />
+                                  </div>
+                                )}
+                                {/* Gender Selector */}
+                                <div>
+                                  <label className="text-sm font-medium text-neutral-700">Gender</label>
+                                  <select
+                                    value={editProfile.gender}
+                                    onChange={e => {
+                                      const gender = e.target.value;
+                                      setEditProfile(prev => ({
+                                        ...prev,
+                                        gender,
+                                        avatar: gender === 'Male' ? maleAvatars[0] : femaleAvatars[0],
+                                      }));
+                                    }}
+                                    className="mt-1 w-full border border-neutral-300 rounded-lg px-3 py-2 text-sm bg-white focus:ring-2 focus:ring-purple-400"
+                                  >
+                                    <option value="Male">Male</option>
+                                    <option value="Female">Female</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </div>
+                            <div className="border-t border-neutral-200 my-4" />
+                            {/* Avatar Picker */}
+                            <div>
+                              <span className="text-lg font-bold text-black flex items-center gap-2 mb-2">
+                                <UserCircle className="w-6 h-6 text-purple-500" /> Select Avatar
+                              </span>
+                              <div className="grid grid-cols-5 gap-3 max-h-48 overflow-y-auto mt-2 p-2 bg-white rounded-xl border border-neutral-200 shadow-inner">
+                                {(editProfile.gender === 'Male' ? maleAvatars : femaleAvatars).map((avatarUrl, idx) => (
+                                  <button
+                                    key={avatarUrl}
+                                    type="button"
+                                    className={`rounded-full border-4 p-0.5 transition-all duration-150 focus:outline-none focus:ring-2 focus:ring-blue-400 shadow-sm hover:scale-110 ${editProfile.avatar === avatarUrl ? 'border-blue-500 ring-2 ring-blue-300 scale-110' : 'border-transparent hover:border-blue-300'}`}
+                                    onClick={() => setEditProfile(prev => ({ ...prev, avatar: avatarUrl }))}
+                                  >
+                                    <img src={avatarUrl} alt="avatar" className="w-14 h-14 rounded-full object-cover" />
+                                  </button>
                                 ))}
                               </div>
                             </div>
+                            {/* Contact Info - Only for Student */}
+                            {editProfile.role === 'Student' && (
+                              <>
+                                <div className="border-t border-neutral-200 my-4" />
+                                <div>
+                                  <span className="text-lg font-bold text-black flex items-center gap-2 mb-2">
+                                    <Globe className="w-6 h-6 text-blue-500" /> Contact Information
+                                  </span>
+                                  <div className="space-y-4">
+                                    <div>
+                                      <label className="text-sm font-medium text-neutral-700">Email</label>
+                                      <Input 
+                                        value={editProfile.email} 
+                                        onChange={(e) => setEditProfile(prev => ({ ...prev, email: e.target.value }))}
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-sm font-medium text-neutral-700">LinkedIn</label>
+                                      <Input 
+                                        value={editProfile.linkedin} 
+                                        onChange={(e) => setEditProfile(prev => ({ ...prev, linkedin: e.target.value }))}
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                    <div>
+                                      <label className="text-sm font-medium text-neutral-700">GitHub</label>
+                                      <Input 
+                                        value={editProfile.github} 
+                                        onChange={(e) => setEditProfile(prev => ({ ...prev, github: e.target.value }))}
+                                        className="mt-1"
+                                      />
+                                    </div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {/* Mentor Option - Only for Professor */}
+                            {editProfile.role === 'Professor' && (
+                              <>
+                                <div className="border-t border-neutral-200 my-4" />
+                                <div>
+                                  <span className="text-lg font-bold text-black flex items-center gap-2 mb-2">
+                                    <UserCheck className="w-6 h-6 text-green-500" /> Mentor Option
+                                  </span>
+                                  <div className="flex items-center gap-3">
+                                    <input
+                                      type="checkbox"
+                                      id="agreeToMentor"
+                                      checked={editProfile.agreeToMentor}
+                                      onChange={e => setEditProfile(prev => ({ ...prev, agreeToMentor: e.target.checked }))}
+                                      className="w-5 h-5 border border-neutral-300 rounded"
+                                    />
+                                    <label htmlFor="agreeToMentor" className="text-sm text-neutral-700">Agree to mentor any idea</label>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                            {/* Skills */}
+                            <div className="border-t border-neutral-200 my-4" />
+                            <div>
+                              <span className="text-lg font-bold text-black flex items-center gap-2 mb-2">
+                                <Code className="w-6 h-6 text-blue-500" /> Skills & Expertise
+                              </span>
+                              <div className="space-y-4">
+                                <div className="flex gap-2">
+                                  <Input 
+                                    placeholder="Add a skill..."
+                                    onKeyPress={(e) => {
+                                      if (e.key === 'Enter') {
+                                        addSkill((e.target as HTMLInputElement).value);
+                                        (e.target as HTMLInputElement).value = '';
+                                      }
+                                    }}
+                                    className="rounded-full border-2 border-blue-200 px-4 py-2"
+                                  />
+                                  <Button onClick={() => {
+                                    const input = document.querySelector('input[placeholder="Add a skill..."]') as HTMLInputElement;
+                                    if (input) {
+                                      addSkill(input.value);
+                                      input.value = '';
+                                    }
+                                  }} className="bg-blue-500 text-white rounded-full px-6 py-2 font-bold shadow hover:bg-blue-600">Add</Button>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                  {editProfile.skills.map(skill => (
+                                    <Badge key={skill} className="bg-blue-100 text-blue-700 font-semibold uppercase tracking-widest px-3 py-1 rounded-full shadow-sm flex items-center gap-2">
+                                      {skill}
+                                      <button 
+                                        onClick={() => removeSkill(skill)}
+                                        className="ml-2 text-blue-400 hover:text-blue-700"
+                                      >
+                                        ×
+                                      </button>
+                                    </Badge>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                            {/* Save/Cancel Buttons */}
+                            <div className="flex justify-end gap-4 mt-8">
+                              <Button variant="outline" onClick={() => setShowEditProfile(false)} className="rounded-full px-6 py-2 font-bold border-2 border-neutral-300 bg-white hover:bg-neutral-100 text-neutral-700">Cancel</Button>
+                              <Button onClick={saveProfile} className="bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full px-8 py-3 font-bold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200">Save Changes</Button>
+                            </div>
+                            {/* In the Edit Profile dialog content, after Skills & Expertise section, add Achievements editing UI */}
+                            <div className="border-t border-neutral-200 my-4" />
+                            <div>
+                              <span className="text-lg font-bold text-black flex items-center gap-2 mb-4">
+                                <Award className="w-6 h-6 text-yellow-500" /> Achievements
+                              </span>
+                              <div className="space-y-6">
+                                {editProfile.achievements.map((ach, idx) => (
+                                  <div key={idx} className="flex flex-col md:flex-row md:items-center gap-4 bg-gradient-to-br from-yellow-50 via-white to-blue-50 rounded-2xl border border-yellow-200 shadow-lg p-4 relative group transition-all duration-200 hover:shadow-2xl">
+                                    {/* Icon Preview & Picker */}
+                                    <div className="flex flex-col items-center gap-2 min-w-[80px]">
+                                      <div className="w-12 h-12 rounded-full flex items-center justify-center text-2xl shadow border-2 border-yellow-300 bg-white mb-1">
+                                        {ach.icon === 'Trophy' && <Trophy className="w-7 h-7 text-yellow-500" />}
+                                        {ach.icon === 'Users' && <Users className="w-7 h-7 text-blue-500" />}
+                                        {ach.icon === 'Lightbulb' && <Lightbulb className="w-7 h-7 text-green-500" />}
+                                      </div>
+                                      <select
+                                        value={ach.icon}
+                                        onChange={e => {
+                                          const icon = e.target.value;
+                                          setEditProfile(prev => ({
+                                            ...prev,
+                                            achievements: prev.achievements.map((a, i) => i === idx ? { ...a, icon } : a)
+                                          }));
+                                        }}
+                                        className="border border-neutral-300 rounded px-2 py-1 text-sm bg-white focus:ring-2 focus:ring-yellow-400"
+                                      >
+                                        <option value="Trophy">🏆 Trophy</option>
+                                        <option value="Users">👥 Users</option>
+                                        <option value="Lightbulb">💡 Lightbulb</option>
+                                      </select>
+                                    </div>
+                                    {/* Color Picker */}
+                                    <div className="flex flex-col items-center gap-2 min-w-[80px]">
+                                      <div className="w-8 h-8 rounded-full border-2 border-yellow-300 shadow" style={{ background: ach.color && ach.color.startsWith('#') ? ach.color : `#${ach.color || 'FFD700'}` }} />
+                                      <input
+                                        type="color"
+                                        value={ach.color && ach.color.startsWith('#') ? ach.color : `#${ach.color || 'FFD700'}`}
+                                        onChange={e => {
+                                          const color = e.target.value.replace('#', '');
+                                          setEditProfile(prev => ({
+                                            ...prev,
+                                            achievements: prev.achievements.map((a, i) => i === idx ? { ...a, color } : a)
+                                          }));
+                                        }}
+                                        className="w-8 h-8 border-0 bg-transparent cursor-pointer"
+                                        title="Pick color"
+                                      />
+                                    </div>
+                                    {/* Fields Grid */}
+                                    <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-3">
+                                      <input
+                                        type="text"
+                                        value={ach.title}
+                                        onChange={e => {
+                                          const title = e.target.value;
+                                          setEditProfile(prev => ({
+                                            ...prev,
+                                            achievements: prev.achievements.map((a, i) => i === idx ? { ...a, title } : a)
+                                          }));
+                                        }}
+                                        placeholder="Title"
+                                        className="border border-neutral-300 rounded px-3 py-2 text-base font-semibold bg-white focus:ring-2 focus:ring-yellow-400"
+                                      />
+                                      <input
+                                        type="text"
+                                        value={ach.description}
+                                        onChange={e => {
+                                          const description = e.target.value;
+                                          setEditProfile(prev => ({
+                                            ...prev,
+                                            achievements: prev.achievements.map((a, i) => i === idx ? { ...a, description } : a)
+                                          }));
+                                        }}
+                                        placeholder="Description"
+                                        className="border border-neutral-300 rounded px-3 py-2 text-base bg-white focus:ring-2 focus:ring-yellow-400"
+                                      />
+                                    </div>
+                                    {/* Remove Button */}
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="absolute top-2 right-2 text-red-500 hover:bg-red-100 opacity-70 group-hover:opacity-100 transition-opacity"
+                                      onClick={() => setEditProfile(prev => ({
+                                        ...prev,
+                                        achievements: prev.achievements.filter((_, i) => i !== idx)
+                                      }))}
+                                      title="Remove achievement"
+                                    >
+                                      <X className="w-5 h-5" />
+                                    </Button>
+                                  </div>
+                                ))}
+                                {/* Add Achievement Button - new design, above Save/Cancel */}
+                                <div className="flex justify-center mt-6 mb-8">
+                                  <button
+                                    type="button"
+                                    className="w-full max-w-md flex flex-col items-center justify-center gap-2 border-2 border-dashed border-yellow-400 bg-gradient-to-br from-yellow-50 via-white to-blue-50 rounded-2xl px-8 py-8 shadow-md hover:shadow-xl hover:border-yellow-600 hover:bg-yellow-100 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all duration-200 cursor-pointer"
+                                    onClick={() => setEditProfile(prev => ({
+                                      ...prev,
+                                      achievements: [
+                                        ...prev.achievements,
+                                        { title: '', description: '', icon: 'Trophy', color: 'FFD700' }
+                                      ]
+                                    }))}
+                                    tabIndex={0}
+                                    aria-label="Add Achievement"
+                                  >
+                                    <span className="flex items-center justify-center w-12 h-12 rounded-full bg-yellow-200 text-yellow-700 border-2 border-yellow-400 mb-2 shadow">
+                                      <Plus className="w-7 h-7" />
+                                    </span>
+                                    <span className="text-lg font-bold text-yellow-700">Add Achievement</span>
+                                    <span className="text-xs text-yellow-600">Highlight a new milestone or award</span>
+                                  </button>
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                        <div className="flex justify-end gap-4 mt-6">
-                          <Button variant="outline" onClick={() => setShowEditProfile(false)}>Cancel</Button>
-                          <Button onClick={saveProfile} className="bg-black text-white">Save Changes</Button>
                         </div>
                       </DialogContent>
                     </Dialog>
@@ -2565,11 +3620,11 @@ const BridgeLab: React.FC = () => {
                   </TabsList>
                   <div className="w-full">
                     <TabsContent value="activity">{ActivityStatsTab()}</TabsContent>
+                    <TabsContent value="coins">{CoinsTab()}</TabsContent>
                     <TabsContent value="skills">{SkillsTab()}</TabsContent>
                     <TabsContent value="contact">{ContactTab()}</TabsContent>
                     <TabsContent value="achievements">{AchievementsTab()}</TabsContent>
-                    <TabsContent value="preferences">{PreferencesTab()}</TabsContent>
-                    <TabsContent value="recent">{RecentActivityTab()}</TabsContent>
+                    <TabsContent value="posts">{PostsTab()}</TabsContent>
                   </div>
                 </Tabs>
               </div>

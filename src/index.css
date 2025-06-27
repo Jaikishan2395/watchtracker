@@ -243,3 +243,46 @@
 .animate-fade-in-up {
   animation: fadeInUp 0.5s ease-out forwards;
 }
+
+/* Modern Sidebar Custom Styles */
+.modern-sidebar {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+  background: linear-gradient(135deg, rgba(255,255,255,0.85) 60%, rgba(240,240,255,0.95) 100%);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.12);
+  border-radius: 1.25rem 0 0 1.25rem;
+  backdrop-filter: blur(8px);
+  border-right: 1.5px solid #e5e7eb;
+}
+
+.modern-sidebar-header {
+  font-family: 'DM Serif Display', serif;
+  font-size: 1.5rem;
+  font-weight: bold;
+  letter-spacing: 0.02em;
+  color: #22223b;
+}
+
+.modern-sidebar-footer {
+  border-top: 1.5px solid #e5e7eb;
+  background: rgba(255,255,255,0.95);
+  border-radius: 0 0 1.25rem 0;
+}
+
+.modern-sidebar-menu-item {
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif !important;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s, transform 0.15s;
+  border-radius: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.modern-sidebar-menu-item:hover {
+  background: linear-gradient(90deg, #f3f4f6 60%, #e0e7ff 100%);
+  color: #22223b !important;
+  box-shadow: 0 2px 8px 0 rgba(31, 38, 135, 0.08);
+  transform: scale(1.03);
+}
+.modern-sidebar-menu-item[aria-current="page"], .modern-sidebar-menu-item.active, .modern-sidebar-menu-item[data-active="true"] {
+  background: linear-gradient(90deg, #6366f1 60%, #818cf8 100%);
+  color: #fff !important;
+  border-left: 4px solid #6366f1;
+  box-shadow: 0 4px 16px 0 rgba(99, 102, 241, 0.10);
+}

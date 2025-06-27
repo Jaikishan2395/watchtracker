@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code, Video as VideoIcon, Snowflake } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { Playlist, Video } from '@/types/playlist';
+import { Playlist, Video as PlaylistVideo } from '@/types/playlist';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Input } from '@/components/ui/input';
@@ -35,6 +35,8 @@ interface YouTubePlayer {
   getVideoData: () => { title: string };
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
+  setPlaybackQuality?: (quality: string) => void;
+  getPlaybackQuality?: () => string;
 }
 
 interface YouTubePlayerEvent {
@@ -50,6 +52,11 @@ interface YouTubePlayerVars {
   origin?: string;
   enablejsapi?: number;
   widget_referrer?: string;
+  showinfo?: number;
+  fs?: number;
+  iv_load_policy?: number;
+  disablekb?: number;
+  playsinline?: number;
 }
 
 interface YouTubePlayerEvents {
@@ -427,6 +434,8 @@ const VideoPlayer = () => {
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
   const stopwatchInterval = useRef<NodeJS.Timeout | null>(null);
 
+  const [volume, setVolume] = useState(100);
+
   // Extract video progress list for useMemo/useEffect dependencies
   const videoProgressList = useMemo(() => playlist?.videos.map(v => v.progress) || [], [playlist?.videos]);
 
@@ -793,7 +802,8 @@ const VideoPlayer = () => {
     );
 
     const updatedPlaylist = { ...playlist, videos: updatedVideos };
-    
+
+    // Update localStorage
     const savedPlaylists = localStorage.getItem('youtubePlaylists');
     if (savedPlaylists) {
       const playlists: Playlist[] = JSON.parse(savedPlaylists);
@@ -801,10 +811,19 @@ const VideoPlayer = () => {
       if (index !== -1) {
         playlists[index] = updatedPlaylist;
         localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
-        setPlaylist(updatedPlaylist);
       }
     }
-    
+
+    // Remove from completedVideos if resetting
+    if (progress < 100) {
+      const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+      const newCompletedVideos = completedVideos.filter(v => v.id !== videoId);
+      localStorage.setItem('completedVideos', JSON.stringify(newCompletedVideos));
+    }
+
+    // **Always update local state for instant UI update**
+    setPlaylist(updatedPlaylist);
+
     toast.success('Progress updated!');
   };
 
@@ -1008,9 +1027,14 @@ const VideoPlayer = () => {
           videoId,
           playerVars: {
             autoplay: 0,
-            controls: 1,
+            controls: 0, // Hide YouTube controls
             modestbranding: 1,
-            rel: 0,
+            rel: 0, // Disable recommended videos
+            showinfo: 0,
+            fs: 0,
+            iv_load_policy: 3,
+            disablekb: 1,
+            playsinline: 1, // For mobile
             origin: window.location.origin,
             enablejsapi: 1,
             widget_referrer: window.location.href
@@ -2202,7 +2226,7 @@ const VideoPlayer = () => {
     if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
     adTimeoutRef.current = setTimeout(() => {
       showAd();
-    }, 10000);
+    }, 3600000);
     return () => {
       if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
       if (adCloseTimeoutRef.current) clearTimeout(adCloseTimeoutRef.current);
@@ -2221,7 +2245,7 @@ const VideoPlayer = () => {
     if (adTimeoutRef.current) clearTimeout(adTimeoutRef.current);
     adTimeoutRef.current = setTimeout(() => {
       showAd();
-    }, 10000);
+    }, 3600000);
   };
 
   useEffect(() => {
@@ -2249,6 +2273,83 @@ const VideoPlayer = () => {
     setOpen(false);
     setOpenMobile(false);
   }, [setOpen, setOpenMobile]);
+
+  // Set initial volume on player ready
+  useEffect(() => {
+    if (playerRef.current) {
+      playerRef.current.setVolume(volume);
+    }
+  }, [isPlayerReady]);
+
+  const [isPlayerHovered, setIsPlayerHovered] = useState(false);
+
+  // Add state for selected quality
+  const [selectedQuality, setSelectedQuality] = useState('auto');
+
+  // In the player initialization effect, after player is ready, set selectedQuality to current quality
+  useEffect(() => {
+    if (!isPlayerReady || !playerRef.current) return;
+    try {
+      const currentQuality = playerRef.current.getPlaybackQuality?.() || 'auto';
+      setSelectedQuality(currentQuality);
+    } catch (e) { /* ignore */ }
+  }, [isPlayerReady]);
+
+  // Add at the top with other useState imports
+  const [isFormalizing, setIsFormalizing] = useState(false);
+
+  // Add after other useState/useRef declarations in VideoPlayer
+  const videoContainerRef = useRef<HTMLDivElement>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  // Fullscreen handlers
+  const handleToggleFullscreen = () => {
+    const container = videoContainerRef.current;
+    if (!container) return;
+    if (!isFullscreen) {
+      if (container.requestFullscreen) {
+        container.requestFullscreen();
+      } else if ((container as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen) {
+        (container as HTMLElement & { webkitRequestFullscreen?: () => void }).webkitRequestFullscreen!();
+      } else if ((container as HTMLElement & { msRequestFullscreen?: () => void }).msRequestFullscreen) {
+        (container as HTMLElement & { msRequestFullscreen?: () => void }).msRequestFullscreen!();
+      }
+    } else {
+      const doc = document as Document & {
+        webkitExitFullscreen?: () => void;
+        msExitFullscreen?: () => void;
+      };
+      if (document.exitFullscreen) {
+        document.exitFullscreen();
+      } else if (doc.webkitExitFullscreen) {
+        doc.webkitExitFullscreen();
+      } else if (doc.msExitFullscreen) {
+        doc.msExitFullscreen();
+      }
+    }
+  };
+
+  // Listen for fullscreen change events
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const doc = document as Document & {
+        webkitFullscreenElement?: Element;
+        msFullscreenElement?: Element;
+      };
+      const fullscreenElement = document.fullscreenElement || doc.webkitFullscreenElement || doc.msFullscreenElement;
+      setIsFullscreen(!!fullscreenElement);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    document.addEventListener('msfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+      document.removeEventListener('msfullscreenchange', handleFullscreenChange);
+    };
+  }, []);
+
+  const [isFrozen, setIsFrozen] = useState(false);
 
   if (isLoading) {
     return (
@@ -2481,10 +2582,84 @@ const VideoPlayer = () => {
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Enhanced Video Player Section */}
           <div className="xl:col-span-3 space-y-6">
-            <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50 overflow-hidden">
-              <CardContent className="p-0">
-                <div className="aspect-video w-full bg-black">
-                  <div ref={iframeRef} className="w-full h-full"></div>
+            <Card className="relative bg-white/90 dark:bg-slate-900/90 shadow-2xl rounded-3xl border-0 overflow-visible animate-fade-in border border-white/20 dark:border-slate-700/50">
+              <CardContent className="p-0 relative">
+                <div
+                  ref={videoContainerRef}
+                  className={
+                    `relative aspect-video w-full rounded-3xl overflow-hidden shadow-xl bg-black${isFullscreen ? ' z-[9999] bg-black' : ''}`
+                  }
+                  onMouseEnter={() => setIsPlayerHovered(true)}
+                  onMouseLeave={() => setIsPlayerHovered(false)}
+                  onClick={() => {
+                    if (isFullscreen && isStopwatchRunning && playerRef.current) {
+                      if (!isFrozen) {
+                        playerRef.current.pauseVideo();
+                        setIsFrozen(true);
+                      } else {
+                        setIsFrozen(false);
+                        playerRef.current.playVideo();
+                        startStopwatch();
+                      }
+                    }
+                  }}
+                >
+                  {/* Video Iframe */}
+                  <div ref={iframeRef} className="w-full h-full z-10" />
+                  {/* Gradient overlay for controls */}
+                  <div className="absolute bottom-0 left-0 w-full h-32 bg-gradient-to-t from-black/80 to-transparent z-20 pointer-events-none" />
+                  {/* Central Play/Stop Button Overlay */}
+                  {!isStopwatchRunning && currentVideo && (
+                    <div
+                      className="absolute inset-0 z-20 flex items-center justify-center bg-black cursor-pointer"
+                      style={{ backgroundColor: '#000' }}
+                      onClick={() => {
+                        if (isFrozen) return;
+                        if (playerRef.current) {
+                          playerRef.current.playVideo();
+                          startStopwatch();
+                        }
+                      }}
+                    >
+                      <img
+                        src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(currentVideo.url)}/maxresdefault.jpg`}
+                        onError={e => {
+                          (e.currentTarget as HTMLImageElement).src = `https://img.youtube.com/vi/${extractVideoIdFromUrl(currentVideo.url)}/mqdefault.jpg`;
+                        }}
+                        alt="Video thumbnail"
+                        className="object-cover w-full h-full rounded-3xl"
+                        style={{ maxHeight: '100%', maxWidth: '100%' }}
+                      />
+                      <span className="absolute inset-0 flex items-center justify-center">
+                        <span className="bg-white/80 hover:bg-white/90 rounded-full p-6 shadow-2xl border-4 border-blue-500/30 transition-all group-hover:scale-110">
+                          <PlayCircle className="w-16 h-16 text-blue-600 drop-shadow-xl" />
+                        </span>
+                      </span>
+                    </div>
+                  )}
+                  {/* Stop Button Overlay */}
+                  {(isPlayerHovered && isStopwatchRunning && !isFullscreen) && (
+                    <button
+                      className="absolute inset-0 flex items-center justify-center z-40 group focus:outline-none"
+                      onClick={() => {
+                        if (playerRef.current) {
+                          if (!isFrozen) {
+                            playerRef.current.pauseVideo();
+                            setIsFrozen(true);
+                          } else {
+                            setIsFrozen(false);
+                            playerRef.current.playVideo();
+                            startStopwatch();
+                          }
+                        }
+                      }}
+                      aria-label="Stop video"
+                    >
+                      <span className="bg-white/80 hover:bg-white/90 rounded-full p-6 shadow-2xl border-4 border-red-500/30 transition-all group-hover:scale-110">
+                        <Timer className="w-16 h-16 text-red-600 drop-shadow-xl" />
+                      </span>
+                    </button>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2493,9 +2668,31 @@ const VideoPlayer = () => {
             <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg animate-fade-in border border-white/20 dark:border-slate-700/50">
               <CardHeader>
                 <div className="flex justify-between items-start">
-                  <CardTitle className="text-xl dark:text-white">
-                    {videoTitle || currentVideo.title}
-                  </CardTitle>
+                  <div className="flex items-center gap-2">
+                    <CardTitle className="text-xl dark:text-white">
+                      {videoTitle || currentVideo.title}
+                    </CardTitle>
+                    <Button
+                      variant={isFrozen ? 'destructive' : 'outline'}
+                      size="icon"
+                      onClick={() => {
+                        if (!isFrozen) {
+                          if (playerRef.current) playerRef.current.pauseVideo();
+                          setIsFrozen(true);
+                        } else {
+                          setIsFrozen(false);
+                          if (playerRef.current) {
+                            playerRef.current.playVideo();
+                            startStopwatch();
+                          }
+                        }
+                      }}
+                      title={isFrozen ? 'Unfreeze video' : 'Freeze video'}
+                      className="ml-2"
+                    >
+                      {isFrozen ? <Play className="w-5 h-5" /> : <Snowflake className="w-5 h-5" />}
+                    </Button>
+                  </div>
                   {currentVideo.progress >= 100 && (
                     <Badge className="bg-green-600 hover:bg-green-600 dark:bg-green-700 dark:hover:bg-green-700">
                       Complete
@@ -2524,108 +2721,103 @@ const VideoPlayer = () => {
                             {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
                           </Button>
                           <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700" />
-                          <div className="flex items-center gap-2">
-                            {!isStopwatchRunning && (
-                              <Button
-                                onClick={() => {
-                                  if (playerRef.current) {
-                                    playerRef.current.seekTo(0);
-                                    playerRef.current.playVideo();
-                                    startStopwatch();
-                                  }
-                                }}
-                                className="group relative overflow-hidden bg-white hover:bg-gray-50 text-gray-900 transition-all duration-300 shadow-[0_4px_14px_0_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.12)] transform hover:scale-110 active:scale-95 w-16 h-16 rounded-2xl border border-gray-100 backdrop-blur-sm"
-                              >
-                                <div className="absolute inset-0 bg-gradient-to-r from-gray-100/0 via-gray-100/50 to-gray-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                                <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                                <PlayCircle className="w-8 h-8 animate-bounce" />
-                              </Button>
-                            )}
-                            <Button
-                              onClick={() => {
-                                if (playerRef.current) {
-                                  playerRef.current.pauseVideo();
-                                }
-                              }}
-                              className="group relative overflow-hidden bg-white hover:bg-gray-50 text-gray-900 transition-all duration-300 shadow-[0_4px_14px_0_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.12)] transform hover:scale-110 active:scale-95 w-16 h-16 rounded-2xl border border-gray-100 backdrop-blur-sm"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-gray-100/0 via-gray-100/50 to-gray-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                              <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                              <Timer className="w-8 h-8 animate-pulse" />
-                            </Button>
-                            <Button
-                              onClick={() => {
-                                if (playerRef.current) {
-                                  playerRef.current.playVideo();
-                                }
-                              }}
-                              className="group relative overflow-hidden bg-white hover:bg-gray-50 text-gray-900 transition-all duration-300 shadow-[0_4px_14px_0_rgba(0,0,0,0.08)] hover:shadow-[0_6px_20px_0_rgba(0,0,0,0.12)] transform hover:scale-110 active:scale-95 w-16 h-16 rounded-2xl border border-gray-100 backdrop-blur-sm"
-                            >
-                              <div className="absolute inset-0 bg-gradient-to-r from-gray-100/0 via-gray-100/50 to-gray-100/0 transform -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
-                              <div className="absolute inset-0 bg-gradient-to-br from-white/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
-                              <Play className="w-8 h-8 animate-pulse" />
-                            </Button>
-                          </div>
+                          
                         </div>
                         <div className="flex items-center gap-3">
-                          <Select
-                            onValueChange={(value) => {
-                              if (playerRef.current) {
-                                // @ts-expect-error - YouTube API types don't include setPlaybackQuality
-                                playerRef.current.setPlaybackQuality(value);
-                              }
-                            }}
-                            defaultValue="hd720"
-                          >
-                            <SelectTrigger className="w-[140px]">
-                              <SelectValue placeholder="Quality" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="hd2160">4K (2160p)</SelectItem>
-                              <SelectItem value="hd1440">2K (1440p)</SelectItem>
-                              <SelectItem value="hd1080">Full HD (1080p)</SelectItem>
-                              <SelectItem value="hd720">HD (720p)</SelectItem>
-                              <SelectItem value="large">480p</SelectItem>
-                              <SelectItem value="medium">360p</SelectItem>
-                              <SelectItem value="small">240p</SelectItem>
-                              <SelectItem value="tiny">144p</SelectItem>
-                              <SelectItem value="auto">Auto</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select
-                            onValueChange={(value) => {
-                              if (playerRef.current) {
-                                playerRef.current.setPlaybackRate(parseFloat(value));
-                              }
-                            }}
-                            defaultValue="1"
-                          >
-                            <SelectTrigger className="w-[100px]">
-                              <SelectValue placeholder="Speed" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="0.25">0.25x</SelectItem>
-                              <SelectItem value="0.5">0.5x</SelectItem>
-                              <SelectItem value="0.75">0.75x</SelectItem>
-                              <SelectItem value="1">1x</SelectItem>
-                              <SelectItem value="1.25">1.25x</SelectItem>
-                              <SelectItem value="1.5">1.5x</SelectItem>
-                              <SelectItem value="1.75">1.75x</SelectItem>
-                              <SelectItem value="2">2x</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-                      </div>
-
-                      {/* Stopwatch Controls */}
-                      <div className="flex items-center gap-4 mt-4">
-                        <div className="flex items-center gap-2 bg-white/10 dark:bg-slate-800/50 px-4 py-2 rounded-lg">
-                          <Timer className="w-5 h-5 text-blue-500" />
-                          <span className="font-mono text-lg">
-                            {Math.floor(stopwatchTime / 3600).toString().padStart(2, '0')}:
-                            {Math.floor((stopwatchTime % 3600) / 60).toString().padStart(2, '0')}:
-                            {(stopwatchTime % 60).toString().padStart(2, '0')}
-                          </span>
+                          {/* Quality, Volume and Speed Controls - Improved Design */}
+                          <div className="flex items-center gap-4 bg-gray-100 dark:bg-slate-700 rounded-lg px-3 py-2 shadow-inner border border-gray-200 dark:border-slate-600">
+                            {/* Quality */}
+                            <div className="flex items-center gap-2 group relative">
+                              <span className="text-xs text-gray-500 dark:text-gray-300 mr-1">Quality</span>
+                              <VideoIcon className="w-5 h-5 text-yellow-500" />
+                              <select
+                                id="video-quality"
+                                className="rounded border-gray-300 dark:border-slate-600 px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all shadow-sm"
+                                value={selectedQuality}
+                                onChange={e => {
+                                  const quality = e.target.value;
+                                  setSelectedQuality(quality);
+                                  if (playerRef.current && typeof playerRef.current.setPlaybackQuality === 'function') {
+                                    playerRef.current.setPlaybackQuality(quality);
+                                    // Confirm the change after a short delay
+                                    setTimeout(() => {
+                                      const actual = playerRef.current?.getPlaybackQuality?.() || quality;
+                                      setSelectedQuality(actual);
+                                      toast.success(`Video quality set to ${actual === 'auto' ? 'Auto' : actual.toUpperCase()}`);
+                                    }, 500);
+                                  }
+                                }}
+                              >
+                                <option value="auto">Auto</option>
+                                <option value="tiny">144p</option>
+                                <option value="small">240p</option>
+                                <option value="medium">360p</option>
+                                <option value="large">480p</option>
+                                <option value="hd720">720p</option>
+                                <option value="hd1080">1080p</option>
+                              </select>
+                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none transition-opacity">Set video quality</span>
+                            </div>
+                            {/* Divider */}
+                            <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-700 mx-2" />
+                            {/* Volume */}
+                            <div className="flex items-center gap-2 group relative">
+                              <span className="text-xs text-gray-500 dark:text-gray-300 mr-1">Volume</span>
+                              <Volume2 className="w-5 h-5 text-blue-500" />
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={volume}
+                                onChange={e => {
+                                  const newVolume = Number(e.target.value);
+                                  setVolume(newVolume);
+                                  if (playerRef.current) {
+                                    playerRef.current.setVolume(newVolume);
+                                  }
+                                }}
+                                className="w-24 h-2 accent-blue-500 cursor-pointer rounded-lg bg-gray-200 dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                                title="Volume"
+                              />
+                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-300 w-8 text-right">{volume}%</span>
+                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none transition-opacity">Adjust volume</span>
+                            </div>
+                            {/* Divider */}
+                            <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-700 mx-2" />
+                            {/* Speed */}
+                            <div className="flex items-center gap-2 group relative">
+                              <span className="text-xs text-gray-500 dark:text-gray-300 mr-1">Speed</span>
+                              <Code className="w-5 h-5 text-purple-500" />
+                              <select
+                                id="playback-speed"
+                                className="rounded border-gray-300 dark:border-slate-600 px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all shadow-sm"
+                                defaultValue={1}
+                                onChange={e => {
+                                  const speed = Number(e.target.value);
+                                  if (playerRef.current) {
+                                    playerRef.current.setPlaybackRate(speed);
+                                  }
+                                }}
+                              >
+                                <option value={0.5}>0.5x</option>
+                                <option value={1}>1x</option>
+                                <option value={1.5}>1.5x</option>
+                                <option value={2}>2x</option>
+                              </select>
+                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none transition-opacity">Change playback speed</span>
+                            </div>
+                            {/* Divider */}
+                            <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-700 mx-2" />
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={handleToggleFullscreen}
+                              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                              className="hover:bg-blue-100 dark:hover:bg-slate-700"
+                            >
+                              {isFullscreen ? <Minimize2 className="w-5 h-5 text-blue-600" /> : <Maximize2 className="w-5 h-5 text-blue-600" />}
+                            </Button>
+                          </div>
                         </div>
                       </div>
 
