@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSidebar } from '../components/ui/sidebar';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '../components/ui/tabs';
@@ -278,27 +278,27 @@ const dummyPosts: BlogPost[] = [
     content: '<p>This is another test poll that has been voted on to show different states.</p>',
     author: 'You',
     avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
-    tags: ['Test', 'Voted'],
+    tags: ['Test', 'Voted Poll'],
     createdAt: '2024-06-07T10:00:00Z',
     reactions: {
-      '😊': ['Alice'],
+      '😊': ['Alice', 'Bob'],
       '😢': [],
       '😡': [],
-      '😮': [],
-      '❤️': [],
+      '😮': ['Carol'],
+      '❤️': ['David'],
       '🤔': []
     },
-    bookmarked: true,
+    bookmarked: false,
     comments: [],
     poll: {
-      question: 'Which framework do you prefer for web development?',
+      question: 'What is your preferred development environment?',
       options: [
-        { id: 1, text: 'React', votes: 8, votedBy: ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry'] },
-        { id: 2, text: 'Vue.js', votes: 3, votedBy: ['Ivy', 'Jack', 'Kate'] },
-        { id: 3, text: 'Angular', votes: 2, votedBy: ['Liam', 'Mia'] },
-        { id: 4, text: 'Svelte', votes: 1, votedBy: ['Noah'] }
+        { id: 1, text: 'VS Code', votes: 8, votedBy: ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry'] },
+        { id: 2, text: 'IntelliJ IDEA', votes: 3, votedBy: ['Ivy', 'Jack', 'Kate'] },
+        { id: 3, text: 'Sublime Text', votes: 2, votedBy: ['Liam', 'Mia'] },
+        { id: 4, text: 'Vim/Neovim', votes: 1, votedBy: ['Noah'] }
       ],
-      votedByUser: 0 // User voted for React
+      votedByUser: undefined
     }
   },
   {
@@ -358,6 +358,118 @@ const dummyPosts: BlogPost[] = [
       ],
       votedByUser: undefined
     }
+  },
+  {
+    id: 7,
+    title: 'Another User Poll',
+    content: '<p>This is another test poll that has been voted on to show different states.</p>',
+    author: 'You',
+    avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+    tags: ['Test', 'Voted Poll'],
+    createdAt: '2024-06-07T10:00:00Z',
+    reactions: {
+      '😊': ['Alice', 'Bob'],
+      '😢': [],
+      '😡': [],
+      '😮': ['Carol'],
+      '❤️': ['David'],
+      '🤔': []
+    },
+    bookmarked: false,
+    comments: [],
+    poll: {
+      question: 'What is your preferred development environment?',
+      options: [
+        { id: 1, text: 'VS Code', votes: 8, votedBy: ['Alice', 'Bob', 'Carol', 'David', 'Emma', 'Frank', 'Grace', 'Henry'] },
+        { id: 2, text: 'IntelliJ IDEA', votes: 3, votedBy: ['Ivy', 'Jack', 'Kate'] },
+        { id: 3, text: 'Sublime Text', votes: 2, votedBy: ['Liam', 'Mia'] },
+        { id: 4, text: 'Vim/Neovim', votes: 1, votedBy: ['Noah'] }
+      ],
+      votedByUser: undefined
+    }
+  },
+  {
+    id: 8,
+    title: 'My First Text Post',
+    content: '<p>This is my first regular text post without any poll. I can edit and delete this post!</p>',
+    author: 'You',
+    avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+    tags: ['Text Post', 'Personal'],
+    createdAt: '2024-06-08T14:00:00Z',
+    reactions: {
+      '😊': ['Alice'],
+      '😢': [],
+      '😡': [],
+      '😮': [],
+      '❤️': [],
+      '🤔': []
+    },
+    bookmarked: false,
+    comments: [
+      {
+        id: 3,
+        author: 'Alice',
+        avatar: 'https://randomuser.me/api/portraits/women/44.jpg',
+        content: 'Great post! Looking forward to more content.',
+        createdAt: '2024-06-08T15:00:00Z',
+        replies: []
+      }
+    ]
+  },
+  {
+    id: 9,
+    title: 'Learning React and TypeScript',
+    content: '<p>Just finished building my first React app with TypeScript. The type safety is amazing! Here are some key things I learned:</p><ul><li>TypeScript interfaces are super helpful</li><li>React hooks with proper typing</li><li>Component props validation</li></ul><p>What\'s your experience with React + TypeScript?</p>',
+    author: 'You',
+    avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+    tags: ['React', 'TypeScript', 'Learning', 'Programming'],
+    createdAt: '2024-06-09T09:00:00Z',
+    reactions: {
+      '😊': ['Bob', 'Carol'],
+      '😢': [],
+      '😡': [],
+      '😮': ['David'],
+      '❤️': ['Emma'],
+      '🤔': ['Frank']
+    },
+    bookmarked: true,
+    comments: [
+      {
+        id: 4,
+        author: 'Bob',
+        avatar: 'https://randomuser.me/api/portraits/men/32.jpg',
+        content: 'TypeScript is a game changer! Once you get used to it, you can\'t go back to plain JavaScript.',
+        createdAt: '2024-06-09T10:00:00Z',
+        replies: [
+          {
+            id: 5,
+            author: 'You',
+            avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+            content: 'Exactly! The IntelliSense is incredible.',
+            createdAt: '2024-06-09T10:15:00Z',
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: 10,
+    title: 'Project Idea: Smart Study Planner',
+    content: '<p>I have an idea for a smart study planner app that uses AI to optimize study schedules based on:</p><ul><li>Course difficulty</li><li>Exam dates</li><li>Personal learning patterns</li><li>Available study time</li></ul><p>Would anyone be interested in collaborating on this project?</p>',
+    author: 'You',
+    avatar: 'https://randomuser.me/api/portraits/lego/1.jpg',
+    tags: ['Project', 'AI', 'Education', 'Collaboration'],
+    createdAt: '2024-06-10T16:00:00Z',
+    reactions: {
+      '😊': ['Alice', 'Bob', 'Carol', 'David'],
+      '😢': [],
+      '😡': [],
+      '😮': ['Emma', 'Frank'],
+      '❤️': ['Grace'],
+      '🤔': ['Henry']
+    },
+    bookmarked: false,
+    comments: []
   }
 ];
 
@@ -371,7 +483,6 @@ const tabItems = [
   { value: 'pitch', label: 'Pitch', icon: <BookOpen className="w-6 h-6" strokeWidth={1.5} /> },
   { value: 'mentor', label: 'Mentor', icon: <UserCheck className="w-6 h-6" strokeWidth={1.5} /> },
   { value: 'profile', label: 'Profile', icon: <User className="w-6 h-6" strokeWidth={1.5} /> },
-  { value: 'new-post', label: 'New Post', icon: <Plus className="w-6 h-6" strokeWidth={1.5} /> },
 ];
 
 // Utility function to extract all YouTube video IDs from a string
@@ -541,6 +652,38 @@ const BridgeLab: React.FC = () => {
   // More options dropdown state
   const [openMoreOptions, setOpenMoreOptions] = useState<number | null>(null);
   
+  // Edit post/poll state
+  const [editingPostId, setEditingPostId] = useState<number | null>(null);
+  const [editPostData, setEditPostData] = useState<{
+    title: string;
+    content: string;
+    tags: string;
+    media: { type: 'image' | 'video', file: File, url: string }[];
+    poll?: {
+      question: string;
+      options: string[];
+    };
+  } | null>(null);
+  const [editedPosts, setEditedPosts] = useState<Set<number>>(new Set());
+  const [editTimestamps, setEditTimestamps] = useState<Record<number, string>>({});
+  const [showEditEmojiPicker, setShowEditEmojiPicker] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  
+  // Close emoji picker when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      if (showEditEmojiPicker && !target.closest('.emoji-picker-container')) {
+        setShowEditEmojiPicker(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showEditEmojiPicker]);
+  
   // Dummy team members data
   const teamMembers = [
     { id: 1, name: 'Alice Johnson', avatar: 'https://randomuser.me/api/portraits/women/44.jpg', skills: ['React', 'TypeScript', 'UI/UX'], department: 'CSE', year: '3rd Year', bio: 'Passionate about frontend development and user experience design.' },
@@ -666,7 +809,7 @@ const BridgeLab: React.FC = () => {
 
   // Filtering
   const filtered = posts.filter(post =>
-    search === '' || post.title.toLowerCase().includes(search.toLowerCase()) || post.content.toLowerCase().includes(search.toLowerCase())
+    search === '' || post.author.toLowerCase().includes(search.toLowerCase())
   );
   // No pagination: show all filtered posts
 
@@ -698,6 +841,143 @@ const BridgeLab: React.FC = () => {
       }
       return p;
     }));
+  };
+
+  // Edit post/poll handlers
+  const startEditPost = (post: BlogPost) => {
+    if (!canModifyPost(post)) {
+      showUnauthorizedError();
+      return;
+    }
+    
+    setEditingPostId(post.id);
+    setEditPostData({
+      title: post.title,
+      content: post.content,
+      tags: post.tags.join(', '),
+      media: post.media || [],
+      poll: post.poll ? {
+        question: post.poll.question,
+        options: post.poll.options.map(opt => opt.text)
+      } : undefined
+    });
+  };
+
+  const saveEditPost = () => {
+    if (!editingPostId || !editPostData) return;
+
+    const post = posts.find(p => p.id === editingPostId);
+    if (!post || !canModifyPost(post)) {
+      showUnauthorizedError();
+      cancelEditPost();
+      return;
+    }
+
+    setPosts(ps => ps.map(p => {
+      if (p.id !== editingPostId) return p;
+      
+      const updatedPost = {
+        ...p,
+        title: editPostData.title,
+        content: editPostData.content,
+        tags: editPostData.tags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0),
+        media: editPostData.media
+      };
+
+      // Update poll if it exists
+      if (editPostData.poll && p.poll) {
+        const hasVotes = p.poll.options.some(opt => opt.votes > 0);
+        if (!hasVotes) {
+          // Only allow editing poll options if no votes have been cast
+          updatedPost.poll = {
+            ...p.poll,
+            question: editPostData.poll.question,
+            options: editPostData.poll.options.map((text, index) => ({
+              id: p.poll!.options[index]?.id || index + 1,
+              text,
+              votes: p.poll!.options[index]?.votes || 0,
+              votedBy: p.poll!.options[index]?.votedBy || []
+            }))
+          };
+        } else {
+          // If votes exist, only allow editing the question
+          updatedPost.poll = {
+            ...p.poll,
+            question: editPostData.poll.question
+          };
+        }
+      }
+
+      return updatedPost;
+    }));
+
+    // Mark as edited and set timestamp
+    setEditedPosts(prev => new Set([...prev, editingPostId]));
+    setEditTimestamps(prev => ({
+      ...prev,
+      [editingPostId]: new Date().toISOString()
+    }));
+
+    // Reset edit state
+    setEditingPostId(null);
+    setEditPostData(null);
+
+    toast({
+      title: 'Post updated!',
+      description: 'Your post has been successfully updated.'
+    });
+  };
+
+  const cancelEditPost = () => {
+    setEditingPostId(null);
+    setEditPostData(null);
+  };
+
+  const canEditPoll = (post: BlogPost) => {
+    if (!post.poll) return false;
+    return post.poll.options.every(opt => opt.votes === 0);
+  };
+
+  // Delete post function
+  const deletePost = (postId: number) => {
+    const post = posts.find(p => p.id === postId);
+    if (!post || !canModifyPost(post)) {
+      showUnauthorizedError();
+      setShowDeleteConfirm(null);
+      return;
+    }
+    
+    setPosts(ps => ps.filter(p => p.id !== postId));
+    setShowDeleteConfirm(null);
+    setOpenMoreOptions(null);
+    
+    toast({
+      title: 'Post deleted successfully',
+      description: 'Your post has been permanently removed.',
+    });
+  };
+
+  // Check if user can modify a post
+  const canModifyPost = (post: BlogPost) => {
+    return post.author === 'You';
+  };
+
+  // Show unauthorized modification error
+  const showUnauthorizedError = () => {
+    toast({
+      title: 'Unauthorized Action',
+      description: 'You can only modify your own content. For issues, report this post.',
+      variant: 'destructive',
+    });
+  };
+
+  // Report post function
+  const reportPost = (postId: number) => {
+    toast({
+      title: 'Post Reported',
+      description: 'Thank you for your report. We will review this content.',
+    });
+    setOpenMoreOptions(null);
   };
 
   // Comment add (dummy)
@@ -804,15 +1084,135 @@ const BridgeLab: React.FC = () => {
   // Add state to track the active comment input post
   const [activeCommentPostId, setActiveCommentPostId] = useState<number | null>(null);
 
+  // @ mention functionality
+  const [showMentionSuggestions, setShowMentionSuggestions] = useState(false);
+  const [mentionQuery, setMentionQuery] = useState('');
+  const [mentionPosition, setMentionPosition] = useState({ start: 0, end: 0 });
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const [mentionedUsers, setMentionedUsers] = useState<string[]>([]);
+
+  // Get all unique usernames from posts for suggestions
+  const allUsernames = useMemo(() => {
+    const usernames = new Set<string>();
+    posts.forEach(post => {
+      usernames.add(post.author);
+      post.comments.forEach(comment => {
+        usernames.add(comment.author);
+        comment.replies?.forEach(reply => usernames.add(reply.author));
+      });
+    });
+    return Array.from(usernames).filter(username => username !== 'You' && username !== 'Anonymous');
+  }, [posts]);
+
+  // Filter usernames based on mention query
+  const filteredUsernames = useMemo(() => {
+    if (!mentionQuery) return allUsernames.slice(0, 5);
+    return allUsernames
+      .filter(username => username.toLowerCase().includes(mentionQuery.toLowerCase()))
+      .slice(0, 5);
+  }, [mentionQuery, allUsernames]);
+
+  // Handle @ mention in textarea
+  const handleMentionInput = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const value = e.target.value;
+    const cursorPosition = e.target.selectionStart;
+    
+    // Check if we're typing an @ mention
+    const beforeCursor = value.slice(0, cursorPosition);
+    const mentionMatch = beforeCursor.match(/@(\w*)$/);
+    
+    if (mentionMatch) {
+      const query = mentionMatch[1];
+      setMentionQuery(query);
+      setMentionPosition({
+        start: cursorPosition - query.length - 1, // -1 for @ symbol
+        end: cursorPosition
+      });
+      setShowMentionSuggestions(true);
+      setSelectedMentionIndex(0);
+    } else {
+      setShowMentionSuggestions(false);
+    }
+    
+    setNewPostText(value);
+  };
+
+  // Handle mention selection
+  const selectMention = (username: string) => {
+    const beforeMention = newPostText.slice(0, mentionPosition.start);
+    const afterMention = newPostText.slice(mentionPosition.end);
+    const newText = beforeMention + `@${username} ` + afterMention;
+    
+    setNewPostText(newText);
+    setShowMentionSuggestions(false);
+    setMentionedUsers(prev => [...prev, username]);
+    
+    // Focus back to textarea
+    setTimeout(() => {
+      if (textareaRef.current) {
+        textareaRef.current.focus();
+        const newCursorPosition = mentionPosition.start + username.length + 2; // +2 for @ and space
+        textareaRef.current.setSelectionRange(newCursorPosition, newCursorPosition);
+      }
+    }, 0);
+  };
+
+  // Handle keyboard navigation in mention suggestions
+  const handleMentionKeyDown = (e: React.KeyboardEvent) => {
+    if (!showMentionSuggestions) return;
+    
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        setSelectedMentionIndex(prev => 
+          prev < filteredUsernames.length - 1 ? prev + 1 : 0
+        );
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setSelectedMentionIndex(prev => 
+          prev > 0 ? prev - 1 : filteredUsernames.length - 1
+        );
+        break;
+      case 'Enter':
+        e.preventDefault();
+        if (filteredUsernames[selectedMentionIndex]) {
+          selectMention(filteredUsernames[selectedMentionIndex]);
+        }
+        break;
+      case 'Escape':
+        setShowMentionSuggestions(false);
+        break;
+    }
+  };
+
+  // Process mentions in post content
+  const processMentions = (content: string) => {
+    return content.replace(/@(\w+)/g, '<span class="text-blue-500 font-semibold">@$1</span>');
+  };
+
   // 3. DiscoverBlogFeed component
   const DiscoverBlogFeed = () => (
-    <div className="w-full max-w-3xl mx-auto mt-10">
+    <div className="w-full max-w-3xl mx-auto mt-6">
       {/* Blog Feed - Full page scroll, no inner scroll container */}
-      <div className="flex flex-col gap-12">
+      <div className="flex flex-col gap-6">
         {filtered.filter(post => !post.poll).map(post => (
           <div 
             key={post.id} 
-            className="bg-white rounded-3xl shadow-xl border border-neutral-100 overflow-visible hover:shadow-2xl transition-all duration-300 transform hover:scale-[1.01] mb-8 group"
+            className="bg-white rounded-2xl shadow-lg border-2 border-black overflow-hidden group relative transition-all duration-300 transform hover:scale-[0.98] hover:border-gray-400 hover:shadow-xl"
+            onMouseEnter={() => {
+              setPostViews(prev => {
+                // Only count a view once per hover per session (optional: can be improved for real users)
+                if (prev[post.id]) return prev;
+                return { ...prev, [post.id]: (prev[post.id] || 0) + 1 };
+              });
+            }}
+            onMouseLeave={() => {
+              // Auto close comment section when unhovering
+              if (activeCommentPostId === post.id) {
+                setActiveCommentPostId(null);
+              }
+            }}
             onDoubleClick={e => {
               // Toggle comment section on double-click, except on input/textarea/button
               if (
@@ -828,65 +1228,186 @@ const BridgeLab: React.FC = () => {
               }
             }}
           >
-            {/* Post Header */}
-            <div className="flex items-center justify-between px-8 pt-6 pb-4 bg-gradient-to-r from-neutral-50 to-white">
-              <div className="flex items-center gap-3">
-                <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-200 shadow-sm hover:scale-105 transition-transform duration-200 relative" />
+            {/* Enhanced Post Header */}
+            <div className="flex items-center justify-between p-5 bg-gradient-to-br from-gray-50 via-white to-gray-100 border-b border-gray-200/50">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <img 
+                    src={post.avatar} 
+                    alt={post.author} 
+                    className="w-12 h-12 rounded-full border-3 border-white shadow-lg hover:scale-110 transition-transform duration-300 ring-2 ring-gray-200" 
+                  />
                 {post.author === 'Anonymous' && (
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <span className="absolute -bottom-1 -right-1 bg-purple-600 text-white rounded-full p-1 shadow border-2 border-white flex items-center">
-                        <UserCircle className="w-4 h-4" />
+                        <span className="absolute -bottom-1 -right-1 bg-purple-600 text-white rounded-full p-1.5 shadow-lg border-2 border-white flex items-center">
+                          <UserCircle className="w-3 h-3" />
                       </span>
                     </TooltipTrigger>
                     <TooltipContent side="top">Anonymous</TooltipContent>
                   </Tooltip>
                 )}
-                <div>
-                  <h3 className="font-bold text-lg text-black hover:text-blue-600 transition-colors duration-200 cursor-pointer">{post.author}</h3>
-                  <p className="text-sm text-neutral-500">{new Date(post.createdAt).toLocaleDateString('en-US', { 
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-xl text-gray-900 hover:text-blue-600 transition-colors duration-200 cursor-pointer flex items-center gap-2">
+                    {post.author}
+                    {post.author === 'You' && (
+                      <span className="bg-blue-100 text-blue-700 text-xs px-2 py-0.5 rounded-full font-medium">
+                        You
+                      </span>
+                    )}
+                  </h3>
+                  <div className="flex items-center gap-3 text-sm text-gray-500">
+                    <span className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      {new Date(post.createdAt).toLocaleDateString('en-US', { 
                     year: 'numeric', 
                     month: 'short', 
                     day: 'numeric',
                     hour: '2-digit',
                     minute: '2-digit'
-                  })}</p>
+                      })}
+                    </span>
+                    {/* Edited indicator */}
+                    {editedPosts.has(post.id) && editTimestamps[post.id] && (
+                      <span className="flex items-center gap-1 text-orange-600">
+                        <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+                        </svg>
+                        Edited
+                      </span>
+                    )}
+                  </div>
                   {/* Follow button logic */}
                   {post.author !== 'You' && post.author !== 'Anonymous' && !followedUsers.includes(post.author) && (
                     <Button
                       size="sm"
-                      className="mt-1 bg-blue-600 text-white rounded-full px-4 py-1 text-xs font-bold shadow hover:bg-blue-700"
+                      className="mt-2 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-full px-4 py-1.5 text-xs font-semibold shadow-md hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
                       onClick={() => setFollowedUsers(prev => [...prev, post.author])}
                     >
-                      Follow
+                      + Follow
                     </Button>
                   )}
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                {/* Total Views */}
-                <div className="flex items-center gap-1 text-neutral-500 text-sm bg-white px-3 py-1.5 rounded-full shadow-sm border border-neutral-200 hover:bg-neutral-50 transition-colors duration-200">
-                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="flex items-center gap-3">
+                {/* Enhanced Views Counter */}
+                <div className="flex items-center gap-2 text-gray-600 text-sm bg-gradient-to-r from-blue-50 to-purple-50 px-4 py-2.5 rounded-full border border-blue-200 hover:from-blue-100 hover:to-purple-100 transition-all duration-300 shadow-sm hover:shadow-md group">
+                  <div className="relative">
+                    <svg className="w-4 h-4 text-blue-600 group-hover:scale-110 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                   </svg>
-                  <span>{Math.floor(Math.random() * 1000) + 500} views</span>
+                    {/* Animated pulse when view count increases */}
+                    {postViews[post.id] > 0 && (
+                      <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    )}
+                </div>
+                  <div className="flex flex-col">
+                    <span className="font-semibold text-gray-800">{postViews[post.id] || 0}</span>
+                    <span className="text-xs text-gray-500 font-medium">views</span>
+              </div>
+            </div>
+
+                {/* Enhanced More Options Menu */}
+                <div className="relative more-options-container">
+                  <button
+                    onClick={() => setOpenMoreOptions(openMoreOptions === post.id ? null : post.id)}
+                    className="flex items-center justify-center w-10 h-10 rounded-full hover:bg-gray-100 transition-colors duration-200 group"
+                    title="More options"
+                  >
+                    <svg className="w-5 h-5 text-gray-500 group-hover:text-gray-700" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M12 13a1 1 0 100-2 1 1 0 000 2zM19 13a1 1 0 100-2 1 1 0 000 2zM5 13a1 1 0 100-2 1 1 0 000 2z" />
+                    </svg>
+                  </button>
+
+                  {/* More Options Dropdown */}
+                  {openMoreOptions === post.id && (
+                    <div className="absolute right-0 top-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl z-50 min-w-[180px] py-2">
+                      {canModifyPost(post) ? (
+                        // Options for post owner
+                        <>
+                          <button
+                            onClick={() => {
+                              startEditPost(post);
+                              setOpenMoreOptions(null);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-3 transition-colors duration-200"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                            Edit Post
+                          </button>
+                          <div className="border-t border-gray-100 my-1"></div>
+                          <button
+                            onClick={() => {
+                              setShowDeleteConfirm(post.id);
+                              setOpenMoreOptions(null);
+                            }}
+                            className="w-full px-4 py-3 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-3 transition-colors duration-200"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete Post
+                          </button>
+                          {post.poll && (
+                            <div className="px-4 py-2 text-xs text-gray-500 border-t border-gray-100 bg-gray-50">
+                              {canEditPoll(post) 
+                                ? "Poll options can be edited (no votes yet)"
+                                : "Only poll question can be edited (votes exist)"
+                              }
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        // Options for non-owner
+                        <button
+                          onClick={() => {
+                            reportPost(post.id);
+                            setOpenMoreOptions(null);
+                          }}
+                          className="w-full px-4 py-3 text-left text-sm text-orange-600 hover:bg-orange-50 flex items-center gap-3 transition-colors duration-200"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                          </svg>
+                          Report Post
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
-            {/* Title */}
-            <h2 className="text-3xl font-extrabold mb-3 px-8 text-black tracking-wide font-brand uppercase mt-2">{post.title}</h2>
-            {/* Tags */}
-            <div className="flex flex-wrap gap-2 px-8 mb-4">
-              {post.tags && post.tags.map(tag => (
-                <Badge key={tag} className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-semibold uppercase tracking-widest px-3 py-1 text-xs rounded-full shadow-sm border border-blue-200 hover:from-blue-200 hover:to-purple-200 transition-all duration-200 cursor-pointer">{tag}</Badge>
+
+            {/* Enhanced Content Area */}
+            <div className="p-5 space-y-5">
+              {/* Enhanced Title */}
+              <h2 className="text-2xl font-bold text-gray-900 leading-tight hover:text-blue-600 transition-colors duration-200 cursor-pointer tracking-tight">
+                {post.title}
+              </h2>
+
+              {/* Enhanced Tags */}
+              {post.tags && post.tags.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {post.tags.map(tag => (
+                    <Badge 
+                      key={tag} 
+                      className="bg-gradient-to-r from-blue-50 to-indigo-50 text-blue-700 font-medium px-3 py-1.5 text-xs rounded-full border border-blue-200 hover:from-blue-100 hover:to-indigo-100 transition-all duration-200 cursor-pointer shadow-sm hover:shadow-md"
+                    >
+                      #{tag}
+                    </Badge>
               ))}
             </div>
-            {/* Media */}
+              )}
+
+              {/* Enhanced Media */}
             {post.media && post.media.length > 0 && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 px-8 mb-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {post.media.map((media, idx) => (
-                  <div key={idx} className="relative rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-200">
+                    <div key={idx} className="relative rounded-xl overflow-hidden shadow-lg group-hover:scale-105 transition-transform duration-300">
                     {media.type === 'image' ? (
                       <img src={media.url} alt="Post Media" className="w-full h-64 object-cover rounded-xl" />
                     ) : (
@@ -896,6 +1417,12 @@ const BridgeLab: React.FC = () => {
                 ))}
               </div>
             )}
+
+              {/* Enhanced Post Content */}
+              <div className="prose prose-lg max-w-none text-gray-700 leading-relaxed" style={{ overflow: 'visible', maxHeight: 'none' }}>
+                <div dangerouslySetInnerHTML={{ __html: post.content }} />
+              </div>
+
             {/* YouTube video preview in Discover (multiple videos, with play/stop button below) */}
             {(() => {
               const videoIds = extractAllYouTubeVideoIds(post.content);
@@ -904,7 +1431,7 @@ const BridgeLab: React.FC = () => {
                 const isPlaying = currentlyPlaying && currentlyPlaying.postId === post.id && currentlyPlaying.videoId === videoId;
                 return (
                   <div key={videoId} className="w-full max-w-md flex flex-col items-center">
-                    <div className="aspect-video w-full rounded-xl overflow-hidden border-2 border-neutral-700 shadow-lg relative group mb-2">
+                      <div className="aspect-video w-full rounded-xl overflow-hidden border-2 border-gray-700 shadow-lg relative group mb-2">
                       {isPlaying ? (
                         <div style={{ width: '100%', height: '100%' }}>
                           <div id={`ytplayer_${post.id}_${videoId}`} style={{ width: '100%', height: '100%' }} />
@@ -978,13 +1505,10 @@ const BridgeLab: React.FC = () => {
                 </div>
               );
             })()}
-            {/* Post Content */}
-            <div className="prose max-w-none mb-6 px-8 text-lg text-neutral-800 leading-relaxed" style={{ overflow: 'visible', maxHeight: 'none' }}>
-              {post.content}
             </div>
             
-            {/* Enhanced Emoji Counts Display */}
-            <div className="px-8 mb-4">
+            {/* Enhanced Reactions Display */}
+            <div className="px-6 pb-4">
               <div className="flex items-center gap-3 flex-wrap">
                 {Object.entries(post.reactions).map(([emoji, users]) => {
                   if (users.length > 0) {
@@ -993,11 +1517,11 @@ const BridgeLab: React.FC = () => {
                       <div key={emoji} className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm transition-all duration-200 cursor-pointer ${
                         userReacted 
                           ? 'bg-gradient-to-r from-blue-100 to-purple-100 border border-blue-300 shadow-md' 
-                          : 'bg-neutral-100 hover:bg-neutral-200 border border-neutral-200'
+                          : 'bg-gray-100 hover:bg-gray-200 border border-gray-200'
                       }`}>
                         <span className="text-lg">{emoji}</span>
                         <span className={`font-semibold ${
-                          userReacted ? 'text-blue-700' : 'text-neutral-700'
+                          userReacted ? 'text-blue-700' : 'text-gray-700'
                         }`}>
                           {users.length}
                         </span>
@@ -1010,10 +1534,11 @@ const BridgeLab: React.FC = () => {
             </div>
             
             {/* Divider */}
-            <div className="w-full border-t border-neutral-200 my-4" />
+            <div className="w-full border-t border-gray-100 mx-6" />
             
-            {/* Actions */}
-            <div className="flex items-center gap-4 px-8 pb-6">
+            {/* Enhanced Actions */}
+            <div className="flex items-center justify-between px-8 py-6">
+              <div className="flex items-center gap-4">
               {/* Enhanced Emoji Reactions */}
               <div className="relative group emoji-dropdown-container">
                 {/* Get the most popular reaction to show as main button */}
@@ -1030,7 +1555,7 @@ const BridgeLab: React.FC = () => {
                       className={`flex items-center gap-2 text-lg font-bold transition-all px-4 py-2.5 rounded-full border-2 ${
                         userHasReacted 
                           ? 'bg-gradient-to-r from-blue-100 to-purple-100 border-blue-400 text-blue-800 shadow-lg' 
-                          : 'border-neutral-200 hover:border-neutral-300 hover:bg-neutral-50 text-neutral-600 hover:text-neutral-800'
+                            : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50 text-gray-600 hover:text-gray-800'
                       } hover:shadow-xl hover:scale-105 duration-200 relative overflow-hidden`}
                       onClick={() => setOpenEmojiDropdown(openEmojiDropdown === post.id ? null : post.id)}
                       title={`${totalReactions} reactions • Click to choose your reaction`}
@@ -1052,7 +1577,7 @@ const BridgeLab: React.FC = () => {
                 })()}
                 
                 {/* Enhanced Emoji Dropdown */}
-                <div className={`absolute bottom-full left-0 mb-3 bg-white/95 backdrop-blur-md border border-neutral-200 rounded-2xl shadow-2xl p-4 transition-all duration-300 z-50 min-w-[320px] transform ${
+                  <div className={`absolute bottom-full left-0 mb-3 bg-white/95 backdrop-blur-md border border-gray-200 rounded-2xl shadow-2xl p-4 transition-all duration-300 z-50 min-w-[320px] transform ${
                   openEmojiDropdown === post.id 
                     ? 'opacity-100 visible scale-100' 
                     : 'opacity-0 invisible scale-95'
@@ -1111,7 +1636,7 @@ const BridgeLab: React.FC = () => {
                           className={`flex flex-col items-center gap-1 p-2 rounded-lg transition-all duration-200 hover:scale-110 hover:shadow-md relative group ${
                             userReacted 
                               ? 'bg-gradient-to-br from-blue-100 to-purple-100 border-2 border-blue-400 shadow-lg ring-2 ring-blue-200' 
-                              : 'border-2 border-transparent hover:border-neutral-200 hover:bg-neutral-50'
+                                : 'border-2 border-transparent hover:border-gray-200 hover:bg-gray-50'
                           }`}
                           aria-label={`React with ${emoji}`}
                         >
@@ -1135,7 +1660,7 @@ const BridgeLab: React.FC = () => {
                           
                           <div className="flex flex-col items-center">
                             <span className={`text-xs font-bold ${
-                              userReacted ? 'text-blue-700' : 'text-neutral-700'
+                                userReacted ? 'text-blue-700' : 'text-gray-700'
                             }`}>
                               {reactionCount}
                             </span>
@@ -1150,7 +1675,7 @@ const BridgeLab: React.FC = () => {
               {/* Enhanced Comments Count */}
               <button 
                 onClick={() => setActiveCommentPostId(post.id)}
-                className="flex items-center gap-2 text-neutral-400 hover:text-neutral-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-neutral-50"
+                  className="flex items-center gap-2 text-gray-400 hover:text-gray-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-gray-50"
                 title="View comments"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -1165,7 +1690,7 @@ const BridgeLab: React.FC = () => {
                     description: 'Post link copied to clipboard.' 
                   });
                 }}
-                className="flex items-center gap-2 text-neutral-400 hover:text-green-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-green-50"
+                  className="flex items-center gap-2 text-gray-400 hover:text-green-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-green-50"
                 title="Share post"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1180,7 +1705,7 @@ const BridgeLab: React.FC = () => {
                 className={`flex items-center gap-2 transition-colors duration-200 px-3 py-2 rounded-full ${
                   post.bookmarked 
                     ? 'text-yellow-600 hover:text-yellow-700 hover:bg-yellow-50' 
-                    : 'text-neutral-400 hover:text-yellow-600 hover:bg-yellow-50'
+                      : 'text-gray-400 hover:text-yellow-600 hover:bg-yellow-50'
                 }`}
                 title={post.bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
               >
@@ -1198,7 +1723,7 @@ const BridgeLab: React.FC = () => {
                     description: 'Your repost has been published.' 
                   });
                 }}
-                className="flex items-center gap-2 text-neutral-400 hover:text-green-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-green-50"
+                  className="flex items-center gap-2 text-gray-400 hover:text-green-600 transition-colors duration-200 px-3 py-2 rounded-full hover:bg-green-50"
                 title="Repost"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1206,19 +1731,13 @@ const BridgeLab: React.FC = () => {
                 </svg>
                 <span className="text-sm font-medium">Repost</span>
               </button>
+              </div>
             </div>
             
-            {/* Comments */}
-            <div className="bg-gradient-to-r from-neutral-50 to-white rounded-b-3xl px-8 pb-8 pt-4">
-              {activeCommentPostId === post.id ? (
+            {/* Enhanced Comments */}
+            <div className="bg-gradient-to-br from-gray-50 via-white to-gray-100 rounded-b-3xl px-8 pb-8 pt-6 border-t border-gray-200/50">
+              {activeCommentPostId === post.id && (
                 <CommentSection post={post} addComment={addComment} activeCommentPostId={activeCommentPostId} setActiveCommentPostId={setActiveCommentPostId} />
-              ) : (
-                <button
-                  className="mt-2 px-6 py-2 bg-black text-white rounded-full shadow-md hover:bg-white hover:text-black border border-black transition-colors duration-200 font-semibold focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
-                  onClick={() => setActiveCommentPostId(post.id)}
-                >
-                  Comment
-                </button>
               )}
             </div>
           </div>
@@ -1681,6 +2200,39 @@ const BridgeLab: React.FC = () => {
           </div>
                     <div className="flex-1" />
                     <span className="text-xs text-neutral-400 font-semibold">{Math.floor(Math.random() * 1000) + 500} views</span>
+                    {/* Edit and Delete buttons for poll owner in PostsTab */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (!canModifyPost(post)) {
+                            showUnauthorizedError();
+                            return;
+                          }
+                          startEditPost(post);
+                        }}
+                        className="p-2 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-2 border-blue-200 shadow-sm hover:border-blue-300 transition-all duration-200"
+                        title="Edit poll"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!canModifyPost(post)) {
+                            showUnauthorizedError();
+                            return;
+                          }
+                          setShowDeleteConfirm(post.id);
+                        }}
+                        className="p-2 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 border-2 border-red-200 shadow-sm hover:border-red-300 transition-all duration-200"
+                        title="Delete poll"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
         </div>
                   {/* Title/Question (max 2 lines, ellipsis) */}
                   <div className="px-8 pt-4 pb-2">
@@ -1693,6 +2245,7 @@ const BridgeLab: React.FC = () => {
                         const totalVotes = post.poll.options.reduce((sum, o) => sum + o.votes, 0) || 0;
             const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
                         const isVoted = post.poll.votedByUser === idx;
+                        const isMostVoted = option.votes === Math.max(...post.poll.options.map(o => o.votes));
             return (
               <button
                 key={option.id}
@@ -1721,33 +2274,72 @@ const BridgeLab: React.FC = () => {
                   }
                 }}
                             disabled={post.poll?.votedByUser !== undefined}
-                            className={`flex items-center gap-3 w-full px-6 py-3 rounded-full border-2 text-lg font-semibold transition-all duration-200 relative overflow-hidden group shadow-sm
-                              ${isVoted ? 'bg-black text-white border-black scale-[1.01]' : 'bg-white border-neutral-300 text-black hover:bg-black hover:text-white hover:border-black'}
+                            className={`flex items-center gap-3 w-full px-6 py-4 rounded-2xl border-2 text-lg font-semibold transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md
+                              ${isVoted ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-blue-500 scale-[1.02] shadow-lg' : 'bg-white border-neutral-300 text-black hover:bg-neutral-50 hover:border-neutral-400'}
                               ${post.poll?.votedByUser === undefined ? 'cursor-pointer' : 'cursor-default'}`}
                             style={{ minWidth: 0 }}
                             title={option.text.length > 30 ? option.text : undefined}
                           >
-                            <span className="truncate max-w-[320px] align-middle text-lg font-semibold z-10">{option.text}</span>
+                            {/* Option number */}
+                            <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-200 ${
+                              isVoted 
+                                ? 'bg-white text-blue-600 border-white' 
+                                : 'bg-neutral-100 text-neutral-600 border-neutral-200 group-hover:bg-blue-50 group-hover:border-blue-300'
+                            }`}>
+                              {idx + 1}
+                            </div>
+                            
+                            <span className="truncate max-w-[300px] align-middle text-base font-semibold z-10 flex-1 text-left">{option.text}</span>
+                            <span className="truncate max-w-[320px] align-middle text-lg font-semibold z-10 flex-1 text-left">{option.text}</span>
                             <span className="ml-auto flex items-center gap-2 z-10">
                               {post.poll?.votedByUser !== undefined && (
                                 <>
-                                  <span className="text-base font-bold text-black">{percentage}%</span>
-                                  <span className="text-base text-neutral-400">({option.votes})</span>
+                                  <span className={`text-lg font-bold ${isVoted ? 'text-white' : 'text-black'}`}>
+                                    {percentage}%
+                                  </span>
+                                  <span className={`text-base ${isVoted ? 'text-blue-100' : 'text-neutral-400'}`}>
+                                    ({option.votes})
+                                  </span>
+                                  {isMostVoted && option.votes > 0 && (
+                                    <div className="w-5 h-5 bg-yellow-400 rounded-full flex items-center justify-center">
+                                      <span className="text-xs font-bold text-white">🔥</span>
+                                    </div>
+                                  )}
                                 </>
                               )}
                       </span>
-                            {/* Progress bar (gray, minimal) */}
+                            {/* Enhanced Progress bar */}
                             {post.poll?.votedByUser !== undefined && (
-                              <span className="absolute left-0 top-0 h-full rounded-full z-0 animate-progress-bar" style={{ width: `${percentage}%`, background: isVoted ? '#222' : '#e5e5e5', opacity: 0.18, transition: 'width 0.6s cubic-bezier(.4,2,.6,1)' }} />
+                              <span className="absolute left-0 top-0 h-full rounded-2xl z-0 animate-progress-bar" style={{ width: `${percentage}%`, background: isVoted ? 'linear-gradient(90deg, rgba(255,255,255,0.3) 0%, rgba(255,255,255,0.2) 100%)' : 'linear-gradient(90deg, rgba(59,130,246,0.1) 0%, rgba(147,51,234,0.1) 100%)', opacity: 0.18, transition: 'width 0.6s cubic-bezier(.4,2,.6,1)' }} />
                             )}
                           </button>
                         );
                       })}
                     </div>
-                    {/* Total votes and poll state */}
-                    <div className="flex items-center gap-2 mt-3 text-sm text-neutral-500 font-semibold">
-                      <span>Total votes: {post.poll.options.reduce((sum, o) => sum + o.votes, 0)}</span>
-                      {post.poll.votedByUser !== undefined && <span className="ml-2 text-black font-bold">You voted</span>}
+                    {/* Enhanced Poll Summary */}
+                    <div className="mt-4 p-3 bg-gradient-to-r from-blue-50 to-purple-50 rounded-xl border border-blue-200">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex items-center gap-1 text-blue-700">
+                            <BarChart3 className="w-4 h-4" />
+                            <span className="font-semibold text-sm">Total votes: {post.poll.options.reduce((sum, o) => sum + o.votes, 0)}</span>
+                          </div>
+                          {post.poll.votedByUser !== undefined && (
+                            <div className="flex items-center gap-1 text-green-700">
+                              <Check className="w-4 h-4" />
+                              <span className="font-semibold text-sm">You voted</span>
+                            </div>
+                          )}
+                        </div>
+                        
+                        {/* Poll engagement rate */}
+                        <div className="text-right">
+                          <div className="text-xs text-neutral-600">Engagement</div>
+                          <div className="text-sm font-bold text-purple-600">
+                            {Math.round((post.comments.length / Math.max(post.poll.options.reduce((sum, o) => sum + o.votes, 0) || 1, 1)) * 100)}%
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                   {/* Bottom Info Bar (minimal) */}
@@ -1880,15 +2472,8 @@ const BridgeLab: React.FC = () => {
                   </div>
                   {/* Comments */}
                   <div className="bg-gradient-to-r from-neutral-50 to-white rounded-b-3xl px-8 pb-8 pt-4">
-                    {activeCommentPostId === post.id ? (
+                    {activeCommentPostId === post.id && (
                       <CommentSection post={post} addComment={addComment} activeCommentPostId={activeCommentPostId} setActiveCommentPostId={setActiveCommentPostId} />
-                    ) : (
-                      <button
-                        className="mt-2 px-6 py-2 bg-black text-white rounded-full shadow-md hover:bg-white hover:text-black border border-black transition-colors duration-200 font-semibold focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
-                        onClick={() => setActiveCommentPostId(post.id)}
-                      >
-                        Comment
-                      </button>
         )}
       </div>
           </div>
@@ -1981,49 +2566,79 @@ const BridgeLab: React.FC = () => {
   // --- X-like New Post dialog UI ---
   const newPostDialog = (
     <Dialog open={showNewPostDialog} onOpenChange={setShowNewPostDialog}>
-      <DialogContent className="max-w-xl min-w-[420px] min-h-[380px] w-full rounded-2xl shadow-2xl border border-neutral-800 bg-black text-white p-0 overflow-visible animate-fade-in" style={{ padding: 0 }}>
+      <DialogContent className="max-w-lg min-w-[380px] min-h-[320px] w-full rounded-2xl shadow-2xl border border-neutral-800 bg-black text-white p-0 overflow-visible animate-fade-in" style={{ padding: 0 }}>
         <div className="flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-8 pt-8 pb-3">
-            <span className="font-bold text-2xl">Create Post</span>
+          <div className="flex items-center justify-between px-6 pt-6 pb-3">
+            <span className="font-bold text-xl">Create Post</span>
           </div>
           {/* Main */}
-          <div className="flex px-8 pb-8 gap-6">
-            <img src={profile.avatar} alt="avatar" className="w-14 h-14 rounded-full border-2 border-neutral-700 mt-1" />
+          <div className="flex px-6 pb-6 gap-4">
+            <img src={profile.avatar} alt="avatar" className="w-12 h-12 rounded-full border-2 border-neutral-700 mt-1" />
             <div className="flex-1">
+              <div className="relative">
               <textarea
                 ref={textareaRef}
-                className="w-full min-h-[80px] max-h-72 resize-none bg-black text-white text-xl placeholder-neutral-400 focus:outline-none border-b border-neutral-700 mb-2"
-                placeholder="What's happening?"
+                  className="w-full min-h-[70px] max-h-48 resize-none bg-black text-white text-lg placeholder-neutral-400 focus:outline-none border-b border-neutral-700 mb-3"
+                  placeholder="What's happening? Use @ to mention users..."
                 value={newPostText}
-                onChange={e => setNewPostText(e.target.value)}
+                  onChange={handleMentionInput}
+                  onKeyDown={handleMentionKeyDown}
                 rows={3}
                 style={{ fontFamily: 'inherit' }}
               />
-              <div className="flex items-center gap-4 mb-3">
+                {/* Mention Suggestions */}
+                {showMentionSuggestions && filteredUsernames.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 bg-white border border-gray-200 rounded-lg shadow-xl z-50 max-h-48 overflow-y-auto">
+                    <div className="p-2">
+                      <div className="text-xs text-gray-500 px-2 py-1 border-b border-gray-100">
+                        Mention a user:
+                      </div>
+                      {filteredUsernames.map((username, index) => (
+                        <button
+                          key={username}
+                          onClick={() => selectMention(username)}
+                          className={`w-full flex items-center gap-3 px-3 py-2 text-left hover:bg-gray-50 rounded-md transition-colors ${
+                            index === selectedMentionIndex ? 'bg-blue-50 border border-blue-200' : ''
+                          }`}
+                        >
+                          <div className="w-8 h-8 bg-gradient-to-br from-blue-400 to-purple-500 rounded-full flex items-center justify-center text-white font-bold text-sm">
+                            {username.charAt(0).toUpperCase()}
+                          </div>
+                          <div>
+                            <div className="font-medium text-gray-900">@{username}</div>
+                            <div className="text-xs text-gray-500">Click to mention</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div className="flex items-center gap-3 mb-3">
                 <div className="flex rounded-full bg-neutral-900 border-2 border-neutral-700 overflow-hidden shadow-sm">
                   <button
                     type="button"
-                    className={`flex items-center gap-2 px-5 py-2 font-bold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:z-10
+                    className={`flex items-center gap-2 px-4 py-2 font-bold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:z-10
                       ${!postAnonymous ? 'bg-blue-600 text-white shadow-lg scale-105' : 'bg-transparent text-neutral-300 hover:bg-neutral-800'}`}
                     aria-pressed={!postAnonymous}
                     tabIndex={0}
                     onClick={() => setPostAnonymous(false)}
                     title="Post as yourself"
                   >
-                    <img src={profile.avatar} alt="avatar" className="w-6 h-6 rounded-full border-2 border-white mr-2" />
+                    <img src={profile.avatar} alt="avatar" className="w-5 h-5 rounded-full border-2 border-white mr-1" />
                     You
                   </button>
                   <button
                     type="button"
-                    className={`flex items-center gap-2 px-5 py-2 font-bold text-base transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:z-10
+                    className={`flex items-center gap-2 px-4 py-2 font-bold text-sm transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:z-10
                       ${postAnonymous ? 'bg-purple-600 text-white shadow-lg scale-105' : 'bg-transparent text-neutral-300 hover:bg-neutral-800'}`}
                     aria-pressed={postAnonymous}
                     tabIndex={0}
                     onClick={() => setPostAnonymous(true)}
                     title="Post as Anonymous"
                   >
-                    <UserCircle className="w-6 h-6 mr-2 text-white" />
+                    <UserCircle className="w-5 h-5 mr-1 text-white" />
                     Anonymous
                   </button>
                 </div>
@@ -2034,8 +2649,8 @@ const BridgeLab: React.FC = () => {
                 const videoId = extractYouTubeVideoId(newPostText);
                 if (videoId) {
                   return (
-                    <div className="my-4 flex flex-col items-center">
-                      <div className="w-full max-w-md aspect-video rounded-xl overflow-hidden border-2 border-neutral-700 shadow-lg">
+                    <div className="my-3 flex flex-col items-center">
+                      <div className="w-full max-w-sm aspect-video rounded-xl overflow-hidden border-2 border-neutral-700 shadow-lg">
                         <iframe
                           width="100%"
                           height="100%"
@@ -2054,33 +2669,33 @@ const BridgeLab: React.FC = () => {
               })()}
               {/* Media preview (images/videos) */}
               {newPostMedia.length > 0 && (
-                <div className="flex gap-4 mt-4 flex-wrap">
+                <div className="flex gap-3 mt-3 flex-wrap">
                   {newPostMedia.map((media, idx) => (
                     <div key={idx} className="relative group">
                       {media.type === 'image' ? (
-                        <img src={media.url} alt="preview" className="w-28 h-28 object-cover rounded-xl border-2 border-neutral-700" />
+                        <img src={media.url} alt="preview" className="w-24 h-24 object-cover rounded-xl border-2 border-neutral-700" />
                       ) : (
-                        <video src={media.url} className="w-28 h-28 object-cover rounded-xl border-2 border-neutral-700" controls />
+                        <video src={media.url} className="w-24 h-24 object-cover rounded-xl border-2 border-neutral-700" controls />
                       )}
-                      <button onClick={() => setNewPostMedia(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-2 -right-2 bg-white text-black rounded-full p-1 shadow hover:bg-red-600 hover:text-white"><X className="w-5 h-5" /></button>
+                      <button onClick={() => setNewPostMedia(prev => prev.filter((_, i) => i !== idx))} className="absolute -top-2 -right-2 bg-white text-black rounded-full p-1 shadow hover:bg-red-600 hover:text-white"><X className="w-4 h-4" /></button>
                     </div>
                   ))}
                 </div>
               )}
               {/* Poll options */}
               {showPoll && (
-                <div className="mt-5 space-y-3">
+                <div className="mt-4 space-y-2">
                   {pollOptions.map((opt, idx) => (
                     <div key={idx} className="flex items-center gap-2">
                       <Input
                         value={opt}
                         onChange={e => handlePollOptionChange(idx, e.target.value)}
                         placeholder={`Option ${idx + 1}`}
-                        className="flex-1 text-black bg-white border border-neutral-700 text-base px-4 py-2 rounded-lg"
+                        className="flex-1 text-black bg-white border border-neutral-700 text-sm px-3 py-2 rounded-lg"
                         maxLength={60}
                       />
                       {pollOptions.length > 2 && (
-                        <button onClick={() => removePollOption(idx)} className="text-neutral-400 hover:text-red-500"><X className="w-5 h-5" /></button>
+                        <button onClick={() => removePollOption(idx)} className="text-neutral-400 hover:text-red-500"><X className="w-4 h-4" /></button>
                       )}
                     </div>
                   ))}
@@ -2090,14 +2705,14 @@ const BridgeLab: React.FC = () => {
                 </div>
               )}
               {/* Actions row */}
-              <div className="flex items-center gap-5 mt-6 relative">
+              <div className="flex items-center gap-4 mt-5 relative">
                 <button
                   type="button"
-                  className="p-3 rounded-full hover:bg-neutral-900"
+                  className="p-2.5 rounded-full hover:bg-neutral-900"
                   onClick={() => fileInputRef.current?.click()}
                   title="Add image or video"
                 >
-                  <Upload className="w-6 h-6 text-white" />
+                  <Upload className="w-5 h-5 text-white" />
                 </button>
                 <input
                   ref={fileInputRef}
@@ -2109,11 +2724,11 @@ const BridgeLab: React.FC = () => {
                 />
                 <button
                   type="button"
-                  className={`p-3 rounded-full hover:bg-neutral-900 ${showPoll ? 'bg-neutral-800' : ''}`}
+                  className={`p-2.5 rounded-full hover:bg-neutral-900 ${showPoll ? 'bg-neutral-800' : ''}`}
                   onClick={() => setShowPoll(v => !v)}
                   title="Add poll"
                 >
-                  <BarChart3 className="w-6 h-6 text-white" />
+                  <BarChart3 className="w-5 h-5 text-white" />
                 </button>
                 {/* Emoji picker functional */}
                 <div className="relative">
@@ -2522,41 +3137,95 @@ const BridgeLab: React.FC = () => {
     const userPolls = posts.filter(post => post.poll && (post.author === 'You' || post.author === 'Anonymous'));
     
     return (
-      <div className="w-full max-w-6xl mx-auto mt-10">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-extrabold text-black tracking-tight uppercase font-brand mb-4">
+      <div className="w-full max-w-7xl mx-auto mt-8">
+        {/* Enhanced Header */}
+        <div className="text-center mb-10">
+          <div className="inline-flex items-center gap-3 mb-4">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center shadow-lg">
+              <BarChart3 className="w-7 h-7 text-white" />
+            </div>
+            <h1 className="text-4xl font-extrabold text-black tracking-tight uppercase font-brand">
             My Polls
           </h1>
-          <p className="text-xl text-neutral-600 max-w-2xl mx-auto">
+          </div>
+          <p className="text-lg text-neutral-600 max-w-2xl mx-auto leading-relaxed">
             Track engagement on your polls and see how the community responds to your questions
           </p>
+          
+          {/* Quick Actions */}
+          <div className="flex justify-center gap-4 mt-6">
+            <Button 
+              onClick={() => setTab('new-post')}
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-6 py-3 rounded-full font-bold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+            >
+              <Plus className="w-5 h-5 mr-2" />
+              Create New Poll
+            </Button>
+            <Button 
+              variant="outline"
+              className="border-2 border-neutral-300 text-neutral-700 px-6 py-3 rounded-full font-bold hover:bg-neutral-50 transition-all duration-200"
+            >
+              <BarChart3 className="w-5 h-5 mr-2" />
+              View Analytics
+            </Button>
+          </div>
+          
+          {/* Poll Statistics */}
+          {userPolls.length > 0 && (
+            <div className="flex justify-center gap-6 mt-8">
+              <div className="bg-white rounded-xl p-4 border-2 border-neutral-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="text-2xl font-bold text-blue-600">{userPolls.length}</div>
+                <div className="text-sm text-neutral-600">Total Polls</div>
+              </div>
+              <div className="bg-white rounded-xl p-4 border-2 border-neutral-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="text-2xl font-bold text-green-600">
+                  {userPolls.reduce((sum, post) => sum + (post.poll?.options.reduce((s, opt) => s + opt.votes, 0) || 0), 0)}
+                </div>
+                <div className="text-sm text-neutral-600">Total Votes</div>
+              </div>
+              <div className="bg-white rounded-xl p-4 border-2 border-neutral-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="text-2xl font-bold text-purple-600">
+                  {userPolls.reduce((sum, post) => sum + post.comments.length, 0)}
+                </div>
+                <div className="text-sm text-neutral-600">Total Comments</div>
+              </div>
+              <div className="bg-white rounded-xl p-4 border-2 border-neutral-200 shadow-sm hover:shadow-md transition-all duration-200">
+                <div className="text-2xl font-bold text-orange-600">
+                  {Math.round(userPolls.reduce((sum, post) => {
+                    const votes = post.poll?.options.reduce((s, opt) => s + opt.votes, 0) || 0;
+                    const comments = post.comments.length;
+                    return sum + (votes > 0 ? (comments / votes) * 100 : 0);
+                  }, 0) / Math.max(userPolls.length, 1))}%
+                </div>
+                <div className="text-sm text-neutral-600">Avg Engagement</div>
+              </div>
+            </div>
+          )}
         </div>
 
         {userPolls.length === 0 ? (
-          <div className="text-center py-16">
-            <div className="w-24 h-24 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6">
-              <BarChart3 className="w-12 h-12 text-blue-600" />
+          <div className="text-center py-20">
+            <div className="w-32 h-32 bg-gradient-to-br from-blue-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-8 shadow-lg">
+              <BarChart3 className="w-16 h-16 text-blue-600" />
             </div>
-            <h3 className="text-2xl font-bold text-neutral-700 mb-3">No polls created yet</h3>
-            <p className="text-neutral-500 mb-6 max-w-md mx-auto">
+            <h3 className="text-3xl font-bold text-neutral-700 mb-4">No polls created yet</h3>
+            <p className="text-neutral-500 mb-8 max-w-md mx-auto text-lg">
               Create your first poll to start engaging with the community and earning insights
             </p>
             <Button 
               onClick={() => setTab('new-post')}
-              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-8 py-3 rounded-full font-bold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+              className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-10 py-4 rounded-full font-bold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200 text-lg"
             >
-              <Plus className="w-5 h-5 mr-2" />
+              <Plus className="w-6 h-6 mr-3" />
               Create Your First Poll
             </Button>
           </div>
         ) : (
-          <div className="space-y-8">
+          <div className="space-y-6">
             {userPolls.map(post => (
               <div
                 key={post.id}
-                className="w-full max-w-4xl mx-auto bg-white rounded-2xl border-2 border-black shadow-xl hover:shadow-2xl hover:scale-[1.01] transition-all duration-300 group relative overflow-hidden"
-                style={{ borderRadius: '1.5rem' }}
+                className="w-full max-w-4xl mx-auto bg-white rounded-2xl border-2 border-neutral-200 shadow-md hover:shadow-lg hover:scale-[1.002] transition-all duration-300 group relative overflow-hidden"
                 onDoubleClick={e => {
                   if (
                     !(e.target instanceof HTMLInputElement) &&
@@ -2571,12 +3240,13 @@ const BridgeLab: React.FC = () => {
                   }
                 }}
               >
-                {/* Header Row */}
-                <div className="flex items-center gap-4 px-8 pt-6 pb-4 bg-gradient-to-r from-neutral-50 to-white rounded-t-2xl border-b border-neutral-200">
-                  <img src={post.avatar} alt={post.author} className="w-12 h-12 rounded-full border-2 border-neutral-300 shadow-sm flex-shrink-0" />
+                {/* Compact Header Row */}
+                <div className="flex items-center gap-3 px-6 pt-4 pb-3 bg-gradient-to-r from-neutral-50 to-white rounded-t-2xl border-b border-neutral-200">
+                  <img src={post.avatar} alt={post.author} className="w-10 h-10 rounded-full border-2 border-neutral-300 shadow-sm flex-shrink-0" />
                   <div className="flex flex-col min-w-0">
-                    <span className="font-bold text-lg text-black truncate max-w-[200px]">{post.author}</span>
-                    <span className="flex items-center gap-1 text-xs text-neutral-500 mt-0.5">
+                    <span className="font-bold text-xl text-black truncate max-w-[200px]">{post.author}</span>
+                    <span className="flex items-center gap-2 text-sm text-neutral-500 mt-1">
+                      <Clock className="w-4 h-4" />
                       {new Date(post.createdAt).toLocaleDateString('en-US', { 
                         year: '2-digit', 
                         month: 'short', 
@@ -2587,33 +3257,77 @@ const BridgeLab: React.FC = () => {
                     </span>
                   </div>
                   <div className="flex-1" />
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs text-neutral-400 font-semibold">
-                      {Math.floor(Math.random() * 1000) + 500} views
-                    </span>
-                    <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-semibold px-3 py-1 text-xs rounded-full border border-blue-200">
+                  <div className="flex items-center gap-4">
+                    {/* Poll Stats */}
+                    <div className="flex items-center gap-3 text-sm">
+                      <div className="flex items-center gap-1 text-blue-600">
+                        <BarChart3 className="w-4 h-4" />
+                        <span className="font-semibold">{post.poll?.options.reduce((sum, o) => sum + o.votes, 0) || 0} votes</span>
+                      </div>
+                      <div className="flex items-center gap-1 text-purple-600">
+                        <MessageCircle className="w-4 h-4" />
+                        <span className="font-semibold">{post.comments.length} comments</span>
+                      </div>
+                    </div>
+                    
+                    <Badge className="bg-gradient-to-r from-blue-100 to-purple-100 text-blue-700 font-bold px-4 py-2 text-sm rounded-full border-2 border-blue-200 shadow-sm">
                       Poll
                     </Badge>
+                    
+                    {/* Edit and Delete buttons for poll owner */}
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          if (!canModifyPost(post)) {
+                            showUnauthorizedError();
+                            return;
+                          }
+                          startEditPost(post);
+                        }}
+                        className="p-2.5 rounded-full text-blue-600 hover:text-blue-700 hover:bg-blue-50 border-2 border-blue-200 shadow-sm hover:border-blue-300 transition-all duration-200 hover:scale-110"
+                        title="Edit poll"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (!canModifyPost(post)) {
+                            showUnauthorizedError();
+                            return;
+                          }
+                          setShowDeleteConfirm(post.id);
+                        }}
+                        className="p-2.5 rounded-full text-red-600 hover:text-red-700 hover:bg-red-50 border-2 border-red-200 shadow-sm hover:border-red-300 transition-all duration-200 hover:scale-110"
+                        title="Delete poll"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
-                {/* Title/Question */}
-                <div className="px-8 pt-4 pb-3">
-                  <h2 className="font-extrabold text-2xl text-black leading-tight block mb-2" style={{ lineHeight: '1.3' }}>
+                {/* Compact Title/Question */}
+                <div className="px-6 pt-4 pb-3">
+                  <h2 className="font-bold text-xl text-black leading-tight block mb-2" style={{ lineHeight: '1.3' }}>
                     {post.title || post.poll?.question}
                   </h2>
                   {post.content && (
-                    <div className="text-neutral-700 text-base leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: post.content }} />
+                    <div className="text-neutral-700 text-sm leading-relaxed mb-3" dangerouslySetInnerHTML={{ __html: post.content }} />
                   )}
                 </div>
 
-                {/* Poll Display */}
-                <div className="px-8 pb-4">
-                  <div className="flex flex-col gap-3">
+                {/* Compact Poll Display */}
+                <div className="px-6 pb-4">
+                  <div className="flex flex-col gap-2">
                     {post.poll?.options.map((option, idx) => {
                       const totalVotes = post.poll!.options.reduce((sum, o) => sum + o.votes, 0) || 0;
                       const percentage = totalVotes > 0 ? Math.round((option.votes / totalVotes) * 100) : 0;
                       const isVoted = post.poll?.votedByUser === idx;
+                      const isMostVoted = option.votes === Math.max(...post.poll!.options.map(o => o.votes));
                       
                       return (
                         <button
@@ -2643,7 +3357,7 @@ const BridgeLab: React.FC = () => {
                             }
                           }}
                           disabled={post.poll?.votedByUser !== undefined}
-                          className={`flex items-center gap-4 w-full px-6 py-4 rounded-xl border-2 text-lg font-semibold transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md
+                          className={`flex items-center gap-4 w-full px-6 py-5 rounded-2xl border-3 text-lg font-semibold transition-all duration-300 relative overflow-hidden group shadow-sm hover:shadow-md
                             ${isVoted 
                               ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white border-blue-500 scale-[1.02] shadow-lg' 
                               : 'bg-white border-neutral-300 text-black hover:bg-neutral-50 hover:border-neutral-400'
@@ -2652,26 +3366,39 @@ const BridgeLab: React.FC = () => {
                           style={{ minWidth: 0 }}
                           title={option.text.length > 40 ? option.text : undefined}
                         >
-                          <span className="truncate max-w-[400px] align-middle text-lg font-semibold z-10 flex-1 text-left">
-                            {option.text}
-                          </span>
+                          {/* Option number */}
+                          <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-200 ${
+                            isVoted 
+                              ? 'bg-white text-blue-600 border-white' 
+                              : 'bg-neutral-100 text-neutral-600 border-neutral-200 group-hover:bg-blue-50 group-hover:border-blue-300'
+                          }`}>
+                            {idx + 1}
+                          </div>
+                          
+                          <span className="truncate max-w-[400px] align-middle text-lg font-semibold z-10 flex-1 text-left">{option.text}</span>
+                          
                           <span className="ml-auto flex items-center gap-3 z-10">
                             {post.poll?.votedByUser !== undefined && (
                               <>
-                                <span className={`text-base font-bold ${isVoted ? 'text-white' : 'text-black'}`}>
+                                <span className={`text-lg font-bold ${isVoted ? 'text-white' : 'text-black'}`}>
                                   {percentage}%
                                 </span>
                                 <span className={`text-base ${isVoted ? 'text-blue-100' : 'text-neutral-400'}`}>
                                   ({option.votes})
                                 </span>
+                                {isMostVoted && option.votes > 0 && (
+                                  <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                                    <span className="text-xs font-bold text-white">🔥</span>
+                                  </div>
+                                )}
                               </>
                             )}
                           </span>
                           
-                          {/* Progress bar */}
+                          {/* Enhanced Progress bar */}
                           {post.poll?.votedByUser !== undefined && (
                             <span 
-                              className="absolute left-0 top-0 h-full rounded-xl z-0 animate-progress-bar transition-all duration-700" 
+                              className="absolute left-0 top-0 h-full rounded-2xl z-0 animate-progress-bar transition-all duration-700" 
                               style={{ 
                                 width: `${percentage}%`, 
                                 background: isVoted 
@@ -2686,75 +3413,32 @@ const BridgeLab: React.FC = () => {
                     })}
                   </div>
                   
-                  {/* Poll Stats */}
-                  <div className="flex items-center justify-between mt-4 p-4 bg-neutral-50 rounded-xl border border-neutral-200">
+                  {/* Enhanced Poll Summary */}
+                  <div className="mt-6 p-4 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl border border-blue-200">
+                    <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                      <span className="text-sm text-neutral-600 font-semibold">
-                        Total votes: <span className="text-black font-bold">{post.poll?.options.reduce((sum, o) => sum + o.votes, 0) || 0}</span>
-                      </span>
+                        <div className="flex items-center gap-2 text-blue-700">
+                          <BarChart3 className="w-5 h-5" />
+                          <span className="font-bold">Total votes: {post.poll?.options.reduce((sum, o) => sum + o.votes, 0) || 0}</span>
+                        </div>
                       {post.poll?.votedByUser !== undefined && (
-                        <span className="text-sm text-blue-600 font-bold flex items-center gap-1">
-                          <Check className="w-4 h-4" />
-                          You voted
-                        </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      {post.tags && post.tags.map(tag => (
-                        <Badge key={tag} className="bg-neutral-100 text-black font-semibold px-3 py-1 text-xs rounded-full border border-neutral-300 shadow-sm">
-                          {tag}
-                        </Badge>
-                      ))}
-                    </div>
-                  </div>
+                          <div className="flex items-center gap-2 text-green-700">
+                            <Check className="w-5 h-5" />
+                            <span className="font-bold">You voted</span>
+                          </div>
+                        )}
                 </div>
 
-                {/* Actions Row */}
-                <div className="flex items-center justify-center gap-8 py-4 border-t border-neutral-200 bg-gradient-to-r from-neutral-50 to-white rounded-b-2xl">
-                  <button
-                    onClick={() => toggleBookmark(post.id)}
-                    className={`p-3 rounded-full shadow-lg transition-all duration-200 border-2 bg-white hover:scale-110 ${
-                      post.bookmarked 
-                        ? 'text-yellow-600 border-yellow-400 shadow-yellow-200' 
-                        : 'text-neutral-400 border-neutral-300 hover:text-yellow-600 hover:border-yellow-400'
-                    }`}
-                    title={post.bookmarked ? 'Remove from bookmarks' : 'Add to bookmarks'}
-                  >
-                    <svg className="w-6 h-6" fill={post.bookmarked ? 'currentColor' : 'none'} stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
-                    </svg>
-                  </button>
-                  
-                  <div className="relative group/comment">
-                    <button
-                      onClick={() => setActiveCommentPostId(activeCommentPostId === post.id ? null : post.id)}
-                      className="p-3 rounded-full text-neutral-400 hover:text-blue-600 hover:bg-blue-50 border-2 border-neutral-300 shadow-lg hover:border-blue-400 transition-all duration-200 hover:scale-110"
-                      title="Comment on this poll"
-                    >
-                      <MessageCircle className="w-6 h-6" />
-                    </button>
-                    <span className="absolute -top-10 left-1/2 -translate-x-1/2 bg-black text-white text-xs rounded px-2 py-1 opacity-0 group-hover/comment:opacity-100 transition-opacity pointer-events-none z-50 whitespace-nowrap">
-                      {activeCommentPostId === post.id ? 'Hide comments' : 'Show comments'}
-                    </span>
+                      {/* Poll engagement rate */}
+                      <div className="text-right">
+                        <div className="text-sm text-neutral-600">Engagement Rate</div>
+                        <div className="text-lg font-bold text-purple-600">
+                          {Math.round((post.comments.length / Math.max(post.poll?.options.reduce((sum, o) => sum + o.votes, 0) || 1, 1)) * 100)}%
                   </div>
-                  
-                  <div className="flex items-center gap-2">
-                    <span className="text-base text-neutral-400 font-bold">{post.comments.length}</span>
-                    <span className="text-sm text-neutral-500">comments</span>
                   </div>
                 </div>
-
-                {/* Comments Section */}
-                {activeCommentPostId === post.id && (
-                  <div className="px-8 pb-6 bg-gradient-to-br from-neutral-50 to-white">
-                    <CommentSection 
-                      post={post} 
-                      addComment={addComment} 
-                      activeCommentPostId={activeCommentPostId} 
-                      setActiveCommentPostId={setActiveCommentPostId} 
-                    />
                   </div>
-                )}
+                </div>
               </div>
             ))}
           </div>
@@ -2762,6 +3446,10 @@ const BridgeLab: React.FC = () => {
       </div>
     );
   };
+
+  // Add at the top of the BridgeLab component (after useState for posts):
+  // Views state: { [postId: number]: number }
+  const [postViews, setPostViews] = useState<{ [key: number]: number }>({});
 
   return (
     <div className="min-h-screen bg-white flex flex-col items-center animate-fade-in font-sans relative" style={{ fontFamily: 'Space Grotesk, Inter, Helvetica Neue, Arial, sans-serif' }}>
@@ -2794,8 +3482,22 @@ const BridgeLab: React.FC = () => {
             ) : null}
           </div>
           {!(tab === 'profile' || tab === 'circles' || tab === 'pitch' || tab === 'post') && (
-            <div className="flex items-center gap-2">
-              <Input placeholder="Search posts..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={() => setTab('new-post')}
+                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                New Post
+              </Button>
+              <Button
+                onClick={() => navigate('/find-cofounder')}
+                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-200"
+              >
+                <Users className="w-4 h-4 mr-2" />
+                Find Co-founder
+              </Button>
+              <Input placeholder="Search by username..." value={search} onChange={e => setSearch(e.target.value)} className="w-64" />
               <Button
                 variant="ghost"
                 size="icon"
@@ -3667,6 +4369,218 @@ const BridgeLab: React.FC = () => {
         </div>
       </div>
       {newPostDialog}
+
+      {/* Edit Post Dialog */}
+      <Dialog open={editingPostId !== null} onOpenChange={(open) => !open && cancelEditPost()}>
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Post</DialogTitle>
+          </DialogHeader>
+          
+          {editPostData && (
+            <div className="space-y-6">
+              {/* Title */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Title <span className="text-neutral-400">(optional)</span></label>
+                <Input
+                  value={editPostData.title}
+                  onChange={(e) => setEditPostData(prev => prev ? { ...prev, title: e.target.value } : null)}
+                  placeholder="Enter post title (optional)"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Content */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Content</label>
+                <div className="relative">
+                  <Textarea
+                    value={editPostData.content}
+                    onChange={(e) => setEditPostData(prev => prev ? { ...prev, content: e.target.value } : null)}
+                    placeholder="Write your post content..."
+                    rows={6}
+                    className="w-full pr-10"
+                  />
+                  {/* Emoji Picker Button */}
+                  <button
+                    type="button"
+                    className="absolute top-2 right-2 p-2 rounded-full hover:bg-neutral-100"
+                    title="Add emoji"
+                    onClick={() => setShowEditEmojiPicker(v => !v)}
+                  >
+                    <Smile className="w-6 h-6 text-yellow-400" />
+                  </button>
+                  {/* Emoji Picker Dropdown */}
+                  {showEditEmojiPicker && (
+                    <div className="absolute right-0 top-12 z-50 bg-white text-black rounded-xl shadow-xl p-2 flex flex-wrap gap-1 w-64 emoji-picker-container">
+                      {emojiList.map(emoji => (
+                        <button
+                          key={emoji}
+                          className="text-2xl p-1 hover:bg-neutral-200 rounded"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setEditPostData(prev => {
+                              if (!prev) return null;
+                              return { ...prev, content: prev.content + emoji };
+                            });
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Tags */}
+              <div>
+                <label className="block text-sm font-medium text-neutral-700 mb-2">Tags (comma separated) <span className="text-neutral-400">(optional)</span></label>
+                <Input
+                  value={editPostData.tags}
+                  onChange={(e) => setEditPostData(prev => prev ? { ...prev, tags: e.target.value } : null)}
+                  placeholder="Enter tags separated by commas (optional)"
+                  className="w-full"
+                />
+              </div>
+
+              {/* Media */}
+              {editPostData.media.length > 0 && (
+                <div>
+                  <label className="block text-sm font-medium text-neutral-700 mb-2">Media</label>
+                  <div className="grid grid-cols-2 gap-4">
+                    {editPostData.media.map((media, idx) => (
+                      <div key={idx} className="relative">
+                        {media.type === 'image' ? (
+                          <img src={media.url} alt="Media" className="w-full h-32 object-cover rounded-lg" />
+                        ) : (
+                          <video src={media.url} className="w-full h-32 object-cover rounded-lg" controls />
+                        )}
+                        <button
+                          onClick={() => setEditPostData(prev => prev ? { ...prev, media: prev.media.filter((_, i) => i !== idx) } : null)}
+                          className="absolute top-2 right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center hover:bg-red-600"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Poll Section */}
+              {editPostData.poll && (
+                <div className="space-y-4">
+                  <label className="block text-sm font-medium text-neutral-700">Poll Question</label>
+                  <Input
+                    value={editPostData.poll.question}
+                    onChange={(e) => setEditPostData(prev => prev && prev.poll ? { ...prev, poll: { ...prev.poll, question: e.target.value } } : null)}
+                    placeholder="Enter poll question"
+                    className="w-full"
+                  />
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-neutral-700 mb-2">Poll Options</label>
+                    {!canEditPoll(posts.find(p => p.id === editingPostId)!) && (
+                      <div className="mb-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                        <p className="text-sm text-yellow-700">
+                          ⚠️ Poll options cannot be edited because votes have been cast. Only the question can be modified.
+                        </p>
+                      </div>
+                    )}
+                    
+                    {editPostData.poll.options.map((option, idx) => (
+                      <div key={idx} className="flex gap-2 mb-2">
+                        <Input
+                          value={option}
+                          onChange={(e) => {
+                            if (canEditPoll(posts.find(p => p.id === editingPostId)!)) {
+                              setEditPostData(prev => prev && prev.poll ? {
+                                ...prev,
+                                poll: {
+                                  ...prev.poll,
+                                  options: prev.poll.options.map((opt, i) => i === idx ? e.target.value : opt)
+                                }
+                              } : null);
+                            }
+                          }}
+                          placeholder={`Option ${idx + 1}`}
+                          className="flex-1"
+                          disabled={!canEditPoll(posts.find(p => p.id === editingPostId)!)}
+                        />
+                        {canEditPoll(posts.find(p => p.id === editingPostId)!) && editPostData.poll.options.length > 2 && (
+                          <button
+                            onClick={() => setEditPostData(prev => prev && prev.poll ? {
+                              ...prev,
+                              poll: {
+                                ...prev.poll,
+                                options: prev.poll.options.filter((_, i) => i !== idx)
+                              }
+                            } : null)}
+                            className="px-3 py-2 bg-red-500 text-white rounded hover:bg-red-600"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                    
+                    {canEditPoll(posts.find(p => p.id === editingPostId)!) && editPostData.poll.options.length < 6 && (
+                      <button
+                        onClick={() => setEditPostData(prev => prev && prev.poll ? {
+                          ...prev,
+                          poll: {
+                            ...prev.poll,
+                            options: [...prev.poll.options, '']
+                          }
+                        } : null)}
+                        className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                      >
+                        Add Option
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button variant="outline" onClick={cancelEditPost}>
+                  Cancel
+                </Button>
+                <Button onClick={saveEditPost} disabled={false}>
+                  Update Post
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={showDeleteConfirm !== null} onOpenChange={(open) => !open && setShowDeleteConfirm(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete Post</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <p className="text-neutral-700">
+              Are you sure you want to delete this post? This action is permanent.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3">
+            <Button variant="outline" onClick={() => setShowDeleteConfirm(null)}>
+              Cancel
+            </Button>
+            <Button 
+              variant="destructive" 
+              onClick={() => showDeleteConfirm && deletePost(showDeleteConfirm)}
+            >
+              Delete Post
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

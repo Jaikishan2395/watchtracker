@@ -25,6 +25,7 @@ import Clubs from "./pages/Clubs";
 import BridgeLab from "./pages/BridgeLab";
 import AcceleratorLibrary from "./pages/AcceleratorLibrary";
 import ViewCreate from './pages/viewCreate';
+import FindCoFounder from './pages/FindCoFounder';
 import { useState, useEffect } from "react";
 import { Playlist } from '@/types/playlist';
 import { loadQuestionsFromFile } from './utils/loadQuestions';
@@ -83,6 +84,7 @@ const AppContent = () => {
               <Route path="/view-create" element={<ViewCreate />} />
               <Route path="/shorts" element={<Shorts />} />
               <Route path="/learningtrack" element={<LearningTrack />} />
+              <Route path="/find-cofounder" element={<FindCoFounder />} />
               <Route 
                 path="/playlist/:playlistId" 
                 element={<PlaylistDetailWrapper />} 

@@ -2,9 +2,10 @@ import { useState, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Plus, Calendar, Clock, TrendingUp, Star, X } from 'lucide-react';
+import { Plus, Calendar, Clock, TrendingUp, Star, X, ArrowLeft } from 'lucide-react';
 import { format, differenceInDays, differenceInWeeks, differenceInMonths, differenceInYears, parseISO } from 'date-fns';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 
 interface Skill {
   id: string;
@@ -47,6 +48,7 @@ const LearningTrack = () => {
   });
   const [editingProgressId, setEditingProgressId] = useState<string | null>(null);
   const progressInputRef = useRef<HTMLInputElement>(null);
+  const navigate = useNavigate();
 
   // Add Skill Modal Handlers
   const handleOpenAddModal = () => {
@@ -182,6 +184,17 @@ const LearningTrack = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-purple-100 to-indigo-200 py-0 px-0 relative overflow-x-hidden">
+      {/* Back Button */}
+      <div className="absolute top-6 left-6 z-30">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => navigate('/library')}
+          className="rounded-full bg-white/80 shadow hover:bg-blue-100 transition-colors"
+        >
+          <ArrowLeft className="w-6 h-6 text-blue-600" />
+        </Button>
+      </div>
       {/* Hero/Header Section */}
       <div className="relative z-10">
         <div className="w-full h-64 bg-gradient-to-br from-blue-400/60 via-purple-400/40 to-indigo-400/30 rounded-b-3xl flex flex-col items-center justify-center shadow-lg mb-8">
