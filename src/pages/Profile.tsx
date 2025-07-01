@@ -167,70 +167,6 @@ const Profile = () => {
     lastActivityDate: new Date().toISOString().split('T')[0]
   });
 
-  const [rankings, setRankings] = useState<Ranking>({
-    branch: 1,
-    section: 1,
-    college: 1,
-    global: 1,
-    metrics: {
-      learningTime: 0,
-      activeDays: 0,
-      completionRate: 0
-    },
-    trends: {
-      branch: 0,
-      section: 0,
-      college: 0,
-      global: 0
-    },
-    achievements: {
-      isTopPerformer: false,
-      isConsistent: false,
-      isFastLearner: false,
-      isStreakMaster: false,
-      isKnowledgeSeeker: false,
-      isRisingStar: false,
-      isWeekendWarrior: false
-    },
-    progress: {
-      weekly: {
-        learningTime: 0,
-        activeDays: 0,
-        completionRate: 0
-      },
-      monthly: {
-        learningTime: 0,
-        activeDays: 0,
-        completionRate: 0
-      }
-    }
-  });
-
-  const [showProgressCard, setShowProgressCard] = useState(false);
-  const [progressCard, setProgressCard] = useState<ProgressCard>({
-    platformName: "Learning Platform",
-    totalProgress: {
-      todos: 0,
-      watchTime: 0,
-      videosCompleted: 0,
-      problemsSolved: 0,
-      streak: 0,
-      coins: 0
-    },
-    monthlyProgress: {
-      todos: 0,
-      watchTime: 0,
-      videosCompleted: 0,
-      problemsSolved: 0,
-      streak: 0,
-      coins: 0
-    },
-    achievements: {
-      level: "Beginner",
-      badges: []
-    }
-  });
-
   // Mock data for other users - In a real app, this would come from an API
   const mockUsers = [
     { learningTime: 120, activeDays: 45, completionRate: 85 },
@@ -449,74 +385,42 @@ const Profile = () => {
 
         // Calculate and update rankings
         const userMetrics = {
-          learningTime: hoursLearning,
-          activeDays: daysActive,
-          completionRate: totalVideos > 0 ? Math.round((completedVideos / totalVideos) * 100) : 0
+          learningTime: userStats.hoursLearning,
+          activeDays: userStats.daysActive,
+          completionRate: userStats.problemsSolved > 0 ? Math.round((userStats.tasksCompleted / userStats.problemsSolved) * 100) : 0
         };
 
         // Calculate rankings and update state
-        const branchRank = calculateRank(userMetrics, mockUsers.slice(0, 2));
-        const sectionRank = calculateRank(userMetrics, mockUsers.slice(0, 3));
-        const collegeRank = calculateRank(userMetrics, mockUsers.slice(0, 4));
+        const branchRank = calculateRank(userMetrics, mockUsers);
+        const sectionRank = calculateRank(userMetrics, mockUsers);
+        const collegeRank = calculateRank(userMetrics, mockUsers);
         const globalRank = calculateRank(userMetrics, mockUsers);
 
-        // Calculate trends
-        const previousRanks = {
-          branch: branchRank + Math.floor(Math.random() * 3) - 1,
-          section: sectionRank + Math.floor(Math.random() * 3) - 1,
-          college: collegeRank + Math.floor(Math.random() * 3) - 1,
-          global: globalRank + Math.floor(Math.random() * 3) - 1
-        };
-
         const trends = {
-          branch: calculateTrend(branchRank, previousRanks.branch),
-          section: calculateTrend(sectionRank, previousRanks.section),
-          college: calculateTrend(collegeRank, previousRanks.college),
-          global: calculateTrend(globalRank, previousRanks.global)
+          branch: calculateTrend(branchRank, branchRank + 1),
+          section: calculateTrend(sectionRank, sectionRank + 1),
+          college: calculateTrend(collegeRank, collegeRank + 1),
+          global: calculateTrend(globalRank, globalRank + 1)
         };
 
-        // Calculate achievements
         const achievements = getAchievementBadges(userMetrics, globalRank, trends);
-
-        // Update rankings state
-        setRankings({
-          branch: branchRank,
-          section: sectionRank,
-          college: collegeRank,
-          global: globalRank,
-          metrics: userMetrics,
-          trends,
-          achievements,
-          progress: {
-            weekly: {
-              learningTime: Math.round(userMetrics.learningTime * 0.3),
-              activeDays: Math.min(7, userMetrics.activeDays),
-              completionRate: Math.min(100, userMetrics.completionRate * 1.2)
-            },
-            monthly: {
-              learningTime: Math.round(userMetrics.learningTime * 0.7),
-              activeDays: Math.min(30, userMetrics.activeDays),
-              completionRate: userMetrics.completionRate
-            }
-          }
-        });
 
       } catch (err) {
         console.error('Error loading user data:', err);
-        setError('Failed to load user data. Please try refreshing the page.');
+        setError('Failed to load user data');
       } finally {
         setIsLoading(false);
       }
     };
 
-    if (mounted) {
-      loadUserData();
-    }
-  }, [mounted, playlists]);
+    loadUserData();
+  }, [playlists]);
 
-  const achievementLevel = userStats.hoursLearning >= 50 ? 'Expert' : 
-                          userStats.hoursLearning >= 20 ? 'Advanced' : 
-                          userStats.hoursLearning >= 5 ? 'Intermediate' : 'Beginner';
+  // Calculate achievement level based on user stats
+  const achievementLevel = userStats.hoursLearning >= 100 ? 'Grand Master' :
+                         userStats.hoursLearning >= 50 ? 'Master' :
+                         userStats.hoursLearning >= 10 ? 'Advanced' :
+                         userStats.hoursLearning >= 5 ? 'Intermediate' : 'Beginner';
 
   const achievementColor = achievementLevel === 'Expert' ? 'bg-gradient-to-r from-purple-600 to-pink-600' :
                           achievementLevel === 'Advanced' ? 'bg-gradient-to-r from-blue-600 to-purple-600' :
@@ -524,29 +428,19 @@ const Profile = () => {
                           'bg-gradient-to-r from-gray-600 to-green-600';
 
   // Theme-specific styles
-  const bgGradient = mounted && theme === 'dark' 
-    ? 'bg-gradient-to-br from-slate-900 via-slate-800 to-indigo-950'
-    : 'bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100';
+  const bgGradient = 'bg-white';
 
-  const cardBg = mounted && theme === 'dark'
-    ? 'glass-effect-dark'
-    : 'glass-effect';
+  const cardBg = 'bg-white';
 
   const textColor = mounted && theme === 'dark' ? 'text-foreground' : 'text-foreground';
   const textMuted = mounted && theme === 'dark' ? 'text-muted-foreground' : 'text-muted-foreground';
 
-  const headerGradient = mounted && theme === 'dark' 
-    ? 'bg-gradient-to-br from-slate-900/95 via-slate-800/95 to-indigo-950/95 backdrop-blur-sm'
-    : 'bg-gradient-to-br from-white/95 via-blue-50/95 to-indigo-100/95 backdrop-blur-sm';
+  const headerGradient = 'bg-white';
 
   const cardHoverEffect = 'transform transition-all duration-300 hover:scale-[1.02] hover:shadow-xl hover:shadow-primary/5';
-  const statCardGradient = mounted && theme === 'dark'
-    ? 'bg-gradient-to-br from-slate-800/50 to-slate-900/50'
-    : 'bg-gradient-to-br from-white/50 to-blue-50/50';
+  const statCardGradient = 'bg-white';
 
-  const rankCardGradient = mounted && theme === 'dark'
-    ? 'bg-gradient-to-br from-slate-800 to-slate-900'
-    : 'bg-gradient-to-br from-white to-blue-50';
+  const rankCardGradient = 'bg-white';
 
   const rankCardHover = `
     relative transition-all duration-300
@@ -685,64 +579,40 @@ const Profile = () => {
   }
 
   return (
-    <div className="min-h-screen bg-white dark:bg-black transition-colors duration-300" style={{ fontFamily: 'DM Serif Display, serif' }}>
+    <div className="min-h-screen bg-white transition-colors duration-300" style={{ fontFamily: 'DM Serif Display, serif' }}>
       {/* Enhanced Header Section */}
-      <div className={`relative border-b border-border/50 shadow-lg mt-8 md:mt-12
-        bg-gradient-to-br from-blue-100 via-pink-100 to-purple-100
-        dark:from-slate-900 dark:via-indigo-900 dark:to-purple-950
-        transition-colors duration-500
-      `}>
-        {/* Colorful overlay for extra vibrance */}
-        <div className="absolute inset-0 pointer-events-none z-0">
-          <div className="absolute inset-0 bg-gradient-to-tr from-blue-400/10 via-pink-400/10 to-purple-400/10" />
-          <div className="absolute left-1/2 top-0 -translate-x-1/2 w-2/3 h-32 bg-gradient-to-r from-blue-400/20 via-pink-400/20 to-purple-400/20 rounded-b-full blur-2xl opacity-70" />
-          <div className="absolute right-0 bottom-0 w-40 h-40 bg-pink-400/20 rounded-full blur-3xl opacity-40" />
-          <div className="absolute left-0 top-0 w-32 h-32 bg-blue-400/20 rounded-full blur-2xl opacity-40" />
-        </div>
-        <div className="absolute inset-0 bg-grid-pattern opacity-[0.02] pointer-events-none" />
+      <div className="relative border-b border-border/50 shadow-lg mt-8 md:mt-12 bg-white transition-colors duration-500">
         <div className="container mx-auto px-4 py-0">
-          <div className={`${cardBg} rounded-xl p-6 shadow-xl transition-all duration-300 ${cardHoverEffect} relative overflow-hidden`}>
-            {/* Enhanced Background Effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 opacity-50" />
-            <div className="absolute top-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0" />
-            <div className="absolute bottom-0 left-0 w-full h-0.5 bg-gradient-to-r from-primary/0 via-primary/50 to-primary/0" />
-            
+          <div className={`${cardBg} rounded-xl p-4 shadow-xl transition-all duration-300 ${cardHoverEffect} relative overflow-hidden`}>
             <div className="relative z-10">
-              <div className="flex items-start gap-8">
+              <div className="flex items-start justify-end w-full">
                 {/* Profile Section - Moved to left */}
-                <div className="relative group flex flex-col items-center">
-                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 rounded-full blur-xl group-hover:blur-2xl transition-all duration-300" />
-                  <Avatar className="w-32 h-32 ring-2 ring-primary/20 shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:ring-primary/30 relative z-10 mb-4">
+                <div className="relative group flex flex-col items-center min-w-0 mr-auto">
+                  <Avatar className="w-20 h-20 ring-2 ring-primary/20 shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:ring-primary/30 relative z-10 mb-3">
                     <AvatarImage src="" />
-                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-4xl font-bold">
-                      <User className="w-14 h-14" />
+                    <AvatarFallback className="bg-gradient-to-br from-primary to-primary/80 text-primary-foreground text-2xl font-bold">
+                      <User className="w-8 h-8" />
                     </AvatarFallback>
                   </Avatar>
 
                   {/* Profile Name and Member Since */}
-                  <div className="mt-6 text-center">
-                    <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent mb-2">
+                  <div className="mt-3 text-center">
+                    <h1 className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent mb-1">
                       Your Profile
                     </h1>
-                    <p className={`${textMuted} text-base flex items-center justify-center gap-2 mb-4`}>
-                      <Calendar className="w-5 h-5" />
+                    <p className={`${textMuted} text-sm flex items-center justify-center gap-2 mb-2`}>
+                      <Calendar className="w-4 h-4" />
                       Member since {new Date(userStats.joinDate).toLocaleDateString()}
                     </p>
                   </div>
                 </div>
 
                 {/* Days Active Card */}
-                <div className="w-[360px] ml-[270px]">
+                <div className="w-[320px] flex-shrink-0 -mr-8">
                   <Card 
                     className={`relative overflow-hidden ${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`}
                     style={{ animationDelay: '100ms' }}
                   >
-                    {/* Enhanced Background Effects */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 opacity-50" />
-                    <div className="absolute -right-6 -top-6 w-32 h-32 bg-blue-500/10 rounded-full blur-xl" />
-                    <div className="absolute -left-6 -bottom-6 w-32 h-32 bg-indigo-500/10 rounded-full blur-xl" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-purple-500/5 rounded-full blur-2xl" />
-                    
                     <CardHeader className="pb-2 relative z-10">
                       <div className="flex items-center justify-between">
                         <CardTitle className={`text-base md:text-lg font-bold ${textMuted} flex items-center gap-2`}>
@@ -891,405 +761,13 @@ const Profile = () => {
                 </div>
 
                 {/* Earnings Section with Notification Button */}
-                <div className="w-[360px]">
+                <div className="w-[280px]">
                   <div className="flex flex-col gap-4">
-                    {/* Notification Button */}
-                    <Dialog>
-                      <DialogTrigger asChild>
-                        <Button variant="outline" className="relative gap-2 w-full">
-                          <Bell className="w-4 h-4" />
-                          Notifications
-                          <span className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center text-[10px] text-white">
-                            3
-                          </span>
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col p-0 bg-gradient-to-br from-background to-background/95 backdrop-blur-sm border border-border/50 shadow-2xl">
-                        <DialogHeader className="flex-shrink-0 p-6 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-b border-border/50">
-                          <div className="flex items-center justify-between">
-                            <DialogTitle className="text-xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent flex items-center gap-2">
-                              <Bell className="w-5 h-5" />
-                              Notifications
-                            </DialogTitle>
-                            <Badge variant="secondary" className="px-3 py-1">
-                              3 New
-                            </Badge>
-                          </div>
-                        </DialogHeader>
-                        <div className="overflow-y-auto pr-2 custom-scrollbar">
-                          <div className="p-6 space-y-6">
-                            {/* Latest Updates */}
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 rounded-xl blur-xl -z-10" />
-                              <h3 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
-                                <BookOpen className="w-4 h-4 text-blue-500" />
-                                Latest Updates
-                              </h3>
-                              <div className="space-y-3">
-                                {[
-                                  {
-                                    type: 'update',
-                                    title: 'New Course Available',
-                                    description: 'Introduction to Machine Learning is now available',
-                                    time: '2 hours ago',
-                                    icon: BookOpen,
-                                    color: 'blue'
-                                  },
-                                  {
-                                    type: 'update',
-                                    title: 'System Maintenance',
-                                    description: 'Platform will be down for maintenance on Sunday',
-                                    time: '5 hours ago',
-                                    icon: Settings,
-                                    color: 'purple'
-                                  }
-                                ].map((notification) => (
-                                  <div 
-                                    key={notification.title} 
-                                    className="group flex gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
-                                  >
-                                    <div className={`p-2.5 rounded-lg bg-${notification.color}-500/10 group-hover:scale-110 transition-transform duration-300`}>
-                                      <notification.icon className={`w-4 h-4 text-${notification.color}-500`} />
-                                    </div>
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm group-hover:text-primary transition-colors duration-300">{notification.title}</p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">{notification.description}</p>
-                                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {notification.time}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Friend Achievements */}
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-gradient-to-r from-green-500/5 via-emerald-500/5 to-teal-500/5 rounded-xl blur-xl -z-10" />
-                              <h3 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
-                                <Users className="w-4 h-4 text-green-500" />
-                                Friend Achievements
-                              </h3>
-                              <div className="space-y-3">
-                                {[
-                                  {
-                                    type: 'achievement',
-                                    friend: 'Sarah Johnson',
-                                    achievement: 'Master Learner',
-                                    description: 'Completed 50+ hours of learning',
-                                    time: '1 hour ago',
-                                    icon: Trophy,
-                                    color: 'green'
-                                  },
-                                  {
-                                    type: 'achievement',
-                                    friend: 'Mike Chen',
-                                    achievement: 'Streak Legend',
-                                    description: 'Maintained a 30-day streak',
-                                    time: '3 hours ago',
-                                    icon: Flame,
-                                    color: 'orange'
-                                  }
-                                ].map((notification) => (
-                                  <div 
-                                    key={notification.achievement} 
-                                    className="group flex gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
-                                  >
-                                    <div className={`p-2.5 rounded-lg bg-${notification.color}-500/10 group-hover:scale-110 transition-transform duration-300`}>
-                                      <notification.icon className={`w-4 h-4 text-${notification.color}-500`} />
-                                    </div>
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm group-hover:text-primary transition-colors duration-300">{notification.friend}</p>
-                                      <p className="text-xs text-primary mt-0.5">{notification.achievement}</p>
-                                      <p className="text-xs text-muted-foreground">{notification.description}</p>
-                                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {notification.time}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Class Achievements */}
-                            <div className="relative">
-                              <div className="absolute inset-0 bg-gradient-to-r from-yellow-500/5 via-amber-500/5 to-orange-500/5 rounded-xl blur-xl -z-10" />
-                              <h3 className="text-sm font-semibold mb-3 text-muted-foreground flex items-center gap-2">
-                                <Award className="w-4 h-4 text-yellow-500" />
-                                Class Achievements
-                              </h3>
-                              <div className="space-y-3">
-                                {[
-                                  {
-                                    type: 'class',
-                                    title: 'Class Milestone',
-                                    description: 'Your class completed 1000+ learning hours',
-                                    time: '6 hours ago',
-                                    icon: Users,
-                                    color: 'yellow'
-                                  },
-                                  {
-                                    type: 'class',
-                                    title: 'Top Performer',
-                                    description: 'Your class ranked #1 in weekly performance',
-                                    time: '1 day ago',
-                                    icon: Award,
-                                    color: 'amber'
-                                  }
-                                ].map((notification) => (
-                                  <div 
-                                    key={notification.title} 
-                                    className="group flex gap-3 p-4 rounded-xl bg-gradient-to-r from-primary/5 to-primary/10 border border-primary/10 hover:border-primary/20 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300"
-                                  >
-                                    <div className={`p-2.5 rounded-lg bg-${notification.color}-500/10 group-hover:scale-110 transition-transform duration-300`}>
-                                      <notification.icon className={`w-4 h-4 text-${notification.color}-500`} />
-                                    </div>
-                                    <div className="flex-1">
-                                      <p className="font-medium text-sm group-hover:text-primary transition-colors duration-300">{notification.title}</p>
-                                      <p className="text-xs text-muted-foreground mt-0.5">{notification.description}</p>
-                                      <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
-                                        <Clock className="w-3 h-3" />
-                                        {notification.time}
-                                      </p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex-shrink-0 p-4 bg-gradient-to-r from-primary/5 via-primary/10 to-primary/5 border-t border-border/50">
-                          <Button 
-                            variant="ghost" 
-                            className="w-full text-sm text-muted-foreground hover:text-primary transition-colors duration-300 flex items-center justify-center gap-2"
-                          >
-                            <CheckCircle className="w-4 h-4" />
-                            Mark all as read
-                          </Button>
-                        </div>
-                      </DialogContent>
-                    </Dialog>
-
-                    {/* Earnings Card */}
-                    <div className={`${cardBg} rounded-lg p-5 shadow-lg transition-all duration-300 hover:scale-[1.02] relative overflow-hidden`}>
-                      {/* Decorative Background Elements */}
-                      <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/5 to-amber-500/5 opacity-50" />
-                      <div className="absolute -right-6 -top-6 w-20 h-20 bg-yellow-400/10 rounded-full blur-lg" />
-                      <div className="absolute -left-6 -bottom-6 w-20 h-20 bg-amber-500/10 rounded-full blur-lg" />
-                      
-                      <div className="relative z-10">
-                        {/* Header */}
-                        <div className="flex items-center justify-between mb-5">
-                          <div>
-                            <p className={`text-sm font-medium ${textMuted} mb-2 flex items-center gap-2`}>
-                              <span className="p-2 rounded-lg bg-yellow-500/10">
-                                <svg className="w-5 h-5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              </span>
-                              Total Coins
-                            </p>
-                            <p className="text-3xl font-bold bg-gradient-to-r from-yellow-400 to-amber-500 bg-clip-text text-transparent">
-                              🪙 {Math.round(userStats.hoursLearning * 100)}
-                            </p>
-                          </div>
-                          <div className="text-right">
-                            <p className={`text-sm font-medium ${textMuted} mb-1`}>This Month</p>
-                            <p className="text-lg font-semibold text-yellow-500">+🪙 {Math.round(userStats.hoursLearning * 20)}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Earnings Breakdown */}
-                        <div className="grid grid-cols-2 gap-3">
-                          {[
-                            {
-                              label: 'Streak Bonus',
-                              rate: '20 coins/hr',
-                              amount: Math.round(userStats.hoursLearning * (userStats.currentStreak > 0 ? 20 : 0)),
-                              icon: '🔥',
-                              color: 'from-orange-500 to-orange-600',
-                              condition: userStats.currentStreak > 0,
-                              description: 'Active streak'
-                            },
-                            {
-                              label: 'Completion',
-                              rate: '30 coins/hr',
-                              amount: Math.round(userStats.hoursLearning * (userStats.problemsSolved > 0 ? 30 : 0)),
-                              icon: '✅',
-                              color: 'from-purple-500 to-purple-600',
-                              condition: userStats.problemsSolved > 0,
-                              description: 'Task reward'
-                            }
-                          ].map((item) => (
-                            <div 
-                              key={item.label}
-                              className={`flex flex-col p-2.5 rounded-lg transition-all duration-300 ${
-                                item.condition === false ? 'opacity-50' : 'hover:bg-primary/5'
-                              }`}
-                            >
-                              <div className="flex items-center gap-2 mb-1">
-                                <span className="text-xl">{item.icon}</span>
-                                <p className={`text-sm font-medium ${textMuted}`}>{item.label}</p>
-                              </div>
-                              <div>
-                                <p className={`text-base font-semibold bg-gradient-to-r ${item.color} bg-clip-text text-transparent`}>
-                                  🪙 {item.amount}
-                                </p>
-                                <p className="text-xs text-muted-foreground">{item.rate}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-
-                        {/* Next Milestone */}
-                        {userStats.hoursLearning < 100 && (
-                          <div className="mt-4 p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
-                            <div className="flex items-center justify-between mb-2">
-                              <div className="flex items-center gap-2">
-                                <span className="text-sm font-medium text-yellow-500">Next Milestone</span>
-                                <Badge variant="outline" className="h-5 px-2 text-xs border-yellow-500/20">
-                                  +🪙 {Math.round((100 - userStats.hoursLearning) * 100)}
-                                </Badge>
-                              </div>
-                              <span className="text-sm font-semibold text-yellow-500">
-                                {Math.round(100 - userStats.hoursLearning)}h to go
-                              </span>
-                            </div>
-                            <div className="h-2 w-full bg-yellow-500/10 rounded-full overflow-hidden">
-                              <div 
-                                className="h-full bg-gradient-to-r from-yellow-400 to-amber-500 rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(100, (userStats.hoursLearning / 100) * 100)}%` }}
-                              />
-                            </div>
-                            <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1.5">
-                              <span className="p-1 rounded bg-yellow-500/10">
-                                <svg className="w-3.5 h-3.5 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-                                </svg>
-                              </span>
-                              Reach 10,000 coins milestone
-                            </p>
-                          </div>
-                        )}
-
-                        {/* Quick Stats */}
-                        <div className="mt-4">
-                          <div className="p-3 rounded-lg bg-yellow-500/5 border border-yellow-500/10">
-                            <p className="text-sm font-medium text-muted-foreground mb-1">Learning Coins</p>
-                            <p className="text-lg font-semibold text-yellow-500">
-                              🪙 {Math.round(userStats.hoursLearning * 100)}
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
                   </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Ranking Box */}
-        <div className="container mx-auto px-4 py-6">
-          <Card 
-            className={`relative overflow-hidden ${cardBg} border-0 shadow-xl rounded-2xl ${cardHoverEffect} animate-fade-in`}
-            style={{ animationDelay: '80ms' }}
-          >
-            {/* Enhanced Background Effects */}
-            <div className="absolute inset-0 bg-gradient-to-br from-yellow-400/10 via-orange-400/10 to-pink-400/10 opacity-50" />
-            <div className="absolute -right-6 -top-6 w-32 h-32 bg-yellow-400/10 rounded-full blur-xl" />
-            <div className="absolute -left-6 -bottom-6 w-32 h-32 bg-pink-400/10 rounded-full blur-xl" />
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-40 h-40 bg-orange-400/5 rounded-full blur-2xl" />
-            <CardHeader className="pb-2 relative z-10">
-              <CardTitle className={`text-lg md:text-xl font-bold ${textMuted} flex items-center gap-2`}>
-                <Crown className={`w-6 h-6 ${theme === 'dark' ? 'text-yellow-400' : 'text-yellow-500'}`} />
-                <span className="bg-gradient-to-r from-yellow-400 to-pink-400 bg-clip-text text-transparent font-semibold">
-                  Your Rankings
-                </span>
-              </CardTitle>
-              <p className="text-xs md:text-sm mt-2 text-muted-foreground">See how you stack up in your branch, section, college, and globally. Rankings are based on your learning time, activity, and completion rate.</p>
-            </CardHeader>
-            <CardContent className="relative z-10">
-              <div className="flex flex-col md:flex-row gap-4 justify-center items-stretch">
-                {[
-                  {
-                    label: 'Branch',
-                    value: rankings.branch,
-                    icon: <Medal className="w-5 h-5" />,
-                    color: 'text-yellow-500',
-                    trend: rankings.trends.branch,
-                    tooltip: 'Your rank among your branch peers.'
-                  },
-                  {
-                    label: 'Section',
-                    value: rankings.section,
-                    icon: <Flame className="w-5 h-5" />,
-                    color: 'text-orange-500',
-                    trend: rankings.trends.section,
-                    tooltip: 'Your rank within your section.'
-                  },
-                  {
-                    label: 'College',
-                    value: rankings.college,
-                    icon: <Rocket className="w-5 h-5" />,
-                    color: 'text-pink-500',
-                    trend: rankings.trends.college,
-                    tooltip: 'Your rank in your college.'
-                  },
-                  {
-                    label: 'Global',
-                    value: rankings.global,
-                    icon: <Globe className="w-5 h-5" />,
-                    color: 'text-purple-500',
-                    trend: rankings.trends.global,
-                    tooltip: 'Your global rank among all users.'
-                  }
-                ].map((rank, idx) => {
-                  // Highlight top 3
-                  const isTop3 = rank.value <= 3;
-                  // Trend icon
-                  const trendIcon = rank.trend > 0 ? <TrendingUp className="w-4 h-4 text-green-500 animate-bounce" /> : rank.trend < 0 ? <TrendingDown className="w-4 h-4 text-red-500 animate-bounce" /> : null;
-                  // Trend text
-                  const trendText = rank.trend > 0 ? `+${rank.trend}` : rank.trend < 0 ? `${rank.trend}` : '0';
-                  // Badge for top 3
-                  const badge = isTop3 ? (
-                    <span className={`ml-2 px-2 py-0.5 rounded-full text-xs font-bold ${idx === 0 ? 'bg-yellow-400/80 text-yellow-900' : idx === 1 ? 'bg-gray-300/80 text-gray-800' : 'bg-amber-700/80 text-amber-100'}`}>{rank.value === 1 ? '🥇' : rank.value === 2 ? '🥈' : '🥉'}</span>
-                  ) : null;
-                  return (
-                    <div key={rank.label} className={`flex-1 min-w-[150px] bg-white/70 dark:bg-slate-900/60 rounded-xl shadow-md border border-border/30 p-4 flex flex-col items-center justify-center relative group transition-all duration-300 hover:scale-105 hover:shadow-xl`}>
-                      {/* Tooltip */}
-                      <div className="absolute top-2 right-2 opacity-70">
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <Info className="w-4 h-4 text-muted-foreground cursor-pointer" />
-                          </TooltipTrigger>
-                          <TooltipContent>{rank.tooltip}</TooltipContent>
-                        </Tooltip>
-                      </div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className={`text-xl ${rank.color}`}>{rank.icon}</span>
-                        <span className="text-sm font-semibold text-muted-foreground">{rank.label}</span>
-                        {badge}
-                      </div>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-3xl md:text-4xl font-extrabold ${rank.color}`}>{rank.value}</span>
-                        {trendIcon}
-                        <span className="text-xs font-medium text-muted-foreground">{trendText}</span>
-                      </div>
-                      <div className="w-full flex flex-col items-center mt-2">
-                        <span className="text-xs text-muted-foreground">Learning Time: <span className="font-bold text-blue-500">{rankings.metrics.learningTime}h</span></span>
-                        <span className="text-xs text-muted-foreground">Active Days: <span className="font-bold text-green-500">{rankings.metrics.activeDays}</span></span>
-                        <span className="text-xs text-muted-foreground">Completion: <span className="font-bold text-purple-500">{rankings.metrics.completionRate}%</span></span>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <div className="container mx-auto px-4 py-8">
@@ -1365,20 +843,17 @@ const Profile = () => {
                               {
                                 condition: userStats.hoursLearning >= 10,
                                 title: 'Dedicated Learner',
-                                description: 'Completed 10+ hours of learning',
-                                reward: '100 coins'
+                                description: 'Completed 10+ hours of learning'
                               },
                               {
                                 condition: userStats.hoursLearning >= 50,
                                 title: 'Master Learner',
-                                description: 'Completed 50+ hours of learning',
-                                reward: '500 coins'
+                                description: 'Completed 50+ hours of learning'
                               },
                               {
                                 condition: userStats.hoursLearning >= 100,
                                 title: 'Grand Master',
-                                description: 'Completed 100+ hours of learning',
-                                reward: '1000 coins'
+                                description: 'Completed 100+ hours of learning'
                               }
                             ].map((award) => (
                               <div 
@@ -1391,7 +866,7 @@ const Profile = () => {
                                     <p className="text-sm text-muted-foreground">{award.description}</p>
                                   </div>
                                   <Badge variant={award.condition ? "default" : "secondary"}>
-                                    {award.reward}
+                                    {award.condition ? 'Achieved' : 'Locked'}
                                   </Badge>
                                 </div>
                               </div>
@@ -1410,20 +885,17 @@ const Profile = () => {
                               {
                                 condition: userStats.problemsSolved >= 5,
                                 title: 'Goal Crusher',
-                                description: 'Completed 5+ learning goals',
-                                reward: '50 coins'
+                                description: 'Completed 5+ learning goals'
                               },
                               {
                                 condition: userStats.problemsSolved >= 20,
                                 title: 'Goal Master',
-                                description: 'Completed 20+ learning goals',
-                                reward: '200 coins'
+                                description: 'Completed 20+ learning goals'
                               },
                               {
                                 condition: userStats.problemsSolved >= 50,
                                 title: 'Goal Legend',
-                                description: 'Completed 50+ learning goals',
-                                reward: '500 coins'
+                                description: 'Completed 50+ learning goals'
                               }
                             ].map((award) => (
                               <div 
@@ -1436,7 +908,7 @@ const Profile = () => {
                                     <p className="text-sm text-muted-foreground">{award.description}</p>
                                   </div>
                                   <Badge variant={award.condition ? "default" : "secondary"}>
-                                    {award.reward}
+                                    {award.condition ? 'Achieved' : 'Locked'}
                                   </Badge>
                                 </div>
                               </div>
@@ -1455,20 +927,17 @@ const Profile = () => {
                               {
                                 condition: userStats.daysActive >= 7,
                                 title: 'Consistency Master',
-                                description: '7+ days of active learning',
-                                reward: '70 coins'
+                                description: '7+ days of active learning'
                               },
                               {
                                 condition: userStats.daysActive >= 30,
                                 title: 'Monthly Warrior',
-                                description: '30+ days of active learning',
-                                reward: '300 coins'
+                                description: '30+ days of active learning'
                               },
                               {
                                 condition: userStats.daysActive >= 100,
                                 title: 'Century Club',
-                                description: '100+ days of active learning',
-                                reward: '1000 coins'
+                                description: '100+ days of active learning'
                               }
                             ].map((award) => (
                               <div 
@@ -1481,7 +950,7 @@ const Profile = () => {
                                     <p className="text-sm text-muted-foreground">{award.description}</p>
                                   </div>
                                   <Badge variant={award.condition ? "default" : "secondary"}>
-                                    {award.reward}
+                                    {award.condition ? 'Achieved' : 'Locked'}
                                   </Badge>
                                 </div>
                               </div>
@@ -1500,20 +969,17 @@ const Profile = () => {
                               {
                                 condition: userStats.currentStreak >= 3,
                                 title: 'Streak Starter',
-                                description: 'Maintained a 3-day streak',
-                                reward: '30 coins'
+                                description: 'Maintained a 3-day streak'
                               },
                               {
                                 condition: userStats.currentStreak >= 7,
                                 title: 'Week Warrior',
-                                description: 'Maintained a 7-day streak',
-                                reward: '100 coins'
+                                description: 'Maintained a 7-day streak'
                               },
                               {
                                 condition: userStats.currentStreak >= 30,
                                 title: 'Streak Legend',
-                                description: 'Maintained a 30-day streak',
-                                reward: '500 coins'
+                                description: 'Maintained a 30-day streak'
                               }
                             ].map((award) => (
                               <div 
@@ -1526,7 +992,7 @@ const Profile = () => {
                                     <p className="text-sm text-muted-foreground">{award.description}</p>
                                   </div>
                                   <Badge variant={award.condition ? "default" : "secondary"}>
-                                    {award.reward}
+                                    {award.condition ? 'Achieved' : 'Locked'}
                                   </Badge>
                                 </div>
                               </div>
@@ -1545,150 +1011,6 @@ const Profile = () => {
           </div>
         </div>
       </div>
-
-      {/* Add Progress Card Button */}
-      <div className="container mx-auto px-4 py-4">
-        <div className="flex justify-end">
-          <Button
-            onClick={generateProgressCard}
-            className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 transition-all duration-300"
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            Share Progress
-          </Button>
-        </div>
-      </div>
-
-      {/* Update Progress Card Dialog */}
-      <Dialog open={showProgressCard} onOpenChange={setShowProgressCard}>
-        <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col p-0">
-          <DialogHeader className="flex-shrink-0 p-6 bg-gradient-to-r from-blue-500/10 to-indigo-500/10 border-b border-border/50">
-            <DialogTitle className="text-2xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent flex items-center gap-2">
-              <Share2 className="w-6 h-6" />
-              Share Your Progress
-            </DialogTitle>
-          </DialogHeader>
-          
-          <div className="overflow-y-auto pr-2 custom-scrollbar">
-            <div id="progress-card" className="bg-white dark:bg-slate-900 rounded-xl p-6 shadow-xl relative">
-              {/* Decorative Elements */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-purple-500/5 rounded-xl" />
-              <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500 rounded-t-xl" />
-              
-              {/* Card Header */}
-              <div className="text-center mb-6 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/10 to-indigo-500/10 rounded-full blur-2xl -z-10" />
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-blue-500 to-indigo-500 bg-clip-text text-transparent mb-2">
-                  {progressCard.platformName}
-                </h2>
-                <p className="text-gray-600 dark:text-gray-400 mb-3">Learning Progress Report</p>
-                <Badge className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white px-4 py-1.5 text-sm font-medium shadow-lg shadow-blue-500/20">
-                  {progressCard.achievements.level} Level
-                </Badge>
-              </div>
-
-              {/* Total Progress Section */}
-              <div className="mb-6 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-indigo-500/5 rounded-xl blur-xl -z-10" />
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                  <Trophy className="w-5 h-5 text-yellow-500" />
-                  Total Progress
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'Watch Time', value: `${progressCard.totalProgress.watchTime}h`, color: 'blue' },
-                    { label: 'Videos Completed', value: progressCard.totalProgress.videosCompleted, color: 'green' },
-                    { label: 'Problems Solved', value: progressCard.totalProgress.problemsSolved, color: 'purple' },
-                    { label: 'Tasks Completed', value: progressCard.totalProgress.todos, color: 'orange' },
-                    { label: 'Current Streak', value: `${progressCard.totalProgress.streak} days`, color: 'yellow' },
-                    { label: 'Total Coins', value: `🪙 ${progressCard.totalProgress.coins}`, color: 'emerald' }
-                  ].map((item) => (
-                    <div 
-                      key={item.label}
-                      className={`bg-${item.color}-50 dark:bg-${item.color}-900/20 p-3 rounded-lg border border-${item.color}-100 dark:border-${item.color}-800/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-${item.color}-500/10`}
-                    >
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.label}</p>
-                      <p className={`text-lg font-bold text-${item.color}-600 dark:text-${item.color}-400`}>
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Monthly Progress Section */}
-              <div className="mb-6 relative">
-                <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-emerald-500/5 rounded-xl blur-xl -z-10" />
-                <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                  <Calendar className="w-5 h-5 text-green-500" />
-                  This Month
-                </h3>
-                <div className="grid grid-cols-2 gap-3">
-                  {[
-                    { label: 'Watch Time', value: `${progressCard.monthlyProgress.watchTime}h`, color: 'blue' },
-                    { label: 'Videos Completed', value: progressCard.monthlyProgress.videosCompleted, color: 'green' },
-                    { label: 'Problems Solved', value: progressCard.monthlyProgress.problemsSolved, color: 'purple' },
-                    { label: 'Tasks Completed', value: progressCard.monthlyProgress.todos, color: 'orange' },
-                    { label: 'Monthly Streak', value: `${progressCard.monthlyProgress.streak} days`, color: 'yellow' },
-                    { label: 'Monthly Coins', value: `🪙 ${progressCard.monthlyProgress.coins}`, color: 'emerald' }
-                  ].map((item) => (
-                    <div 
-                      key={item.label}
-                      className={`bg-${item.color}-50 dark:bg-${item.color}-900/20 p-3 rounded-lg border border-${item.color}-100 dark:border-${item.color}-800/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-lg hover:shadow-${item.color}-500/10`}
-                    >
-                      <p className="text-sm text-gray-600 dark:text-gray-400">{item.label}</p>
-                      <p className={`text-lg font-bold text-${item.color}-600 dark:text-${item.color}-400`}>
-                        {item.value}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Achievements Section */}
-              {progressCard.achievements.badges.length > 0 && (
-                <div className="mb-6 relative">
-                  <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-pink-500/5 rounded-xl blur-xl -z-10" />
-                  <h3 className="text-lg font-semibold mb-3 text-gray-800 dark:text-gray-200 flex items-center gap-2">
-                    <Award className="w-5 h-5 text-purple-500" />
-                    Achievements
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {progressCard.achievements.badges.map((badge) => (
-                      <Badge
-                        key={badge}
-                        className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-3 py-1.5 text-sm font-medium shadow-lg shadow-purple-500/20 transition-all duration-300 hover:scale-105"
-                      >
-                        {badge}
-                      </Badge>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Share Buttons - Fixed at bottom */}
-          <div className="flex-shrink-0 p-6 bg-gradient-to-r from-blue-500/5 to-indigo-500/5 border-t border-border/50">
-            <div className="flex justify-center gap-4">
-              <Button
-                onClick={shareProgressCard}
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 text-white hover:from-blue-600 hover:to-indigo-600 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:scale-105"
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download
-              </Button>
-              <Button
-                onClick={shareProgressCard}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 shadow-lg shadow-green-500/20 transition-all duration-300 hover:scale-105"
-              >
-                <Share className="w-4 h-4 mr-2" />
-                Share
-              </Button>
-            </div>
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

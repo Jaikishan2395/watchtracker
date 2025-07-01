@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Badge } from '../components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Card, CardContent, CardHeader } from '../components/ui/card';
 import { 
   Search, 
   Filter, 
@@ -12,7 +12,6 @@ import {
   Users, 
   Briefcase, 
   MapPin, 
-  Calendar,
   MessageCircle,
   Star,
   ArrowLeft,
@@ -23,6 +22,10 @@ import {
   User
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import PostCoFounderModal, { CoFounderOpportunity } from '../components/PostCoFounderModal';
+import CoFounderOpportunityCard from '../components/CoFounderOpportunityCard';
+import OpportunityDetailModal from '../components/OpportunityDetailModal';
+import { toast } from 'sonner';
 
 interface CoFounder {
   id: number;
@@ -33,7 +36,6 @@ interface CoFounder {
   location: string;
   experience: string;
   skills: string[];
-  interests: string[];
   personalityTraits: string[];
   domains: string[];
   topics: string[];
@@ -68,93 +70,16 @@ const FindCoFounder: React.FC = () => {
   // Bottom navigation state
   const [activeTab, setActiveTab] = useState<'discover' | 'matches' | 'messages' | 'profile'>('discover');
 
+  // Modal state
+  const [showPostModal, setShowPostModal] = useState(false);
+
+  // Opportunities state
+  const [opportunities, setOpportunities] = useState<CoFounderOpportunity[]>([]);
+  const [selectedOpportunity, setSelectedOpportunity] = useState<CoFounderOpportunity | null>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+
   // Mock data for co-founders
-  const [coFounders] = useState<CoFounder[]>([
-    {
-      id: 1,
-      name: "Sarah Chen",
-      avatar: "https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face",
-      title: "Full Stack Developer",
-      company: "TechFlow",
-      location: "San Francisco, CA",
-      experience: "5+ years",
-      skills: ["React", "Node.js", "Python", "AWS", "MongoDB"],
-      interests: ["AI/ML", "FinTech", "EdTech"],
-      personalityTraits: ["Analytical", "Detail-oriented", "Problem-solver", "Team player"],
-      domains: ["Technology", "Education", "Finance"],
-      topics: ["Machine Learning", "Web Development", "Startup Culture", "Innovation"],
-      lookingFor: "Technical co-founder for AI-powered education platform",
-      description: "Passionate developer with experience in building scalable web applications. Looking for a business-minded co-founder to build the next big thing in education technology.",
-      rating: 4.8,
-      projects: 12,
-      connections: 156,
-      isOnline: true,
-      lastActive: "2 minutes ago"
-    },
-    {
-      id: 2,
-      name: "Alex Rodriguez",
-      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face",
-      title: "Product Manager",
-      company: "InnovateCorp",
-      location: "New York, NY",
-      experience: "7+ years",
-      skills: ["Product Strategy", "User Research", "Data Analysis", "Agile"],
-      interests: ["SaaS", "B2B", "Healthcare"],
-      personalityTraits: ["Leadership", "Strategic thinker", "Customer-focused", "Results-driven"],
-      domains: ["Healthcare", "SaaS", "Enterprise"],
-      topics: ["Product Management", "User Experience", "Business Strategy", "Healthcare Tech"],
-      lookingFor: "Technical co-founder for healthcare SaaS platform",
-      description: "Experienced product manager with a track record of launching successful B2B SaaS products. Seeking a technical co-founder to revolutionize healthcare management.",
-      rating: 4.9,
-      projects: 8,
-      connections: 203,
-      isOnline: false,
-      lastActive: "1 hour ago"
-    },
-    {
-      id: 3,
-      name: "Priya Patel",
-      avatar: "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face",
-      title: "UX/UI Designer",
-      company: "DesignHub",
-      location: "Austin, TX",
-      experience: "4+ years",
-      skills: ["Figma", "Adobe Creative Suite", "User Research", "Prototyping"],
-      interests: ["Mobile Apps", "E-commerce", "Social Impact"],
-      personalityTraits: ["Creative", "Empathetic", "User-centered", "Innovative"],
-      domains: ["Design", "E-commerce", "Social Impact"],
-      topics: ["User Experience", "Sustainable Fashion", "Social Entrepreneurship", "Design Thinking"],
-      lookingFor: "Co-founder for sustainable fashion marketplace",
-      description: "Creative designer focused on user-centered design. Passionate about sustainability and looking to build a platform that connects conscious consumers with ethical brands.",
-      rating: 4.7,
-      projects: 15,
-      connections: 89,
-      isOnline: true,
-      lastActive: "5 minutes ago"
-    },
-    {
-      id: 4,
-      name: "Michael Johnson",
-      avatar: "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face",
-      title: "Data Scientist",
-      company: "DataViz",
-      location: "Seattle, WA",
-      experience: "6+ years",
-      skills: ["Python", "Machine Learning", "SQL", "TensorFlow", "Tableau"],
-      interests: ["AI/ML", "Data Analytics", "IoT"],
-      personalityTraits: ["Data-driven", "Curious", "Methodical", "Innovative"],
-      domains: ["Data Science", "IoT", "Analytics"],
-      topics: ["Artificial Intelligence", "Big Data", "Predictive Analytics", "IoT Solutions"],
-      lookingFor: "Business co-founder for IoT analytics platform",
-      description: "Data scientist with expertise in machine learning and predictive analytics. Looking for a business co-founder to build an IoT data analytics platform.",
-      rating: 4.6,
-      projects: 10,
-      connections: 134,
-      isOnline: false,
-      lastActive: "3 hours ago"
-    }
-  ]);
+  const [coFounders] = useState<CoFounder[]>([]);
 
   const availableSkills = [
     "React", "Node.js", "Python", "JavaScript", "TypeScript", "AWS", "MongoDB", "PostgreSQL",
@@ -378,6 +303,41 @@ const FindCoFounder: React.FC = () => {
     // You can add navigation logic here if you want to switch pages
   };
 
+  // Handle posting co-founder opportunity
+  const handlePostOpportunity = async (data: CoFounderOpportunity) => {
+    // Here you would typically send the data to your backend
+    console.log('Posting co-founder opportunity:', data);
+    
+    // For now, we'll just simulate a successful post
+    // In a real app, you would make an API call here
+    return new Promise<void>((resolve) => {
+      setTimeout(() => {
+        // Add the new opportunity to the list
+        const newOpportunity = {
+          ...data,
+          id: Date.now().toString(),
+          createdAt: new Date()
+        };
+        setOpportunities(prev => [newOpportunity, ...prev]);
+        resolve();
+      }, 1000);
+    });
+  };
+
+  // Handle viewing opportunity details
+  const handleViewDetails = (opportunity: CoFounderOpportunity) => {
+    setSelectedOpportunity(opportunity);
+    setShowDetailModal(true);
+  };
+
+  // Handle requesting to join an opportunity
+  const handleRequestToJoin = (opportunity: CoFounderOpportunity) => {
+    // Here you would typically send a request to join
+    console.log('Requesting to join opportunity:', opportunity);
+    // In a real app, you would make an API call here
+    toast.success(`Request sent to join ${opportunity.startupTitle}!`);
+  };
+
   return (
     <>
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 pb-20">
@@ -401,6 +361,7 @@ const FindCoFounder: React.FC = () => {
               </div>
               <Button
                 className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-2 rounded-full font-semibold shadow-lg hover:from-blue-700 hover:to-purple-700 transition-all duration-200"
+                onClick={() => setShowPostModal(true)}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Post Opportunity
@@ -441,7 +402,7 @@ const FindCoFounder: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-green-100 text-sm font-medium">Successful Matches</p>
-                    <p className="text-3xl font-bold">24</p>
+                    <p className="text-3xl font-bold">0</p>
                   </div>
                   <TrendingUp className="w-8 h-8 text-green-200" />
                 </div>
@@ -453,7 +414,7 @@ const FindCoFounder: React.FC = () => {
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-orange-100 text-sm font-medium">Active Projects</p>
-                    <p className="text-3xl font-bold">156</p>
+                    <p className="text-3xl font-bold">0</p>
                   </div>
                   <Lightbulb className="w-8 h-8 text-orange-200" />
                 </div>
@@ -962,6 +923,67 @@ const FindCoFounder: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Opportunities Section */}
+        {opportunities.filter(opp => opp.isPublic).length > 0 && (
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Public Co-Founder Opportunities</h2>
+                <p className="text-gray-600">Latest opportunities from founders looking for co-founders</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {opportunities.filter(opp => opp.isPublic).map((opportunity) => (
+                <CoFounderOpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onViewDetails={handleViewDetails}
+                  onRequestToJoin={handleRequestToJoin}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Private Opportunities Section */}
+        {opportunities.filter(opp => !opp.isPublic).length > 0 && (
+          <div className="mt-12">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">Private Opportunities</h2>
+                <p className="text-gray-600">Your private opportunities (only visible to you)</p>
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {opportunities.filter(opp => !opp.isPublic).map((opportunity) => (
+                <CoFounderOpportunityCard
+                  key={opportunity.id}
+                  opportunity={opportunity}
+                  onViewDetails={handleViewDetails}
+                  onRequestToJoin={handleRequestToJoin}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {opportunities.length === 0 && (
+          <div className="mt-12 text-center py-12">
+            <Lightbulb className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-gray-900 mb-2">No opportunities posted yet</h3>
+            <p className="text-gray-600 mb-4">Be the first to post a co-founder opportunity!</p>
+            <Button 
+              onClick={() => setShowPostModal(true)}
+              className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Post Opportunity
+            </Button>
+          </div>
+        )}
       </div>
       {/* Bottom Navigation Bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-200 shadow-lg md:hidden">
@@ -996,6 +1018,24 @@ const FindCoFounder: React.FC = () => {
           </button>
         </div>
       </nav>
+
+      {/* Post Co-Founder Opportunity Modal */}
+      <PostCoFounderModal
+        isOpen={showPostModal}
+        onClose={() => setShowPostModal(false)}
+        onSubmit={handlePostOpportunity}
+      />
+
+      {/* Opportunity Detail Modal */}
+      <OpportunityDetailModal
+        isOpen={showDetailModal}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedOpportunity(null);
+        }}
+        opportunity={selectedOpportunity}
+        onRequestToJoin={handleRequestToJoin}
+      />
     </>
   );
 };

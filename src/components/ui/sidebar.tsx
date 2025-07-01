@@ -145,7 +145,7 @@ const SidebarProvider = React.forwardRef<
             }
             className={cn(
               "group/sidebar-wrapper flex min-h-svh w-full has-[[data-variant=inset]]:bg-sidebar",
-              "transition-colors duration-[--sidebar-animation-duration]",
+              "sidebar-transition",
               className
             )}
             ref={ref}
@@ -301,7 +301,7 @@ const SidebarTrigger = React.forwardRef<
       className={cn(
         "h-16 w-16 rounded-full p-0 [&>svg]:size-8",
         "hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground",
-        "transition-all duration-[--sidebar-animation-duration]",
+        "sidebar-transition",
         "hover:scale-[--sidebar-hover-scale]",
         "hover:shadow-lg",
         "active:scale-95",
@@ -694,7 +694,7 @@ const SidebarMenuAction = React.forwardRef<
       ref={ref}
       data-sidebar="menu-action"
       className={cn(
-        "absolute right-1 top-1.5 flex aspect-square w-10 items-center justify-center rounded-full p-0 text-sidebar-foreground outline-none ring-sidebar-ring transition-all duration-[--sidebar-animation-duration] hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:scale-110 focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-6 [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:duration-[--sidebar-animation-duration] hover:[&>svg]:scale-110",
+        "absolute right-1 top-1.5 flex aspect-square w-10 items-center justify-center rounded-full p-0 text-sidebar-foreground outline-none ring-sidebar-ring sidebar-transition hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:scale-110 focus-visible:ring-2 peer-hover/menu-button:text-sidebar-accent-foreground [&>svg]:size-6 [&>svg]:shrink-0 [&>svg]:transition-transform [&>svg]:sidebar-transition hover:[&>svg]:scale-110",
         // Increases the hit area of the button on mobile.
         "after:absolute after:-inset-2 after:md:hidden",
         "peer-data-[size=sm]/menu-button:top-1",
@@ -722,7 +722,7 @@ const SidebarMenuBadge = React.forwardRef<
     data-sidebar="menu-badge"
     className={cn(
       "absolute right-1 flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-xs font-medium tabular-nums text-sidebar-foreground select-none pointer-events-none",
-      "transition-all duration-[--sidebar-animation-duration]",
+      "sidebar-transition",
       "peer-hover/menu-button:text-sidebar-accent-foreground peer-data-[active=true]/menu-button:text-sidebar-accent-foreground",
       "peer-data-[size=sm]/menu-button:top-1",
       "peer-data-[size=default]/menu-button:top-1.5",
@@ -783,7 +783,7 @@ const SidebarMenuSub = React.forwardRef<
     data-sidebar="menu-sub"
     className={cn(
       "mx-3.5 flex min-w-0 translate-x-px flex-col gap-1.5 border-l border-sidebar-border/50 px-2.5 py-1",
-      "transition-all duration-[--sidebar-animation-duration]",
+      "sidebar-transition",
       "group-data-[collapsible=icon]:hidden",
       className
     )}
@@ -815,7 +815,7 @@ const SidebarMenuSubButton = React.forwardRef<
       data-size={size}
       data-active={isActive}
       className={cn(
-        "flex h-8 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring transition-all duration-[--sidebar-animation-duration] hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:scale-[--sidebar-hover-scale] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground [&>svg]:transition-transform [&>svg]:duration-[--sidebar-animation-duration] hover:[&>svg]:scale-110",
+        "flex h-8 min-w-0 -translate-x-px items-center gap-2 overflow-hidden rounded-md px-2 text-sidebar-foreground outline-none ring-sidebar-ring sidebar-transition hover:bg-sidebar-accent/80 hover:text-sidebar-accent-foreground hover:scale-[--sidebar-hover-scale] focus-visible:ring-2 active:bg-sidebar-accent active:text-sidebar-accent-foreground disabled:pointer-events-none disabled:opacity-50 aria-disabled:pointer-events-none aria-disabled:opacity-50 [&>span:last-child]:truncate [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-sidebar-accent-foreground [&>svg]:transition-transform [&>svg]:sidebar-transition hover:[&>svg]:scale-110",
         "data-[active=true]:bg-sidebar-accent data-[active=true]:text-sidebar-accent-foreground data-[active=true]:shadow-sm data-[active=true]:scale-[--sidebar-hover-scale]",
         size === "sm" && "text-xs",
         size === "md" && "text-sm",

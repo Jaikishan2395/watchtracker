@@ -162,6 +162,22 @@ const PlaylistCard = ({ playlist, onDelete, delay = 0, readOnly = false }: Playl
             src={playlist.thumbnail}
             alt={playlist.title}
             className="w-full h-full object-cover"
+            onError={(e) => {
+              // Fallback to a default thumbnail or gradient background
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              target.parentElement!.style.background = 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)';
+              target.parentElement!.innerHTML += `
+                <div class="absolute inset-0 flex items-center justify-center">
+                  <div class="text-center text-white">
+                    <svg class="w-16 h-16 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                    <p class="text-sm font-medium">${playlist.title}</p>
+                  </div>
+                </div>
+              `;
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         </div>

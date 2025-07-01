@@ -170,21 +170,6 @@ interface Flashcard {
   reviewCount: number;
 }
 
-// Add new interfaces for code IDE
-interface CodeFile {
-  id: string;
-  name: string;
-  language: string;
-  content: string;
-  timestamp: number;
-}
-
-interface CodeExecutionResult {
-  output: string;
-  error?: string;
-  executionTime: number;
-}
-
 const formatDuration = (minutes: number) => {
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
@@ -413,22 +398,16 @@ const VideoPlayer = () => {
   const recognitionRef = useRef<SpeechRecognition | null>(null);
 
   // Add new state variables for code IDE
-  const [showCodeIDE, setShowCodeIDE] = useState(false);
-  const [codeFiles, setCodeFiles] = useState<CodeFile[]>([]);
-  const [currentFile, setCurrentFile] = useState<CodeFile | null>(null);
-  const [selectedLanguage, setSelectedLanguage] = useState('javascript');
-  const [executionResult, setExecutionResult] = useState<CodeExecutionResult | null>(null);
-  const [isExecuting, setIsExecuting] = useState(false);
-  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
-  const [activeTab, setActiveTab] = useState<'chat' | 'notes' | 'code'>('chat');
+  // Remove Code IDE interfaces and state
+  // Remove: const [showFloatingCode, setShowFloatingCode] = useState(false);
+  // Remove any JSX that renders the floating Code IDE window
+  // Remove any interfaces, types, or comments specifically for the Code IDE
 
   // Add these state variables after the existing state declarations
   const [showFloatingChat, setShowFloatingChat] = useState(false);
   const [showFloatingNotes, setShowFloatingNotes] = useState(false);
-  const [showFloatingCode, setShowFloatingCode] = useState(false);
   const [chatWindowPosition, setChatWindowPosition] = useState({ x: 50, y: 50 });
   const [notesWindowPosition, setNotesWindowPosition] = useState({ x: 150, y: 50 });
-  const [codeWindowPosition, setCodeWindowPosition] = useState({ x: 250, y: 50 });
 
   const [stopwatchTime, setStopwatchTime] = useState(0);
   const [isStopwatchRunning, setIsStopwatchRunning] = useState(false);
@@ -2015,149 +1994,6 @@ const VideoPlayer = () => {
     }
   };
 
-  // Add code execution handler
-  const handleExecuteCode = async () => {
-    if (!currentFile) return;
-
-    setIsExecuting(true);
-    setExecutionResult(null);
-
-    try {
-      const startTime = performance.now();
-      let result: CodeExecutionResult;
-
-      // Handle web languages (HTML, CSS, JavaScript) in iframe
-      if (['html', 'css', 'javascript'].includes(currentFile.language)) {
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        document.body.appendChild(iframe);
-        
-        const doc = iframe.contentDocument || iframe.contentWindow?.document;
-        if (doc) {
-          doc.open();
-          doc.write(currentFile.content);
-          doc.close();
-        }
-
-        result = {
-          output: 'Web code rendered successfully',
-          executionTime: performance.now() - startTime
-        };
-
-        document.body.removeChild(iframe);
-      } else {
-        // Map Monaco editor language IDs to Piston language IDs
-        const languageMap: { [key: string]: string } = {
-          'python': 'python',
-          'java': 'java',
-          'cpp': 'cpp',
-          'csharp': 'csharp',
-          'php': 'php',
-          'ruby': 'ruby',
-          'go': 'go',
-          'rust': 'rust',
-          'sql': 'sql',
-          'typescript': 'typescript'
-        };
-
-        const pistonLanguage = languageMap[currentFile.language];
-        if (!pistonLanguage) {
-          throw new Error(`Language ${currentFile.language} is not supported for execution`);
-        }
-
-        // Prepare the code for execution
-        const code = currentFile.content;
-        let stdin = '';
-
-        // Add specific handling for different languages
-        let classNameMatch: RegExpMatchArray | null = null;
-
-        switch (currentFile.language) {
-          case 'java':
-            // Extract class name from code
-            classNameMatch = code.match(/public\s+class\s+(\w+)/);
-            if (classNameMatch) {
-              const className = classNameMatch[1];
-              // Ensure the file name matches the class name
-              if (currentFile.name !== `${className}.java`) {
-                setCurrentFile({
-                  ...currentFile,
-                  name: `${className}.java`
-                });
-              }
-            }
-            break;
-          case 'cpp':
-            // Add basic input handling for C++
-            if (!code.includes('cin')) {
-              stdin = '5\n'; // Default input if no cin is used
-            }
-            break;
-          case 'python':
-            // Add basic input handling for Python
-            if (code.includes('input(')) {
-              stdin = '5\n'; // Default input if input() is used
-            }
-            break;
-        }
-
-        // Execute code using Piston API
-        const response = await fetch(PISTON_API_URL, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            language: pistonLanguage,
-            version: '*', // Use latest version
-            files: [{
-              name: currentFile.name,
-              content: code
-            }],
-            stdin: stdin
-          }),
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to execute code');
-        }
-
-        const data = await response.json();
-        
-        result = {
-          output: data.run.output || '',
-          error: data.run.stderr || data.run.error || '',
-          executionTime: performance.now() - startTime
-        };
-      }
-
-      setExecutionResult(result);
-    } catch (error) {
-      setExecutionResult({
-        output: '',
-        error: error instanceof Error ? error.message : 'An error occurred',
-        executionTime: 0
-      });
-    } finally {
-      setIsExecuting(false);
-    }
-  };
-
-  // Add effect to create initial code file
-  useEffect(() => {
-    if (activeTab === 'code' && codeFiles.length === 0) {
-      const initialFile: CodeFile = {
-        id: Date.now().toString(),
-        name: 'main.js',
-        language: 'javascript',
-        content: '// Write your code here\nconsole.log("Hello, World!");',
-        timestamp: Date.now()
-      };
-      setCodeFiles([initialFile]);
-      setCurrentFile(initialFile);
-    }
-  }, [activeTab, codeFiles.length]);
-
   // Add these functions after the existing functions
   const startStopwatch = () => {
     if (!isStopwatchRunning) {
@@ -2351,6 +2187,185 @@ const VideoPlayer = () => {
 
   const [isFrozen, setIsFrozen] = useState(false);
 
+  // Place these at the top of VideoPlayer component, after other useState/useRef
+  const chatRef = useRef<HTMLDivElement>(null);
+  const [chatPos, setChatPos] = useState<{ x: number; y: number }>({ x: window.innerWidth - 432, y: window.innerHeight - 532 });
+  const [dragging, setDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!dragging) return;
+      setChatPos({
+        x: Math.min(Math.max(e.clientX - dragOffset.x, 0), window.innerWidth - 400),
+        y: Math.min(Math.max(e.clientY - dragOffset.y, 0), window.innerHeight - 80),
+      });
+    };
+    const handleMouseUp = () => setDragging(false);
+    if (dragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [dragging, dragOffset]);
+
+  // Add state for floating notes window position and dragging
+  const notesRef = useRef<HTMLDivElement>(null);
+  const [notesPos, setNotesPos] = useState<{ x: number; y: number }>({ x: window.innerWidth - 900, y: window.innerHeight - 532 });
+  const [notesDragging, setNotesDragging] = useState(false);
+  const [notesDragOffset, setNotesDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [noteInput, setNoteInput] = useState('');
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!notesDragging) return;
+      setNotesPos({
+        x: Math.min(Math.max(e.clientX - notesDragOffset.x, 0), window.innerWidth - 400),
+        y: Math.min(Math.max(e.clientY - notesDragOffset.y, 0), window.innerHeight - 80),
+      });
+    };
+    const handleMouseUp = () => setNotesDragging(false);
+    if (notesDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [notesDragging, notesDragOffset]);
+
+  // Add state for Pomodoro
+  const [showPomodoro, setShowPomodoro] = useState(false);
+  const [pomodoroPos, setPomodoroPos] = useState<{ x: number; y: number }>({ x: window.innerWidth - 1350, y: window.innerHeight - 532 });
+  const [pomodoroDragging, setPomodoroDragging] = useState(false);
+  const [pomodoroDragOffset, setPomodoroDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [workDuration, setWorkDuration] = useState(25);
+  const [breakDuration, setBreakDuration] = useState(5);
+  const [isWork, setIsWork] = useState(true);
+  const [pomodoroTime, setPomodoroTime] = useState(25 * 60);
+  const [pomodoroRunning, setPomodoroRunning] = useState(false);
+  const pomodoroRef = useRef<HTMLDivElement>(null);
+  const pomodoroInterval = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (pomodoroRunning) {
+      pomodoroInterval.current = setInterval(() => {
+        setPomodoroTime(prev => {
+          if (prev > 0) return prev - 1;
+          setIsWork(w => !w);
+          return isWork ? breakDuration * 60 : workDuration * 60;
+        });
+      }, 1000);
+    } else if (pomodoroInterval.current) {
+      clearInterval(pomodoroInterval.current);
+    }
+    return () => {
+      if (pomodoroInterval.current) clearInterval(pomodoroInterval.current);
+    };
+  }, [pomodoroRunning, isWork, workDuration, breakDuration]);
+
+  useEffect(() => {
+    if (isWork) setPomodoroTime(workDuration * 60);
+    else setPomodoroTime(breakDuration * 60);
+  }, [workDuration, breakDuration, isWork, showPomodoro]);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!pomodoroDragging) return;
+      setPomodoroPos({
+        x: Math.min(Math.max(e.clientX - pomodoroDragOffset.x, 0), window.innerWidth - 320),
+        y: Math.min(Math.max(e.clientY - pomodoroDragOffset.y, 0), window.innerHeight - 80),
+      });
+    };
+    const handleMouseUp = () => setPomodoroDragging(false);
+    if (pomodoroDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [pomodoroDragging, pomodoroDragOffset]);
+
+  function formatPomodoroTime(t: number) {
+    const m = Math.floor(t / 60).toString().padStart(2, '0');
+    const s = (t % 60).toString().padStart(2, '0');
+    return `${m}:${s}`;
+  }
+
+  // Add state for Ask AI popup
+  const [showAskAI, setShowAskAI] = useState(false);
+  const [askAIPos, setAskAIPos] = useState<{ x: number; y: number }>({ x: window.innerWidth - 900, y: window.innerHeight - 600 });
+  const [askAIDragging, setAskAIDragging] = useState(false);
+  const [askAIDragOffset, setAskAIDragOffset] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
+  const [aiQuestion, setAIQuestion] = useState('');
+  const [aiAnswer, setAIAnswer] = useState('');
+  const [aiLoading, setAILoading] = useState(false);
+  const askAIRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!askAIDragging) return;
+      setAskAIPos({
+        x: Math.min(Math.max(e.clientX - askAIDragOffset.x, 0), window.innerWidth - 400),
+        y: Math.min(Math.max(e.clientY - askAIDragOffset.y, 0), window.innerHeight - 80),
+      });
+    };
+    const handleMouseUp = () => setAskAIDragging(false);
+    if (askAIDragging) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [askAIDragging, askAIDragOffset]);
+
+  // Fix Gemini API answer extraction
+  async function handleAskAI() {
+    if (!aiQuestion.trim()) return;
+    setAILoading(true);
+    setAIAnswer('');
+    try {
+      const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=AIzaSyBwZB2vM8bFAY8sQ6nok5YoRlz2_zalQwo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: aiQuestion }] }]
+        })
+      });
+      const data = await res.json();
+      // Try to extract the answer from multiple possible locations
+      let answer = '';
+      if (data?.candidates?.[0]?.content?.parts?.[0]?.text) {
+        answer = data.candidates[0].content.parts[0].text;
+      } else if (data?.candidates?.[0]?.content?.text) {
+        answer = data.candidates[0].content.text;
+      } else if (data?.candidates?.[0]?.output) {
+        answer = data.candidates[0].output;
+      } else if (data?.candidates?.[0]?.content) {
+        answer = typeof data.candidates[0].content === 'string' ? data.candidates[0].content : JSON.stringify(data.candidates[0].content);
+      } else if (data?.candidates?.[0]) {
+        answer = JSON.stringify(data.candidates[0]);
+      } else {
+        answer = 'No answer received.';
+      }
+      setAIAnswer(answer);
+    } catch (e) {
+      setAIAnswer('Error contacting AI.');
+    }
+    setAILoading(false);
+  }
+
+  // Move this to the top of the VideoPlayer component, after other useRef/useState
+  const videoListsRef = useRef<HTMLDivElement>(null);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -2530,55 +2545,42 @@ const VideoPlayer = () => {
         </div>
       )}
       <div className="container mx-auto px-4 py-8">
-        {/* Enhanced Header */}
-        <div className="mb-8 animate-fade-in">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
+        <div className="flex items-center justify-between mb-8">
               {playlist && (
                 <Button
                   variant="outline"
                   onClick={() => navigate(`/playlist/${playlist.id}`)}
-                  className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200"
+              className="bg-black text-white rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black flex items-center gap-2"
+              style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                 >
-                  <ArrowLeft className="w-4 h-4 mr-2" />
+              <ArrowLeft className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
                   Back to Playlist
                 </Button>
               )}
-              <div className="text-2xl font-bold text-gray-800 dark:text-white">WatchMap</div>
-            </div>
-          </div>
-          
-          <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-xl p-6 shadow-lg border border-white/20 dark:border-slate-700/50 mt-6">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-              <div className="space-y-2">
-                <p className="text-gray-600 dark:text-slate-300">
-              Video {currentVideoIndex + 1} of {playlist.videos.length}
-            </p>
-            
-                <div className="flex items-center gap-4 text-sm">
-              <div className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
-                <CheckCircle className="w-4 h-4 text-green-600 dark:text-green-400" />
-                <span>{completedVideos}/{playlist.videos.length} completed</span>
-              </div>
-              <div className="flex items-center gap-1 text-gray-600 dark:text-slate-300">
-                <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                <span>Overall Progress: {Math.round(totalProgress)}%</span>
-                  </div>
-              </div>
-            </div>
-
               <Button
                 variant="outline"
-                onClick={() => setShowAllVideos(!showAllVideos)}
-                className="bg-white/70 hover:bg-white/90 dark:bg-slate-700/70 dark:hover:bg-slate-700/90 dark:text-slate-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200"
-              >
-                <List className="w-4 h-4 mr-2" />
-                {showAllVideos ? 'Hide ' : 'Show '}
+                onClick={() => {
+                  setShowAllVideos(!showAllVideos);
+                  if (!showAllVideos) {
+                    setTimeout(() => {
+                      videoListsRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }
+                }}
+            className="bg-black text-white rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black flex items-center gap-2"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
+          >
+            <List className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
+            {showAllVideos ? 'Hide' : 'Show'}
+          </Button>
+          <Button
+            onClick={() => setShowAskAI(true)}
+            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-bold px-6 py-2 shadow-md border border-blue-600 transition-all duration-200 hover:bg-white hover:text-blue-600 hover:border-blue-600 flex items-center gap-2 ml-2"
+            style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.10)' }}
+          >
+            Ask AI
               </Button>
             </div>
-          </div>
-        </div>
-
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Enhanced Video Player Section */}
           <div className="xl:col-span-3 space-y-6">
@@ -2725,21 +2727,25 @@ const VideoPlayer = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           {/* Quality, Volume and Speed Controls - Improved Design */}
-                          <div className="flex items-center gap-4 bg-gray-100 dark:bg-slate-700 rounded-lg px-3 py-2 shadow-inner border border-gray-200 dark:border-slate-600">
+                          <div className="flex items-center gap-5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-full px-6 py-3 shadow-2xl border border-blue-200 dark:border-blue-900/40 ring-1 ring-blue-100 dark:ring-blue-900/30" style={{boxShadow:'0 8px 32px 0 rgba(31,38,135,0.15)'}}> 
                             {/* Quality */}
                             <div className="flex items-center gap-2 group relative">
-                              <span className="text-xs text-gray-500 dark:text-gray-300 mr-1">Quality</span>
-                              <VideoIcon className="w-5 h-5 text-yellow-500" />
+                              <div className="relative">
+                                <button
+                                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 font-bold shadow-md hover:scale-105 hover:shadow-lg hover:bg-yellow-200 dark:hover:bg-yellow-800/60 transition-all duration-200 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
+                                  title="Video Quality"
+                                  tabIndex={0}
+                                >
+                                  <VideoIcon className="w-6 h-6" />
                               <select
                                 id="video-quality"
-                                className="rounded border-gray-300 dark:border-slate-600 px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-yellow-400 transition-all shadow-sm"
+                                    className="appearance-none bg-transparent border-none outline-none text-base font-bold cursor-pointer rounded-full px-2 py-1 focus:ring-2 focus:ring-yellow-400 transition-all"
                                 value={selectedQuality}
                                 onChange={e => {
                                   const quality = e.target.value;
                                   setSelectedQuality(quality);
                                   if (playerRef.current && typeof playerRef.current.setPlaybackQuality === 'function') {
                                     playerRef.current.setPlaybackQuality(quality);
-                                    // Confirm the change after a short delay
                                     setTimeout(() => {
                                       const actual = playerRef.current?.getPlaybackQuality?.() || quality;
                                       setSelectedQuality(actual);
@@ -2756,14 +2762,20 @@ const VideoPlayer = () => {
                                 <option value="hd720">720p</option>
                                 <option value="hd1080">1080p</option>
                               </select>
-                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none transition-opacity">Set video quality</span>
+                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-yellow-600 dark:text-yellow-200"><svg width="16" height="16" fill="currentColor"><path d="M4 6l4 4 4-4"/></svg></span>
+                                </button>
+                                <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-yellow-600 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">Change video quality</span>
                             </div>
-                            {/* Divider */}
-                            <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-700 mx-2" />
+                            </div>
                             {/* Volume */}
                             <div className="flex items-center gap-2 group relative">
-                              <span className="text-xs text-gray-500 dark:text-gray-300 mr-1">Volume</span>
-                              <Volume2 className="w-5 h-5 text-blue-500" />
+                              <div className="relative">
+                                <button
+                                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 font-bold shadow-md hover:scale-105 hover:shadow-lg hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-all duration-200 focus:ring-2 focus:ring-blue-400 focus:outline-none"
+                                  title="Volume"
+                                  tabIndex={0}
+                                >
+                                  <Volume2 className="w-6 h-6" />
                               <input
                                 type="range"
                                 min={0}
@@ -2776,21 +2788,26 @@ const VideoPlayer = () => {
                                     playerRef.current.setVolume(newVolume);
                                   }
                                 }}
-                                className="w-24 h-2 accent-blue-500 cursor-pointer rounded-lg bg-gray-200 dark:bg-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                                    className="w-28 accent-blue-500 cursor-pointer rounded-full bg-gray-200 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
                                 title="Volume"
                               />
-                              <span className="ml-2 text-xs text-gray-500 dark:text-gray-300 w-8 text-right">{volume}%</span>
-                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none transition-opacity">Adjust volume</span>
+                                  <span className="ml-2 text-base font-bold text-blue-700 dark:text-blue-200 w-10 text-right">{volume}%</span>
+                                </button>
+                                <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-blue-700 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">Adjust volume</span>
                             </div>
-                            {/* Divider */}
-                            <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-700 mx-2" />
+                            </div>
                             {/* Speed */}
                             <div className="flex items-center gap-2 group relative">
-                              <span className="text-xs text-gray-500 dark:text-gray-300 mr-1">Speed</span>
-                              <Code className="w-5 h-5 text-purple-500" />
+                              <div className="relative">
+                                <button
+                                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 font-bold shadow-md hover:scale-105 hover:shadow-lg hover:bg-purple-200 dark:hover:bg-purple-800/60 transition-all duration-200 focus:ring-2 focus:ring-purple-400 focus:outline-none"
+                                  title="Playback Speed"
+                                  tabIndex={0}
+                                >
+                                  <Code className="w-6 h-6" />
                               <select
                                 id="playback-speed"
-                                className="rounded border-gray-300 dark:border-slate-600 px-2 py-1 text-sm bg-white dark:bg-slate-800 text-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-all shadow-sm"
+                                    className="appearance-none bg-transparent border-none outline-none text-base font-bold cursor-pointer rounded-full px-2 py-1 focus:ring-2 focus:ring-purple-400 transition-all"
                                 defaultValue={1}
                                 onChange={e => {
                                   const speed = Number(e.target.value);
@@ -2804,19 +2821,24 @@ const VideoPlayer = () => {
                                 <option value={1.5}>1.5x</option>
                                 <option value={2}>2x</option>
                               </select>
-                              <span className="absolute -top-8 left-1/2 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-gray-800 text-white text-xs rounded px-2 py-1 pointer-events-none transition-opacity">Change playback speed</span>
+                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-200"><svg width="16" height="16" fill="currentColor"><path d="M4 6l4 4 4-4"/></svg></span>
+                                </button>
+                                <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-purple-700 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">Change playback speed</span>
                             </div>
-                            {/* Divider */}
-                            <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-500 dark:to-gray-700 mx-2" />
-                            <Button
-                              variant="ghost"
-                              size="icon"
+                            </div>
+                            {/* Fullscreen */}
+                            <div className="relative group">
+                              <button
                               onClick={handleToggleFullscreen}
                               title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-                              className="hover:bg-blue-100 dark:hover:bg-slate-700"
-                            >
-                              {isFullscreen ? <Minimize2 className="w-5 h-5 text-blue-600" /> : <Maximize2 className="w-5 h-5 text-blue-600" />}
-                            </Button>
+                                className="flex items-center gap-2 px-5 py-2 rounded-full bg-blue-600 text-white font-extrabold shadow-lg hover:scale-110 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all duration-200 group-hover:animate-none"
+                                style={{ minWidth: 54 }}
+                              >
+                                {isFullscreen ? <Minimize2 className="w-7 h-7" /> : <Maximize2 className="w-7 h-7" />}
+                                <span className="hidden sm:inline text-base">{isFullscreen ? 'Exit' : 'Full'} Screen</span>
+                              </button>
+                              <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-blue-700 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -2848,36 +2870,27 @@ const VideoPlayer = () => {
                     <div className="flex items-center justify-center gap-4">
                       <Button
                         onClick={() => setShowFloatingChat(!showFloatingChat)}
-                        className={`px-6 py-2 rounded-full shadow-lg transition-all duration-300 ${
-                          showFloatingChat
-                            ? 'bg-gradient-to-r from-blue-500 to-indigo-500 text-white'
-                            : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
-                        }`}
+                        className={`rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 flex items-center gap-2 bg-black text-white hover:bg-white hover:text-black hover:border-black`}
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                       >
-                        <MessageSquare className="w-5 h-5 mr-2" />
+                        <MessageSquare className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
                         Chat Room
                       </Button>
                       <Button
                         onClick={() => setShowFloatingNotes(!showFloatingNotes)}
-                        className={`px-6 py-2 rounded-full shadow-lg transition-all duration-300 ${
-                          showFloatingNotes
-                            ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white'
-                            : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
-                        }`}
+                        className={`rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 flex items-center gap-2 bg-black text-white hover:bg-white hover:text-black hover:border-black`}
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                       >
-                        <StickyNote className="w-5 h-5 mr-2" />
+                        <StickyNote className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
                         Notes
                       </Button>
                       <Button
-                        onClick={() => setShowFloatingCode(!showFloatingCode)}
-                        className={`px-6 py-2 rounded-full shadow-lg transition-all duration-300 ${
-                          showFloatingCode
-                            ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white'
-                            : 'bg-white/80 dark:bg-slate-800/80 text-gray-700 dark:text-gray-200'
-                        }`}
+                        onClick={() => setShowPomodoro(!showPomodoro)}
+                        className="rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 flex items-center gap-2 bg-black text-white hover:bg-white hover:text-black hover:border-black"
+                        style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
                       >
-                        <Code className="w-5 h-5 mr-2" />
-                        Code IDE
+                        <Timer className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
+                        Pomodoro
                       </Button>
                     </div>
                   </div>
@@ -2885,331 +2898,22 @@ const VideoPlayer = () => {
               </CardContent>
             </Card>
           </div>
-
-          {/* Floating Feature Windows */}
-          {showFloatingChat && (
-            <div
-              className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 w-[400px] h-[500px] z-50"
-              style={{
-                left: `${chatWindowPosition.x}px`,
-                top: `${chatWindowPosition.y}px`,
-              }}
-            >
-              <div 
-                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 cursor-move"
-                onMouseDown={(e) => {
-                  const startX = e.clientX - chatWindowPosition.x;
-                  const startY = e.clientY - chatWindowPosition.y;
-
-                  const handleMouseMove = (e: MouseEvent) => {
-                    setChatWindowPosition({
-                      x: e.clientX - startX,
-                      y: e.clientY - startY
-                    });
-                  };
-
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }}
-              >
-                <h3 className="font-semibold text-gray-800 dark:text-white">Chat Room</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowFloatingChat(false)}
-                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+          {/* Remove the sidebar video lists here */}
               </div>
-              <div className="flex flex-col h-[calc(100%-4rem)]">
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className="space-y-4">
-                    {filteredMessages.map((message) => (
-                      <div key={message.id} className="flex items-start gap-2">
-                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
-                          {message.userId[0]}
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{message.username}</p>
-                          <p className="text-sm text-gray-600 dark:text-gray-300">{message.content}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-4 border-t border-gray-200 dark:border-slate-700">
-                  <div className="flex gap-2">
-                    <Input
-                      value={newMessage}
-                      onChange={(e) => setNewMessage(e.target.value)}
-                      placeholder="Type a message..."
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter' && !e.shiftKey) {
-                          e.preventDefault();
-                          handleSendMessage();
-                        }
-                      }}
-                    />
-                    <Button onClick={handleSendMessage}>
-                      <Send className="w-5 h-5" />
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showFloatingNotes && (
-            <div
-              className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 w-[400px] h-[500px] z-50"
-              style={{
-                left: `${notesWindowPosition.x}px`,
-                top: `${notesWindowPosition.y}px`,
-              }}
-            >
-              <div 
-                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 cursor-move"
-                onMouseDown={(e) => {
-                  const startX = e.clientX - notesWindowPosition.x;
-                  const startY = e.clientY - notesWindowPosition.y;
-
-                  const handleMouseMove = (e: MouseEvent) => {
-                    setNotesWindowPosition({
-                      x: e.clientX - startX,
-                      y: e.clientY - startY
-                    });
-                  };
-
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }}
-              >
-                <h3 className="font-semibold text-gray-800 dark:text-white">Notes</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowFloatingNotes(false)}
-                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex flex-col h-[calc(100%-4rem)]">
-                <div className="flex-1 p-4 overflow-y-auto">
-                  <div className="space-y-4">
-                    {notes.map((note) => (
-                      <div key={note.id} className="p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                        <p className="text-sm text-gray-600 dark:text-gray-300">{note.content}</p>
-                        {note.images && note.images.length > 0 && (
-                          <div className="mt-2 flex gap-2 overflow-x-auto">
-                            {note.images.map((image, index) => (
-                              <img
-                                key={index}
-                                src={image}
-                                alt={`Note image ${index + 1}`}
-                                className="h-20 w-20 object-cover rounded"
-                              />
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <div className="p-4 border-t border-gray-200 dark:border-slate-700">
-                  <div className="space-y-4">
-                    <div className="flex gap-2">
-                      <Input
-                        value={currentNote}
-                        onChange={(e) => setCurrentNote(e.target.value)}
-                        placeholder="Write a note..."
-                        onPaste={handlePaste}
-                      />
-                      <Button onClick={addNote}>
-                        <Save className="w-5 h-5 mr-2" />
-                        Save
-                      </Button>
-                    </div>
-                    <div className="flex gap-2">
-                      <Input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleImageUpload}
-                        className="hidden"
-                        id="note-image-upload"
-                      />
-                      <Label
-                        htmlFor="note-image-upload"
-                        className="flex-1 cursor-pointer"
-                      >
-                        <div className="flex items-center justify-center gap-2 p-2 border border-dashed border-gray-300 dark:border-slate-600 rounded-lg hover:bg-gray-50 dark:hover:bg-slate-700">
-                          <Image className="w-5 h-5" />
-                          <span>Add Images</span>
-                        </div>
-                      </Label>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {showFloatingCode && (
-            <div
-              className="fixed bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-gray-200 dark:border-slate-700 w-[600px] h-[500px] z-50"
-              style={{
-                left: `${codeWindowPosition.x}px`,
-                top: `${codeWindowPosition.y}px`,
-              }}
-            >
-              <div 
-                className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-slate-700 cursor-move"
-                onMouseDown={(e) => {
-                  const startX = e.clientX - codeWindowPosition.x;
-                  const startY = e.clientY - codeWindowPosition.y;
-
-                  const handleMouseMove = (e: MouseEvent) => {
-                    setCodeWindowPosition({
-                      x: e.clientX - startX,
-                      y: e.clientY - startY
-                    });
-                  };
-
-                  const handleMouseUp = () => {
-                    document.removeEventListener('mousemove', handleMouseMove);
-                    document.removeEventListener('mouseup', handleMouseUp);
-                  };
-
-                  document.addEventListener('mousemove', handleMouseMove);
-                  document.addEventListener('mouseup', handleMouseUp);
-                }}
-              >
-                <h3 className="font-semibold text-gray-800 dark:text-white">Code IDE</h3>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowFloatingCode(false)}
-                  className="h-8 w-8 hover:bg-gray-100 dark:hover:bg-slate-700"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-              <div className="flex flex-col h-[calc(100%-4rem)]">
-                <div className="flex-1">
-                  <Editor
-                    height="100%"
-                    defaultLanguage="javascript"
-                    language={currentFile?.language || 'javascript'}
-                    value={currentFile?.content || ''}
-                    onChange={(value) => {
-                      if (currentFile) {
-                        setCurrentFile({
-                          ...currentFile,
-                          content: value || ''
-                        });
-                      }
-                    }}
-                    onMount={(editor) => {
-                      editorRef.current = editor;
-                    }}
-                    options={{
-                      minimap: { enabled: false },
-                      fontSize: 14,
-                      wordWrap: 'on',
-                      lineNumbers: 'on',
-                      scrollBeyondLastLine: false,
-                      automaticLayout: true,
-                      theme: isDarkMode ? 'vs-dark' : 'light'
-                    }}
-                  />
-                </div>
-                <div className="p-4 border-t border-gray-200 dark:border-slate-700">
-                  <div className="flex items-center justify-between">
-                    <Select
-                      value={currentFile?.language || 'javascript'}
-                      onValueChange={(value) => {
-                        if (currentFile) {
-                          setCurrentFile({
-                            ...currentFile,
-                            language: value
-                          });
-                        }
-                      }}
-                    >
-                      <SelectTrigger className="w-[140px]">
-                        <SelectValue placeholder="Language" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="javascript">JavaScript</SelectItem>
-                        <SelectItem value="typescript">TypeScript</SelectItem>
-                        <SelectItem value="python">Python</SelectItem>
-                        <SelectItem value="java">Java</SelectItem>
-                        <SelectItem value="cpp">C++</SelectItem>
-                        <SelectItem value="csharp">C#</SelectItem>
-                        <SelectItem value="php">PHP</SelectItem>
-                        <SelectItem value="ruby">Ruby</SelectItem>
-                        <SelectItem value="go">Go</SelectItem>
-                        <SelectItem value="rust">Rust</SelectItem>
-                        <SelectItem value="sql">SQL</SelectItem>
-                        <SelectItem value="html">HTML</SelectItem>
-                        <SelectItem value="css">CSS</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Button
-                      onClick={handleExecuteCode}
-                      disabled={isExecuting}
-                      className="bg-green-600 hover:bg-green-700 text-white"
-                    >
-                      {isExecuting ? 'Running...' : 'Run Code'}
-                    </Button>
-                  </div>
-                  {executionResult && (
-                    <div className="mt-4 p-4 bg-gray-50 dark:bg-slate-700 rounded-lg">
-                      <h4 className="font-medium mb-2">Output:</h4>
-                      <pre className="text-sm whitespace-pre-wrap">
-                        {executionResult.output}
-                      </pre>
-                      {executionResult.error && (
-                        <>
-                          <h4 className="font-medium mt-4 mb-2 text-red-600">Error:</h4>
-                          <pre className="text-sm text-red-600 whitespace-pre-wrap">
-                            {executionResult.error}
-                          </pre>
-                        </>
-                      )}
-                      <p className="text-xs text-gray-500 mt-2">
-                        Execution time: {executionResult.executionTime.toFixed(2)}ms
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-
+        {/* Move the video lists to the bottom, horizontally */}
+          <div ref={videoListsRef} />
           {showAllVideos && (
-            <div className="space-y-6">
-              {/* Uncompleted Videos */}
+          <div className="mt-12">
+            <div className="flex flex-col gap-8">
+              {/* Uncompleted Videos Horizontal List */}
               {uncompletedVideos.length > 0 && (
-                <div className="space-y-2">
+                <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Uncompleted Videos</h3>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
                     {uncompletedVideos.map((video, index) => (
                       <div 
                         key={video.id} 
-                        className="relative group cursor-pointer"
+                        className="relative group cursor-pointer min-w-[220px] max-w-[220px]"
                         onClick={() => selectVideo(playlist.videos.indexOf(video))}
                       >
                         <div className="relative aspect-video rounded-lg overflow-hidden">
@@ -3229,21 +2933,23 @@ const VideoPlayer = () => {
                             {playlist.videos.indexOf(video) + 1}/{playlist.videos.length}
                           </div>
                         </div>
+                        <div className="mt-2 text-xs text-gray-700 dark:text-gray-200 font-medium truncate text-center">
+                          {video.title}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
-
-              {/* Completed Videos */}
+              {/* Completed Videos Horizontal List */}
               {completedVideosList.length > 0 && (
-                <div className="space-y-2">
+                <div>
                   <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-3">Completed Videos</h3>
-                  <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+                  <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
                     {completedVideosList.map((video, index) => (
                       <div
                         key={video.id}
-                        className="relative group cursor-pointer"
+                        className="relative group cursor-pointer min-w-[220px] max-w-[220px]"
                         onClick={() => selectVideo(playlist.videos.indexOf(video))}
                       >
                         <div className="relative aspect-video rounded-lg overflow-hidden">
@@ -3267,7 +2973,7 @@ const VideoPlayer = () => {
                           </div>
                           <button
                             className="absolute bottom-2 right-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md z-10 hover:bg-red-700 transition-colors"
-                            onClick={(e) => {
+                            onClick={e => {
                               e.stopPropagation();
                               updateVideoProgress(video.id, 0);
                               toast.success('Video reset to uncompleted status.');
@@ -3276,15 +2982,356 @@ const VideoPlayer = () => {
                             Reset
                           </button>
                         </div>
+                        <div className="mt-2 text-xs text-gray-700 dark:text-gray-200 font-medium truncate text-center">
+                          {video.title}
+                        </div>
                       </div>
                     ))}
                   </div>
                 </div>
               )}
             </div>
+            </div>
           )}
         </div>
+      {/* Floating Chat Window */}
+      {showFloatingChat && (
+        <div
+          ref={chatRef}
+          style={{
+            position: 'fixed',
+            left: chatPos.x,
+            top: chatPos.y,
+            width: 400,
+            maxWidth: '90vw',
+            height: 500,
+            maxHeight: '80vh',
+            background: 'white',
+            borderRadius: 24,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            userSelect: dragging ? 'none' : 'auto',
+            cursor: dragging ? 'grabbing' : 'default',
+          }}
+        >
+          <div
+            className="flex items-center justify-between px-4 py-3 bg-black text-white rounded-t-2xl cursor-move select-none"
+            onMouseDown={e => {
+              setDragging(true);
+              const rect = chatRef.current?.getBoundingClientRect();
+              setDragOffset({
+                x: e.clientX - (rect?.left ?? 0),
+                y: e.clientY - (rect?.top ?? 0),
+              });
+            }}
+          >
+            <span className="font-bold text-lg">Chat Room</span>
+            <button
+              onClick={() => setShowFloatingChat(false)}
+              className="text-white hover:text-red-400 text-xl font-bold focus:outline-none"
+              title="Close Chat"
+            >
+              ×
+            </button>
       </div>
+          <div className="flex-1 overflow-y-auto px-4 py-2 bg-gray-50">
+            {/* Chat messages go here */}
+            {chatMessages.length === 0 ? (
+              <div className="text-gray-400 text-center mt-16">No messages yet. Start the conversation!</div>
+            ) : (
+              chatMessages.map(msg => (
+                <div key={msg.id} className="mb-3">
+                  <div className="font-semibold text-sm text-gray-700">{msg.username}</div>
+                  <div className="text-gray-800 bg-white rounded-lg px-3 py-2 shadow-sm inline-block">{msg.content}</div>
+                  <div className="text-xs text-gray-400 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</div>
+                </div>
+              ))
+            )}
+          </div>
+          <form
+            className="flex items-center border-t border-gray-200 px-3 py-2 bg-white"
+            onSubmit={e => {
+              e.preventDefault();
+              if (!newMessage.trim()) return;
+              addMessage({
+                id: Date.now().toString(),
+                userId: 'user1',
+                username: 'You',
+                content: newMessage,
+                timestamp: Date.now(),
+                type: 'text',
+                reactions: {},
+              });
+              setNewMessage('');
+            }}
+          >
+            <input
+              type="text"
+              className="flex-1 rounded-full border border-gray-300 px-4 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              placeholder="Type a message..."
+              value={newMessage}
+              onChange={e => setNewMessage(e.target.value)}
+              autoFocus
+            />
+            <button
+              type="submit"
+              className="bg-black text-white rounded-full px-4 py-2 font-bold hover:bg-gray-900 transition"
+            >
+              Send
+            </button>
+          </form>
+        </div>
+      )}
+      {/* Floating Notes Window */}
+      {showFloatingNotes && (
+        <div
+          ref={notesRef}
+          style={{
+            position: 'fixed',
+            left: notesPos.x,
+            top: notesPos.y,
+            width: 400,
+            maxWidth: '90vw',
+            height: 500,
+            maxHeight: '80vh',
+            background: 'white',
+            borderRadius: 24,
+            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            userSelect: notesDragging ? 'none' : 'auto',
+            cursor: notesDragging ? 'grabbing' : 'default',
+          }}
+        >
+          <div
+            className="flex items-center justify-between px-4 py-3 bg-black text-white rounded-t-2xl cursor-move select-none"
+            onMouseDown={e => {
+              setNotesDragging(true);
+              const rect = notesRef.current?.getBoundingClientRect();
+              setNotesDragOffset({
+                x: e.clientX - (rect?.left ?? 0),
+                y: e.clientY - (rect?.top ?? 0),
+              });
+            }}
+          >
+            <span className="font-bold text-lg">Notes</span>
+            <button
+              onClick={() => setShowFloatingNotes(false)}
+              className="text-white hover:text-red-400 text-xl font-bold focus:outline-none"
+              title="Close Notes"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-2 bg-gray-50">
+            {notes.filter(n => n.videoId === currentVideo?.id).length === 0 ? (
+              <div className="text-gray-400 text-center mt-16">No notes yet. Add your first note!</div>
+            ) : (
+              notes.filter(n => n.videoId === currentVideo?.id).map(note => (
+                <div key={note.id} className="mb-4 p-3 bg-white rounded-lg shadow border border-gray-200 flex justify-between items-start">
+                  <div>
+                    <div className="text-gray-700 mb-1">{note.content}</div>
+                    <div className="text-xs text-gray-400">{new Date(note.timestamp).toLocaleTimeString()}</div>
+                  </div>
+                  <button
+                    className="ml-2 text-red-500 hover:text-red-700 text-lg font-bold"
+                    title="Delete Note"
+                    onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
+                  >
+                    ×
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+          <form
+            className="flex items-center border-t border-gray-200 px-3 py-2 bg-white"
+            onSubmit={e => {
+              e.preventDefault();
+              if (!noteInput.trim() || !currentVideo) return;
+              setNotes(prev => [
+                ...prev,
+                {
+                  id: Date.now().toString(),
+                  content: noteInput,
+                  timestamp: Date.now(),
+                  videoId: currentVideo.id,
+                  videoTitle: currentVideo.title,
+                },
+              ]);
+              setNoteInput('');
+            }}
+          >
+            <textarea
+              className="flex-1 rounded-full border border-gray-300 px-4 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+              placeholder="Add a note..."
+              value={noteInput}
+              onChange={e => setNoteInput(e.target.value)}
+              rows={1}
+              style={{ minHeight: 36, maxHeight: 80 }}
+            />
+            <button
+              type="submit"
+              className="bg-green-600 text-white rounded-full px-4 py-2 font-bold hover:bg-green-700 transition"
+            >
+              Add Note
+            </button>
+          </form>
+        </div>
+      )}
+      {/* Floating Pomodoro Window */}
+      {showPomodoro && (
+        <div
+          ref={pomodoroRef}
+          style={{
+            position: 'fixed',
+            left: pomodoroPos.x,
+            top: pomodoroPos.y,
+            width: 320,
+            maxWidth: '90vw',
+            height: 320,
+            background: 'white',
+            borderRadius: 24,
+            boxShadow: '0 8px 32px rgba(220,38,38,0.15)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            userSelect: pomodoroDragging ? 'none' : 'auto',
+            cursor: pomodoroDragging ? 'grabbing' : 'default',
+          }}
+        >
+          <div
+            className="flex items-center justify-between px-4 py-3 bg-red-600 text-white rounded-t-2xl cursor-move select-none"
+            onMouseDown={e => {
+              setPomodoroDragging(true);
+              const rect = pomodoroRef.current?.getBoundingClientRect();
+              setPomodoroDragOffset({
+                x: e.clientX - (rect?.left ?? 0),
+                y: e.clientY - (rect?.top ?? 0),
+              });
+            }}
+          >
+            <span className="font-bold text-lg">Pomodoro</span>
+            <button
+              onClick={() => setShowPomodoro(false)}
+              className="text-white hover:text-yellow-200 text-xl font-bold focus:outline-none"
+              title="Close Pomodoro"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
+            <div className="text-5xl font-extrabold text-red-600 mb-2">{formatPomodoroTime(pomodoroTime)}</div>
+            <div className="mb-4">
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${isWork ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'}`}>{isWork ? 'Work' : 'Break'}</span>
+            </div>
+            <div className="flex gap-2 mb-4">
+              <button
+                onClick={() => setPomodoroRunning(r => !r)}
+                className="px-4 py-2 rounded-full bg-red-600 text-white font-bold shadow hover:bg-red-700 transition"
+              >
+                {pomodoroRunning ? 'Pause' : 'Start'}
+              </button>
+              <button
+                onClick={() => { setPomodoroRunning(false); setPomodoroTime(isWork ? workDuration * 60 : breakDuration * 60); }}
+                className="px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-bold shadow hover:bg-gray-300 transition"
+              >
+                Reset
+              </button>
+            </div>
+            <div className="flex gap-2 items-center">
+              <label className="text-xs font-semibold text-gray-600">Work</label>
+              <input
+                type="number"
+                min={1}
+                max={120}
+                value={workDuration}
+                onChange={e => setWorkDuration(Number(e.target.value))}
+                className="w-12 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+              />
+              <label className="text-xs font-semibold text-gray-600 ml-2">Break</label>
+              <input
+                type="number"
+                min={1}
+                max={60}
+                value={breakDuration}
+                onChange={e => setBreakDuration(Number(e.target.value))}
+                className="w-12 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Floating Ask AI Window */}
+      {showAskAI && (
+        <div
+          ref={askAIRef}
+          style={{
+            position: 'fixed',
+            left: askAIPos.x,
+            top: askAIPos.y,
+            width: 400,
+            maxWidth: '90vw',
+            height: 340,
+            background: 'white',
+            borderRadius: 24,
+            boxShadow: '0 8px 32px rgba(59,130,246,0.15)',
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            userSelect: askAIDragging ? 'none' : 'auto',
+            cursor: askAIDragging ? 'grabbing' : 'default',
+          }}
+        >
+          <div
+            className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-2xl cursor-move select-none"
+            onMouseDown={e => {
+              setAskAIDragging(true);
+              const rect = askAIRef.current?.getBoundingClientRect();
+              setAskAIDragOffset({
+                x: e.clientX - (rect?.left ?? 0),
+                y: e.clientY - (rect?.top ?? 0),
+              });
+            }}
+          >
+            <span className="font-bold text-lg flex items-center">Ask AI</span>
+            <button
+              onClick={() => setShowAskAI(false)}
+              className="text-white hover:text-yellow-200 text-xl font-bold focus:outline-none"
+              title="Close Ask AI"
+            >
+              ×
+            </button>
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 px-4 py-2">
+            <textarea
+              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none mb-2"
+              rows={2}
+              placeholder="Ask anything..."
+              value={aiQuestion}
+              onChange={e => setAIQuestion(e.target.value)}
+              disabled={aiLoading}
+            />
+            <button
+              onClick={handleAskAI}
+              disabled={aiLoading || !aiQuestion.trim()}
+              className="w-full rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-2 mt-1 shadow hover:from-blue-600 hover:to-purple-700 transition disabled:opacity-60"
+            >
+              {aiLoading ? 'Thinking...' : 'Ask'}
+            </button>
+            <div className="w-full mt-4 p-3 rounded-lg bg-white border border-gray-200 min-h-[60px] text-gray-800 text-sm overflow-y-auto" style={{ maxHeight: 100 }}>
+              {aiAnswer}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

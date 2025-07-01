@@ -80,19 +80,28 @@ const AcceleratorLibrary = () => {
   const noop = () => undefined;
 
   useEffect(() => {
-    // Ensure the playlist is in localStorage for PlaylistDetail
+    // Ensure the playlists are in localStorage for PlaylistDetail
     const key = 'youtubePlaylists';
     let playlists: Playlist[] = [];
     try {
       const stored = localStorage.getItem(key);
       if (stored) playlists = JSON.parse(stored);
-    } catch {}
+    } catch (error) {
+      console.error('Error parsing playlists from localStorage:', error);
+    }
+    
+    // Add Y Combinator playlist if not exists
     if (!playlists.find(p => p.id === ycLecturePlaylist.id)) {
       playlists.push(ycLecturePlaylist);
-      localStorage.setItem(key, JSON.stringify(playlists));
     }
+    
+    localStorage.setItem(key, JSON.stringify(playlists));
+    
     // Load all video playlists, but only show Y Combinator
-    setVideoPlaylists(playlists.filter(p => p.type === 'video' && p.id === ycLecturePlaylist.id));
+    setVideoPlaylists(playlists.filter(p => 
+      p.type === 'video' && 
+      p.id === ycLecturePlaylist.id
+    ));
   }, []);
 
   // Add, delete, and update logic would go here

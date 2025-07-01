@@ -1823,16 +1823,6 @@ const Classroom: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 py-12 px-4 md:px-8 flex flex-col items-center">
       <div className="w-full max-w-6xl relative">
-        {/* BridgeLab Button - Top Right */}
-        <div className="absolute top-0 right-0 mt-4 mr-4 z-20">
-          <Button
-            className="flex items-center justify-center rounded-full p-0 w-20 h-20 bg-gradient-to-r from-yellow-500 to-orange-400 text-white shadow-xl hover:from-yellow-600 hover:to-orange-500 transition-all duration-300"
-            onClick={() => navigate('/bridgelab')}
-            aria-label="BridgeLab"
-          >
-            <img src={BridgeLabLogo} alt="BridgeLab Logo" className="h-16 w-16 object-contain" />
-          </Button>
-        </div>
         {/* Status Feature (moved above top-right controls) */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">

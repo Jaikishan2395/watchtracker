@@ -48,7 +48,8 @@ const COLLEGES_LIST = [
   "Axis Institute of Technology and Science (AITS)",
   "Axis Institute of Technology and Management (AITM)",
   "Subhash Institute of Software Technology",
-  "United Institute of Designing"
+  "United Institute of Designing",
+  "Other"
 ];
 
 const COLLEGE_COURSES: Record<string, string[]> = {
@@ -348,20 +349,6 @@ const COLLEGE_COURSES: Record<string, string[]> = {
   ]
 };
 
-const COUNTRIES = [
-  "India",
-  "United States",
-  "United Kingdom",
-  "Canada",
-  "Australia",
-  "Germany",
-  "France",
-  "Japan",
-  "China",
-  "Singapore",
-  "Other"
-];
-
 const STUDENT_TYPES = [
   { value: "college", label: "College Student" },
   { value: "school", label: "School Student" },
@@ -369,45 +356,6 @@ const STUDENT_TYPES = [
   { value: "self_employed", label: "Self-employed" },
   { value: "job_seeker", label: "Job Seeker" },
   { value: "other", label: "Other" }
-];
-
-const INDIAN_STATES = [
-  "Andhra Pradesh",
-  "Arunachal Pradesh",
-  "Assam",
-  "Bihar",
-  "Chhattisgarh",
-  "Goa",
-  "Gujarat",
-  "Haryana",
-  "Himachal Pradesh",
-  "Jharkhand",
-  "Karnataka",
-  "Kerala",
-  "Madhya Pradesh",
-  "Maharashtra",
-  "Manipur",
-  "Meghalaya",
-  "Mizoram",
-  "Nagaland",
-  "Odisha",
-  "Punjab",
-  "Rajasthan",
-  "Sikkim",
-  "Tamil Nadu",
-  "Telangana",
-  "Tripura",
-  "Uttar Pradesh",
-  "Uttarakhand",
-  "West Bengal",
-  "Andaman and Nicobar Islands",
-  "Chandigarh",
-  "Dadra and Nagar Haveli and Daman and Diu",
-  "Delhi",
-  "Jammu and Kashmir",
-  "Ladakh",
-  "Lakshadweep",
-  "Puducherry"
 ];
 
 const COLLEGE_YEARS = [
@@ -428,8 +376,6 @@ interface FormErrors {
   email?: string;
   password?: string;
   confirmPassword?: string;
-  state?: string;
-  country?: string;
   studentType?: string;
   schoolName?: string;
   companyName?: string;
@@ -438,6 +384,7 @@ interface FormErrors {
   course?: string;
   section?: string;
   year?: string;
+  customCollegeName?: string;
 }
 
 interface FormData {
@@ -446,8 +393,6 @@ interface FormData {
   gender: Gender;
   password: string;
   confirmPassword: string;
-  state: string;
-  country: string;
   studentType: StudentType;
   schoolName: string;
   companyName: string;
@@ -456,11 +401,7 @@ interface FormData {
   course: string;
   section: string;
   year: CollegeYear;
-  jobPreparation: {
-    government: boolean;
-    private: boolean;
-    specificExams: string[];
-  };
+  customCollegeName: string;
 }
 
 interface PasswordStrength {
@@ -561,6 +502,11 @@ const VALIDATION_RULES: Record<string, ValidationRule[]> = {
   ],
   section: [
     { validate: (v) => /^[A-Za-z0-9]$/.test(v), message: 'Section should be a single letter or number' }
+  ],
+  customCollegeName: [
+    { validate: (v) => v.length >= 3, message: 'College name must be at least 3 characters' },
+    { validate: (v) => v.length <= 100, message: 'College name must be less than 100 characters' },
+    { validate: (v) => /^[a-zA-Z\s\-&,().]*$/.test(v), message: 'College name can only contain letters, spaces, hyphens, ampersands, commas, parentheses, and dots' }
   ]
 };
 
@@ -628,8 +574,6 @@ export default function CreateAccount() {
     gender: 'male',
     password: '',
     confirmPassword: '',
-    state: '',
-    country: '',
     studentType: 'college',
     schoolName: '',
     companyName: '',
@@ -638,11 +582,7 @@ export default function CreateAccount() {
     course: '',
     section: '',
     year: 'First Year',
-    jobPreparation: {
-      government: false,
-      private: false,
-      specificExams: []
-    }
+    customCollegeName: ''
   });
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -699,14 +639,31 @@ export default function CreateAccount() {
     const newErrors: FormErrors = {};
     let isValid = true;
 
+    // Define optional fields that should be skipped if empty
+    const optionalFields: (keyof FormData)[] = ['institutionName', 'course', 'section', 'year', 'customCollegeName'];
+
     // Validate all fields
     (Object.keys(formData) as Array<keyof FormData>).forEach((key) => {
-      if (key !== 'jobPreparation') {
-        const error = validateFieldWithRules(key as keyof FormData, formData[key] as string);
-        if (!error.isValid) {
-          newErrors[key] = error.message;
+      const value = formData[key] as string;
+      
+      // Skip validation for optional fields if they're empty
+      if (optionalFields.includes(key) && !value.trim()) {
+        return;
+      }
+      
+      // Special validation for customCollegeName - required when "Other" is selected
+      if (key === 'customCollegeName' && formData.institutionName === 'Other') {
+        if (!value.trim()) {
+          newErrors[key] = 'College name is required when selecting "Other"';
           isValid = false;
+          return;
         }
+      }
+      
+      const error = validateFieldWithRules(key as keyof FormData, value);
+      if (!error.isValid) {
+        newErrors[key] = error.message;
+        isValid = false;
       }
     });
 
@@ -718,7 +675,8 @@ export default function CreateAccount() {
     setFormData(prev => ({
       ...prev,
       institutionName: value,
-      course: ''
+      course: '',
+      customCollegeName: value === 'Other' ? prev.customCollegeName : ''
     }));
   };
 
@@ -753,16 +711,6 @@ export default function CreateAccount() {
       
       return newData;
     });
-  };
-
-  const handleCheckboxChange = (type: 'government' | 'private') => {
-    setFormData(prev => ({
-      ...prev,
-      jobPreparation: {
-        ...prev.jobPreparation,
-        [type]: !prev.jobPreparation[type]
-      }
-    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -1063,7 +1011,7 @@ export default function CreateAccount() {
                       <div className="space-y-1.5 group relative">
                         <Label htmlFor="institutionName" className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors flex items-center gap-1">
                           <span>College Name</span>
-                          <span className="text-blue-500">*</span>
+                          <span className="text-xs text-gray-400">(Optional)</span>
                         </Label>
                         <Select
                           value={formData.institutionName}
@@ -1086,7 +1034,53 @@ export default function CreateAccount() {
                         </Select>
                       </div>
 
-                      {formData.institutionName && (
+                      {formData.institutionName === 'Other' && (
+                        <div className="space-y-1.5 group relative">
+                          <Label htmlFor="customCollegeName" className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors flex items-center gap-1">
+                            <span>Enter College Name</span>
+                            <span className="text-blue-500">*</span>
+                          </Label>
+                          <div className="relative">
+                            <Input
+                              id="customCollegeName"
+                              name="customCollegeName"
+                              type="text"
+                              placeholder="Enter your college name"
+                              value={formData.customCollegeName}
+                              onChange={handleFieldChange}
+                              onFocus={() => handleFieldFocus('customCollegeName')}
+                              onBlur={() => handleFieldBlur('customCollegeName')}
+                              required
+                              className={`h-9 transition-all duration-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/50 backdrop-blur-sm pr-10 dark:text-black ${
+                                errors.customCollegeName ? 'border-red-500 focus:border-red-500 focus:ring-red-500/50' :
+                                validationStatus.customCollegeName?.isValid ? 'border-green-500 focus:border-green-500 focus:ring-green-500/50' : ''
+                              }`}
+                            />
+                            {validationStatus.customCollegeName && (
+                              <div className="absolute right-2 top-1/2 -translate-y-1/2">
+                                {validationStatus.customCollegeName.isValid ? (
+                                  <CheckCircle className="h-4 w-4 text-green-500" />
+                                ) : (
+                                  <XCircle className="h-4 w-4 text-red-500" />
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          {fieldFocus === 'customCollegeName' && !validationStatus.customCollegeName?.isValid && (
+                            <div className="mt-1 p-2 bg-red-50 border border-red-100 rounded-md">
+                              <p className="text-xs text-red-600 flex items-center gap-1">
+                                <Info className="h-3.5 w-3.5" />
+                                {validationStatus.customCollegeName?.message}
+                              </p>
+                            </div>
+                          )}
+                          {errors.customCollegeName && (
+                            <p className="text-sm text-red-500 mt-1">{errors.customCollegeName}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {formData.institutionName && formData.institutionName !== 'Other' && (
                         <div className="space-y-1.5 group relative">
                           <Label htmlFor="course" className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors flex items-center gap-1">
                             <span>Course</span>
@@ -1144,95 +1138,6 @@ export default function CreateAccount() {
                     </div>
                   </div>
                 )}
-
-                <div className="col-span-2 mt-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div className="space-y-1.5 group relative">
-                      <Label htmlFor="state" className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors flex items-center gap-1">
-                        <span>State</span>
-                        <span className="text-blue-500">*</span>
-                      </Label>
-                      <Select
-                        value={formData.state}
-                        onValueChange={(value) => handleSelectChange('state', value)}
-                      >
-                        <SelectTrigger className="h-9 transition-all duration-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/50 backdrop-blur-sm dark:text-black">
-                          <SelectValue placeholder="Select your state" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-sm border border-gray-100 shadow-lg max-h-[300px]">
-                          {INDIAN_STATES.map((state) => (
-                            <SelectItem 
-                              key={state} 
-                              value={state}
-                              className="focus:bg-blue-50 dark:text-black"
-                            >
-                              {state}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-1.5 group relative">
-                      <Label htmlFor="country" className="text-sm font-medium text-gray-700 group-focus-within:text-blue-600 transition-colors flex items-center gap-1">
-                        <span>Country</span>
-                        <span className="text-blue-500">*</span>
-                      </Label>
-                      <Select
-                        value={formData.country}
-                        onValueChange={(value) => handleSelectChange('country', value)}
-                      >
-                        <SelectTrigger className="h-9 transition-all duration-200 focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 bg-white/50 backdrop-blur-sm dark:text-black">
-                          <SelectValue placeholder="Select your country" />
-                        </SelectTrigger>
-                        <SelectContent className="bg-white/95 backdrop-blur-sm border border-gray-100 shadow-lg">
-                          {COUNTRIES.map((country) => (
-                            <SelectItem 
-                              key={country} 
-                              value={country}
-                              className="focus:bg-blue-50 dark:text-black"
-                            >
-                              {country}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="col-span-2 mt-4">
-                  <div className="space-y-4 pt-6 border-t border-gray-100">
-                    <Label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                      <span>Job Preparation Preferences</span>
-                      <span className="text-xs text-gray-400">(Optional)</span>
-                    </Label>
-                    <div className="flex gap-8 p-4 bg-gray-50/50 rounded-lg backdrop-blur-sm">
-                      <div className="flex items-center space-x-3 group">
-                        <Checkbox
-                          id="government"
-                          checked={formData.jobPreparation.government}
-                          onCheckedChange={() => handleCheckboxChange('government')}
-                          className="transition-colors duration-200 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 h-5 w-5"
-                        />
-                        <Label htmlFor="government" className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors cursor-pointer select-none">
-                          Government Exams
-                        </Label>
-                      </div>
-                      <div className="flex items-center space-x-3 group">
-                        <Checkbox
-                          id="private"
-                          checked={formData.jobPreparation.private}
-                          onCheckedChange={() => handleCheckboxChange('private')}
-                          className="transition-colors duration-200 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600 h-5 w-5"
-                        />
-                        <Label htmlFor="private" className="text-sm text-gray-600 group-hover:text-gray-900 transition-colors cursor-pointer select-none">
-                          Private Sector Exams
-                        </Label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
               </div>
             </CardContent>
           </div>
