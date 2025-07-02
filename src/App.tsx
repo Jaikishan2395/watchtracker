@@ -33,6 +33,7 @@ import { PlaylistProvider } from '@/context/PlaylistContext';
 import { Button } from "@/components/ui/button";
 import Shorts from "./pages/Shorts";
 import LearningTrack from "./pages/learningtrack";
+import { ArrowLeft } from "lucide-react";
 
 const queryClient = new QueryClient();
 
@@ -160,7 +161,8 @@ const PlaylistDetailWrapper = () => {
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
           <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-          <Button onClick={() => navigate('/library')} className="mt-4">
+          <Button onClick={() => navigate('/library')} className="mt-10 px-6 py-2 rounded-full bg-white text-black border border-black shadow-lg flex items-center gap-2 text-lg font-semibold hover:bg-black hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black">
+            <ArrowLeft className="w-6 h-6 mr-2 text-black group-hover:text-white transition-colors" />
             Back to Library
           </Button>
         </div>

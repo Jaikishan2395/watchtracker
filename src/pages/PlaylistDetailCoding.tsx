@@ -178,7 +178,8 @@ const PlaylistDetailCoding = () => {
         <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
           <CardContent className="py-8 text-center">
             <p className="text-gray-800 dark:text-gray-100">Playlist not found</p>
-            <Button onClick={() => navigate('/library')} className="mt-4">
+            <Button onClick={() => navigate('/library')} className="mt-10 px-6 py-2 rounded-full bg-white text-black border border-black shadow-lg flex items-center gap-2 text-lg font-semibold hover:bg-black hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black">
+              <ArrowLeft className="w-6 h-6 mr-2 text-black group-hover:text-white transition-colors" />
               Back to Library
             </Button>
           </CardContent>
@@ -216,9 +217,9 @@ const PlaylistDetailCoding = () => {
           <Button
             variant="ghost"
             onClick={() => navigate('/library')}
-            className="mb-4 hover:bg-white/50 dark:hover:bg-slate-800/50 text-gray-700 dark:text-gray-300 transition-colors duration-200"
+            className="mt-10 mb-4 px-6 py-2 rounded-full bg-white text-black border border-black shadow-lg flex items-center gap-2 text-lg font-semibold hover:bg-black hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-6 h-6 mr-2 text-black group-hover:text-white transition-colors" />
             Back to Library
           </Button>
           

@@ -188,11 +188,12 @@ const LearningTrack = () => {
       <div className="absolute top-6 left-6 z-30">
         <Button
           variant="ghost"
-          size="icon"
+          size="lg"
           onClick={() => navigate('/library')}
-          className="rounded-full bg-white/80 shadow hover:bg-blue-100 transition-colors"
+          className="mt-10 rounded-full bg-white text-black border border-black shadow-lg flex items-center gap-2 text-lg font-semibold hover:bg-black hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black px-6 py-2"
         >
-          <ArrowLeft className="w-6 h-6 text-blue-600" />
+          <ArrowLeft className="w-6 h-6 mr-2 text-black group-hover:text-white transition-colors" />
+          Back to Library
         </Button>
       </div>
       {/* Hero/Header Section */}

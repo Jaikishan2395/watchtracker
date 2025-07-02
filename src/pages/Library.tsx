@@ -130,6 +130,17 @@ const Library = () => {
   const videoPlaylists = filteredPlaylists.filter(playlist => playlist.type === 'video');
   const codingPlaylists = filteredPlaylists.filter(playlist => playlist.type === 'coding');
 
+  // 1. Add a new filtered list for completed playlists
+  const completedPlaylists = filteredPlaylists.filter(playlist => {
+    if (playlist.type === 'video') {
+      return playlist.videos && playlist.videos.length > 0 && playlist.videos.every(v => v.progress >= 100);
+    }
+    if (playlist.type === 'coding') {
+      return playlist.codingQuestions && playlist.codingQuestions.length > 0 && playlist.codingQuestions.every(q => q.solved);
+    }
+    return false;
+  });
+
   return (
     <div className={`min-h-screen transition-colors duration-300 relative overflow-x-hidden ${
       theme === 'dark' 
@@ -139,12 +150,7 @@ const Library = () => {
       {/* Decorative background shapes */}
       <div className="absolute -top-32 -left-32 w-[400px] h-[400px] bg-gradient-to-br from-blue-400/20 to-purple-400/10 rounded-full blur-3xl z-0" />
       <div className="absolute top-1/2 right-0 w-[300px] h-[300px] bg-gradient-to-tr from-indigo-300/20 to-pink-300/10 rounded-full blur-2xl z-0" />
-      <div className="container mx-auto px-4 relative z-10">
-        {/* Header Section */}
-        <div className="flex flex-col items-center py-12 animate-fade-in-up">
-          <h1 className={`text-4xl font-extrabold tracking-tight mb-2 ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>My Library</h1>
-          <p className={`text-lg mb-6 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>All your playlists and coding practice in one place. Organize, track, and grow your learning journey!</p>
-        </div>
+      <div className="container mx-auto px-4 relative z-10 mt-12">
         <div className="flex flex-col">
           {playlists.length > 0 && (
             <div className="flex flex-col">
@@ -152,72 +158,45 @@ const Library = () => {
                 <div className="flex justify-end mb-4 gap-4">
                   <Button
                     onClick={() => setIsModalOpen(true)}
-                    className={`relative overflow-hidden group transition-all duration-300 shadow-xl rounded-xl px-6 py-2 text-lg font-semibold ${
-                      theme === 'dark'
-                        ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                        : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                    } text-white`}
+                    className="relative overflow-hidden group transition-all duration-300 shadow-xl rounded-full px-4 py-1 text-base font-semibold bg-white text-black hover:bg-black hover:text-white flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-black"
                   >
-                    <span className="relative z-10 flex items-center">
-                      <Plus className="w-5 h-5 mr-2 transition-transform group-hover:rotate-90 duration-300" />
-                      Add Content
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <Plus className="w-4 h-4 mr-2 text-black group-hover:text-white transition-colors" />
+                    Add Content
                   </Button>
                   <Button
                     onClick={() => window.location.href = '/learningtrack'}
-                    className={`relative overflow-hidden group transition-all duration-300 shadow-xl rounded-xl px-6 py-2 text-lg font-semibold ${
-                      theme === 'dark'
-                        ? 'bg-gradient-to-r from-green-500 to-blue-500 hover:from-green-600 hover:to-blue-600'
-                        : 'bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700'
-                    } text-white`}
+                    className="relative overflow-hidden group transition-all duration-300 shadow-xl rounded-full px-4 py-1 text-base font-semibold bg-white text-black hover:bg-black hover:text-white flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-black"
                   >
-                    <span className="relative z-10 flex items-center">
-                      <Code className="w-5 h-5 mr-2 transition-transform group-hover:rotate-90 duration-300" />
-                      Learning Track
-                    </span>
-                    <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                    <Code className="w-4 h-4 mr-2 text-black group-hover:text-white transition-colors" />
+                    Learning Track
                   </Button>
                 </div>
                 <div className="flex justify-center">
                   <Tabs defaultValue="all" className="w-full max-w-3xl animate-fade-in-up">
-                    <TabsList className={`w-full flex justify-between gap-2 p-2 rounded-2xl shadow-lg border-0 ${
-                      theme === 'dark'
-                        ? 'bg-slate-800/60 backdrop-blur-md'
-                        : 'bg-white/80 backdrop-blur-md'
-                    }`}>
+                    <TabsList className="w-full flex justify-between gap-2 p-3 rounded-full shadow-2xl bg-white/80 backdrop-blur-md">
                       <TabsTrigger 
                         value="all"
-                        className={`flex-1 rounded-xl px-4 py-2 font-medium text-lg transition-all duration-300 relative overflow-hidden group ${
-                          theme === 'dark'
-                            ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/80 data-[state=active]:to-purple-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300'
-                            : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/90 data-[state=active]:to-purple-500/90 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-600'
-                        }`}
+                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
                       >
-                        <span className="relative z-10">All Content</span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        All Content
                       </TabsTrigger>
                       <TabsTrigger 
                         value="videos"
-                        className={`flex-1 rounded-xl px-4 py-2 font-medium text-lg transition-all duration-300 relative overflow-hidden group ${
-                          theme === 'dark'
-                            ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/80 data-[state=active]:to-purple-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300'
-                            : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/90 data-[state=active]:to-purple-500/90 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-600'
-                        }`}
+                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
                       >
-                        <span className="relative z-10">Video Playlists</span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        Video Playlists
                       </TabsTrigger>
                       <TabsTrigger 
                         value="coding"
-                        className={`flex-1 rounded-xl px-4 py-2 font-medium text-lg transition-all duration-300 relative overflow-hidden group ${
-                          theme === 'dark'
-                            ? 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-600/80 data-[state=active]:to-purple-600/80 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-300'
-                            : 'data-[state=active]:bg-gradient-to-r data-[state=active]:from-blue-500/90 data-[state=active]:to-purple-500/90 data-[state=active]:text-white data-[state=active]:shadow-lg text-gray-600'
-                        }`}
+                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
                       >
-                        <span className="relative z-10">Coding Practice</span>
-                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                        Coding Practice
+                      </TabsTrigger>
+                      <TabsTrigger 
+                        value="complete"
+                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
+                      >
+                        Complete
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="all" className="mt-6 animate-fade-in-up">
@@ -259,6 +238,23 @@ const Library = () => {
                         ))}
                       </div>
                     </TabsContent>
+                    <TabsContent value="complete" className="mt-6 animate-fade-in-up">
+                      <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
+                        {completedPlaylists.length > 0 ? (
+                          completedPlaylists.map((playlist, index) => (
+                            <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
+                              <PlaylistCard
+                                playlist={playlist}
+                                onDelete={deletePlaylist}
+                                delay={index * 100}
+                              />
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-center text-gray-500 py-12">No completed playlists yet.</div>
+                        )}
+                      </div>
+                    </TabsContent>
                   </Tabs>
                 </div>
               </div>
@@ -280,17 +276,10 @@ const Library = () => {
               <p className={`mb-8 ${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'}`}>Create your first playlist to track videos and coding problems</p>
               <Button
                 onClick={() => setIsModalOpen(true)}
-                className={`relative overflow-hidden group transition-all duration-300 shadow-lg rounded-xl px-6 py-2 text-lg font-semibold ${
-                  theme === 'dark'
-                    ? 'bg-gradient-to-r from-blue-500 to-purple-500 hover:from-blue-600 hover:to-purple-600'
-                    : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-                } text-white`}
+                className="relative overflow-hidden group transition-all duration-300 shadow-lg rounded-full px-4 py-1 text-base font-semibold bg-white text-black hover:bg-black hover:text-white flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-black"
               >
-                <span className="relative z-10 flex items-center">
-                  <Plus className="w-5 h-5 mr-2 transition-transform group-hover:rotate-90 duration-300" />
-                  Create Content
-                </span>
-                <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <Plus className="w-4 h-4 mr-2 text-black group-hover:text-white transition-colors" />
+                Create Content
               </Button>
             </CardContent>
           </Card>

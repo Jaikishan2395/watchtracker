@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code, Video as VideoIcon, Snowflake } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code, Video as VideoIcon, Snowflake, MicOff, Eye, Phone, PhoneOff, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -35,7 +35,6 @@ interface YouTubePlayer {
   getVideoData: () => { title: string };
   setVolume: (volume: number) => void;
   setPlaybackRate: (rate: number) => void;
-  setPlaybackQuality?: (quality: string) => void;
   getPlaybackQuality?: () => string;
 }
 
@@ -136,7 +135,7 @@ interface ChatMessage {
   username: string;
   content: string;
   timestamp: number;
-  type: 'text' | 'audio' | 'emoji' | 'timestamp';
+  type: 'text' | 'audio' | 'emoji' | 'timestamp' | 'system';
   audioUrl?: string;
   videoId?: string;
   videoTimestamp?: number;
@@ -159,6 +158,7 @@ interface Note {
   flashcards?: Flashcard[];
   isFloating?: boolean;
   position?: { x: number; y: number };
+  audioUrl?: string; // <-- add this
 }
 
 interface Flashcard {
@@ -225,9 +225,9 @@ const styles = `
 }
 
 /* Disable YouTube hover effects */
-iframe[src*="youtube.com"] {
+/* iframe[src*="youtube.com"] {
   pointer-events: none !important;
-}
+} */
 
 .youtube-player-container {
   position: relative;
@@ -244,13 +244,13 @@ iframe[src*="youtube.com"] {
   width: 100%;
   height: 100%;
   border: none;
-  pointer-events: none !important;
+  /* pointer-events: none !important; */
 }
 
 /* Hide YouTube's default controls and hover effects */
-.youtube-player-container iframe {
+/* .youtube-player-container iframe {
   pointer-events: none !important;
-}
+} */
 
 /* Ensure our custom controls still work */
 .video-controls {
@@ -389,7 +389,6 @@ const VideoPlayer = () => {
   // New state variables for enhanced features
   const [isDarkMode, setIsDarkMode] = useState(false);
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
-  const [availableTags, setAvailableTags] = useState<string[]>([]);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [floatingNotes, setFloatingNotes] = useState<Note[]>([]);
   const [showFlashcards, setShowFlashcards] = useState(false);
@@ -964,21 +963,18 @@ const VideoPlayer = () => {
   useEffect(() => {
     let playerInstance: YouTubePlayer | null = null;
     let lastState: number | null = null;
-
+    // REMOVED: setQualityLoading(true);
+    // REMOVED: setAvailableQualities([]);
     const initializePlayer = () => {
       if (!isPlayerReady || !iframeRef.current || !playlist) {
         return;
       }
-
       const currentVideo = playlist.videos[currentVideoIndex];
       if (!currentVideo) {
         return;
       }
-
-      // Don't initialize if the video is completed
       if (currentVideo.progress >= 100) {
         toast.info('This video is already completed');
-        // Find the first uncompleted video
         const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
         if (firstUncompletedIndex !== -1) {
           selectVideo(firstUncompletedIndex);
@@ -987,33 +983,29 @@ const VideoPlayer = () => {
         }
         return;
       }
-
       const videoId = extractVideoIdFromUrl(currentVideo.url);
       if (!videoId) {
         console.error('Could not extract video ID from URL:', currentVideo.url);
         toast.error('Invalid YouTube URL format');
         return;
       }
-
       try {
-        // Always create a new player instance
         if (playerRef.current) {
           playerRef.current.destroy();
           playerRef.current = null;
         }
-
         const playerOptions = {
           videoId,
           playerVars: {
             autoplay: 0,
-            controls: 0, // Hide YouTube controls
+            controls: 0,
             modestbranding: 1,
-            rel: 0, // Disable recommended videos
+            rel: 0,
             showinfo: 0,
             fs: 0,
             iv_load_policy: 3,
             disablekb: 1,
-            playsinline: 1, // For mobile
+            playsinline: 1,
             origin: window.location.origin,
             enablejsapi: 1,
             widget_referrer: window.location.href
@@ -1026,11 +1018,10 @@ const VideoPlayer = () => {
                 }
                 return;
               }
-
-              // Only trigger play/stop when state actually changes
               if (event.data !== lastState) {
                 if (event.data === window.YT.PlayerState.PLAYING) {
                   startWatchTimeTracking();
+                  // REMOVED: quality logic
                 } else if (event.data === window.YT.PlayerState.PAUSED || 
                            event.data === window.YT.PlayerState.ENDED) {
                   stopWatchTimeTracking();
@@ -1042,9 +1033,7 @@ const VideoPlayer = () => {
               playerRef.current = playerInstance;
               const videoData = event.target.getVideoData();
               setVideoTitle(videoData.title);
-              
               if (currentVideo.progress < 100) {
-                // Resume from last position
                 const savedData = localStorage.getItem(`watchTime_${currentVideo.id}`);
                 if (savedData) {
                   try {
@@ -1057,7 +1046,6 @@ const VideoPlayer = () => {
                   }
                 }
               } else {
-                // If somehow we got here with a completed video, find an uncompleted one
                 const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
                 if (firstUncompletedIndex !== -1) {
                   selectVideo(firstUncompletedIndex);
@@ -1065,11 +1053,11 @@ const VideoPlayer = () => {
                   setShowCompletionDialog(true);
                 }
               }
+              // REMOVED: setTimeout for quality logic
             },
             onError: (event: YouTubePlayerEvent) => {
               console.error('YouTube player error:', event.data);
               let errorMessage = 'An error occurred while playing the video.';
-              
               switch (event.data) {
                 case 2:
                   errorMessage = 'Invalid video ID. Please check the video URL.';
@@ -1085,9 +1073,7 @@ const VideoPlayer = () => {
                   errorMessage = 'Video embedding is not allowed.';
                   break;
               }
-              
               toast.error(errorMessage);
-              // Try to find another uncompleted video on error
               const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
               if (firstUncompletedIndex !== -1 && firstUncompletedIndex !== currentVideoIndex) {
                 selectVideo(firstUncompletedIndex);
@@ -1095,22 +1081,17 @@ const VideoPlayer = () => {
             }
           } as YouTubePlayerEvents
         };
-
         playerInstance = new window.YT.Player(iframeRef.current, playerOptions);
       } catch (error) {
         console.error('Error initializing YouTube player:', error);
         toast.error('Failed to initialize video player. Please try again.');
-        // Try to find another uncompleted video on error
         const firstUncompletedIndex = playlist.videos.findIndex(v => v.progress < 100);
         if (firstUncompletedIndex !== -1 && firstUncompletedIndex !== currentVideoIndex) {
           selectVideo(firstUncompletedIndex);
         }
       }
     };
-
-    // Initialize player
     initializePlayer();
-
     return () => {
       stopWatchTimeTracking();
       if (playerInstance) {
@@ -1438,7 +1419,7 @@ const VideoPlayer = () => {
     const message: ChatMessage = {
       id: Date.now().toString(),
       userId: 'user1',
-      username: 'User',
+      username: 'You',
       content: newMessage,
       timestamp: Date.now(),
       type: 'text',
@@ -1657,6 +1638,12 @@ const VideoPlayer = () => {
   const addNote = () => {
     if (!currentNote.trim() && noteImages.length === 0 || !currentVideo) return;
 
+    let audioUrl: string | undefined = undefined;
+    if (audioChunksRef.current.length > 0) {
+      audioUrl = URL.createObjectURL(new Blob(audioChunksRef.current, { type: 'audio/webm' }));
+      audioChunksRef.current = [];
+    }
+
     const newNote: Note = {
       id: Date.now().toString(),
       content: currentNote,
@@ -1665,7 +1652,8 @@ const VideoPlayer = () => {
       videoTitle: currentVideo.title,
       images: noteImages,
       tags: noteTags,
-      color: noteColor
+      color: noteColor,
+      audioUrl,
     };
 
     setNotes(prev => [...prev, newNote]);
@@ -1692,6 +1680,12 @@ const VideoPlayer = () => {
   const saveEditedNote = () => {
     if (!editingNoteId || (!currentNote.trim() && noteImages.length === 0)) return;
 
+    let audioUrl: string | undefined = undefined;
+    if (audioChunksRef.current.length > 0) {
+      audioUrl = URL.createObjectURL(new Blob(audioChunksRef.current, { type: 'audio/webm' }));
+      audioChunksRef.current = [];
+    }
+
     setNotes(prev => prev.map(note => 
       note.id === editingNoteId 
         ? { 
@@ -1699,7 +1693,8 @@ const VideoPlayer = () => {
             content: currentNote,
             images: noteImages,
             tags: noteTags,
-            color: noteColor
+            color: noteColor,
+            audioUrl: audioUrl || note.audioUrl,
           }
         : note
     ));
@@ -1827,8 +1822,8 @@ const VideoPlayer = () => {
   // Function to add tag in popup
   const addPopupTag = (tag: string) => {
     if (!tag.trim()) return;
-    if (!availableTags.includes(tag)) {
-      setAvailableTags(prev => [...prev, tag]);
+    if (!selectedTags.includes(tag)) {
+      setSelectedTags(prev => [...prev, tag]);
     }
     if (!popupNoteTags.includes(tag)) {
       setPopupNoteTags(prev => [...prev, tag]);
@@ -1896,9 +1891,6 @@ const VideoPlayer = () => {
   // Function to add a tag
   const addTag = (tag: string) => {
     if (!tag.trim()) return;
-    if (!availableTags.includes(tag)) {
-      setAvailableTags(prev => [...prev, tag]);
-    }
     if (!selectedTags.includes(tag)) {
       setSelectedTags(prev => [...prev, tag]);
     }
@@ -2251,12 +2243,23 @@ const VideoPlayer = () => {
   const pomodoroRef = useRef<HTMLDivElement>(null);
   const pomodoroInterval = useRef<NodeJS.Timeout | null>(null);
 
+  // Add state for Pomodoro stats
+  const [breaksTaken, setBreaksTaken] = useState(0);
+  const [sessionsCompleted, setSessionsCompleted] = useState(0);
+
+  // Update Pomodoro timer effect to increment stats
   useEffect(() => {
     if (pomodoroRunning) {
       pomodoroInterval.current = setInterval(() => {
         setPomodoroTime(prev => {
           if (prev > 0) return prev - 1;
-          setIsWork(w => !w);
+          setIsWork(w => {
+            // If just finished a work session, increment sessionsCompleted
+            if (w) setSessionsCompleted(s => s + 1);
+            // If just finished a break, increment breaksTaken
+            else setBreaksTaken(b => b + 1);
+            return !w;
+          });
           return isWork ? breakDuration * 60 : workDuration * 60;
         });
       }, 1000);
@@ -2366,6 +2369,69 @@ const VideoPlayer = () => {
   // Move this to the top of the VideoPlayer component, after other useRef/useState
   const videoListsRef = useRef<HTMLDivElement>(null);
 
+  // Add a ref to track if the video was paused by the break
+  const wasPausedByBreak = useRef(false);
+
+  // Place this after all useState/useRef and before any return
+  useEffect(() => {
+    if (!isWork && playerRef.current) {
+      const state = playerRef.current.getPlayerState();
+      if (state === window.YT?.PlayerState?.PLAYING) {
+        playerRef.current.pauseVideo();
+        wasPausedByBreak.current = true;
+        toast.info('Break time! Video paused automatically.');
+      }
+    }
+    if (isWork && playerRef.current && wasPausedByBreak.current) {
+      const state = playerRef.current.getPlayerState();
+      if (state === window.YT?.PlayerState?.PAUSED) {
+        playerRef.current.playVideo();
+        toast.success('Work resumed! Video auto-resumed.');
+        wasPausedByBreak.current = false;
+      }
+    }
+  }, [isWork]);
+
+  // Move these to the top with other useState declarations, before any early return
+  const [isChatMaximized, setIsChatMaximized] = useState(false);
+  const [isNotesMaximized, setIsNotesMaximized] = useState(false);
+  const [isPomodoroMaximized, setIsPomodoroMaximized] = useState(false);
+
+  // Add state for note preview modal
+  const [previewNote, setPreviewNote] = useState<Note | null>(null);
+  const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
+
+  const emojiList = ['😀','😂','😍','👍','🙏','🎉','😢','😮','😡','❤️','🔥','👏','��','🤔','🙌','🥳'];
+
+  // Add state for chat call feature
+  const [inChatCall, setInChatCall] = useState(false);
+  const [callStartTime, setCallStartTime] = useState<number | null>(null);
+  const [callTimer, setCallTimer] = useState('00:00');
+  useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    if (inChatCall && callStartTime) {
+      interval = setInterval(() => {
+        const elapsed = Math.floor((Date.now() - callStartTime) / 1000);
+        const m = String(Math.floor(elapsed / 60)).padStart(2, '0');
+        const s = String(elapsed % 60).padStart(2, '0');
+        setCallTimer(`${m}:${s}`);
+      }, 1000);
+    } else {
+      setCallTimer('00:00');
+    }
+    return () => { if (interval) clearInterval(interval); };
+  }, [inChatCall, callStartTime]);
+
+  // Add state for live text chat session messages
+  const [liveTextChatMessages, setLiveTextChatMessages] = useState<ChatMessage[]>([]);
+  const [liveTextInput, setLiveTextInput] = useState('');
+
+  // Add this state near other useState declarations
+  const [selectedSpeed, setSelectedSpeed] = useState(1);
+
+  // Add this variable near the top of the component
+  const showFreezeButton = false;
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -2428,6 +2494,14 @@ const VideoPlayer = () => {
       return `${minutes}m ${seconds}s`;
     }
     return `${seconds}s`;
+  };
+
+  // Reset stats when Pomodoro is reset
+  const handlePomodoroReset = () => {
+    setPomodoroRunning(false);
+    setPomodoroTime(isWork ? workDuration * 60 : breakDuration * 60);
+    setBreaksTaken(0);
+    setSessionsCompleted(0);
   };
 
   return (
@@ -2557,22 +2631,7 @@ const VideoPlayer = () => {
                   Back to Playlist
                 </Button>
               )}
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setShowAllVideos(!showAllVideos);
-                  if (!showAllVideos) {
-                    setTimeout(() => {
-                      videoListsRef.current?.scrollIntoView({ behavior: 'smooth' });
-                    }, 100);
-                  }
-                }}
-            className="bg-black text-white rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black flex items-center gap-2"
-            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-          >
-            <List className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
-            {showAllVideos ? 'Hide' : 'Show'}
-          </Button>
+              
           <Button
             onClick={() => setShowAskAI(true)}
             className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-bold px-6 py-2 shadow-md border border-blue-600 transition-all duration-200 hover:bg-white hover:text-blue-600 hover:border-blue-600 flex items-center gap-2 ml-2"
@@ -2662,6 +2721,103 @@ const VideoPlayer = () => {
                       </span>
                     </button>
                   )}
+                  {/* Floating 10s skip buttons and timeline - skip buttons only in fullscreen, and add exit fullscreen button next to timeline in fullscreen */}
+                  {playerRef.current && (
+                    <>
+                      {/* Floating skip buttons - only show in fullscreen */}
+                      {isFullscreen && (
+                        <>
+                          <button
+                            onClick={() => {
+                              const cur = playerRef.current.getCurrentTime();
+                              playerRef.current.seekTo(Math.max(cur - 10, 0), true);
+                              playerRef.current.playVideo();
+                            }}
+                            style={{
+                              position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 30,
+                              background: 'rgba(0,0,0,0.7)', borderRadius: '50%', padding: 8, border: 'none', cursor: 'pointer',
+                              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                              touchAction: 'manipulation',
+                            }}
+                            className="sm:left-4 sm:w-12 sm:h-12"
+                            title="Back 10s"
+                          >
+                            <SkipBack className="w-7 h-7 text-white" />
+                          </button>
+                          <button
+                            onClick={() => {
+                              const cur = playerRef.current.getCurrentTime();
+                              const dur = playerRef.current.getDuration();
+                              playerRef.current.seekTo(Math.min(cur + 10, dur), true);
+                              playerRef.current.playVideo();
+                            }}
+                            style={{
+                              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 30,
+                              background: 'rgba(0,0,0,0.7)', borderRadius: '50%', padding: 8, border: 'none', cursor: 'pointer',
+                              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                              touchAction: 'manipulation',
+                            }}
+                            className="sm:right-4 sm:w-12 sm:h-12"
+                            title="Forward 10s"
+                          >
+                            <SkipForward className="w-7 h-7 text-white" />
+                          </button>
+                        </>
+                      )}
+                      {/* Timeline with current/total time - always visible, and exit fullscreen button in fullscreen */}
+                      <div
+                        style={{
+                          position: 'absolute', left: 0, right: 0, bottom: 4, zIndex: 30,
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
+                          padding: '0 8px',
+                        }}
+                        className="sm:bottom-4"
+                      >
+                        <span style={{ color: 'white', fontWeight: 600, marginRight: 8, fontSize: 14, pointerEvents: 'auto', minWidth: 36, textAlign: 'right' }}>
+                          {formatTime(Math.floor(playerRef.current.getCurrentTime()))}
+                        </span>
+                        <div style={{ flex: 1, maxWidth: 320, margin: '0 4px', pointerEvents: 'auto' }}>
+                          <input
+                            type="range"
+                            min={0}
+                            max={playerRef.current.getDuration() || 1}
+                            value={playerRef.current.getCurrentTime()}
+                            onChange={e => playerRef.current.seekTo(Number(e.target.value))}
+                            style={{ width: '100%', accentColor: '#2563eb', height: 4 }}
+                          />
+                        </div>
+                        <span style={{ color: 'white', fontWeight: 600, marginLeft: 8, fontSize: 14, pointerEvents: 'auto', minWidth: 36, textAlign: 'left' }}>
+                          {formatTime(Math.floor(playerRef.current.getDuration()))}
+                        </span>
+                        {/* Exit fullscreen button - only in fullscreen */}
+                        {isFullscreen && (
+                          <button
+                            onClick={handleToggleFullscreen}
+                            style={{
+                              marginLeft: 12,
+                              background: 'rgba(0,0,0,0.7)',
+                              borderRadius: '50%',
+                              padding: 8,
+                              border: 'none',
+                              cursor: 'pointer',
+                              width: 40,
+                              height: 40,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                              pointerEvents: 'auto',
+                            }}
+                            title="Exit Fullscreen"
+                          >
+                            <Minimize2 className="w-7 h-7 text-white" />
+                          </button>
+                        )}
+                      </div>
+                    </>
+                  )}
                 </div>
               </CardContent>
             </Card>
@@ -2674,26 +2830,28 @@ const VideoPlayer = () => {
                     <CardTitle className="text-xl dark:text-white">
                       {videoTitle || currentVideo.title}
                     </CardTitle>
-                    <Button
-                      variant={isFrozen ? 'destructive' : 'outline'}
-                      size="icon"
-                      onClick={() => {
-                        if (!isFrozen) {
-                          if (playerRef.current) playerRef.current.pauseVideo();
-                          setIsFrozen(true);
-                        } else {
-                          setIsFrozen(false);
-                          if (playerRef.current) {
-                            playerRef.current.playVideo();
-                            startStopwatch();
+                    {showFreezeButton && (
+                      <Button
+                        variant={isFrozen ? 'destructive' : 'outline'}
+                        size="icon"
+                        onClick={() => {
+                          if (!isFrozen) {
+                            if (playerRef.current) playerRef.current.pauseVideo();
+                            setIsFrozen(true);
+                          } else {
+                            setIsFrozen(false);
+                            if (playerRef.current) {
+                              playerRef.current.playVideo();
+                              startStopwatch();
+                            }
                           }
-                        }
-                      }}
-                      title={isFrozen ? 'Unfreeze video' : 'Freeze video'}
-                      className="ml-2"
-                    >
-                      {isFrozen ? <Play className="w-5 h-5" /> : <Snowflake className="w-5 h-5" />}
-                    </Button>
+                        }}
+                        title={isFrozen ? 'Unfreeze video' : 'Freeze video'}
+                        className="ml-2"
+                      >
+                        {isFrozen ? <Play className="w-5 h-5" /> : <Snowflake className="w-5 h-5" />}
+                      </Button>
+                    )}
                   </div>
                   {currentVideo.progress >= 100 && (
                     <Badge className="bg-green-600 hover:bg-green-600 dark:bg-green-700 dark:hover:bg-green-700">
@@ -2701,6 +2859,7 @@ const VideoPlayer = () => {
                     </Badge>
                   )}
                 </div>
+
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -2712,70 +2871,31 @@ const VideoPlayer = () => {
                         <div className="flex items-center gap-3">
                           <Button
                             onClick={markAsComplete}
-                            className={`relative overflow-hidden transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 ${
-                              currentVideo.progress >= 100
-                                ? 'bg-gradient-to-r from-green-500 via-emerald-500 to-green-600 hover:from-green-600 hover:via-emerald-600 hover:to-green-700 text-white'
-                                : 'bg-gradient-to-r from-blue-500 via-indigo-500 to-blue-600 hover:from-blue-600 hover:via-indigo-600 hover:to-blue-700 text-white'
-                            }`}
+                            className={`relative overflow-hidden transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 bg-black text-white ${currentVideo.progress >= 100 ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            disabled={currentVideo.progress >= 100}
                           >
                             <div className="absolute inset-0 bg-white/10 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                            <CheckCircle className="w-4 h-4 mr-2 animate-pulse" />
+                            <CheckCircle className="w-4 h-4 mr-2" />
                             {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
                           </Button>
                           <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700" />
                           
                         </div>
+                        
                         <div className="flex items-center gap-3">
                           {/* Quality, Volume and Speed Controls - Improved Design */}
                           <div className="flex items-center gap-5 bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl rounded-full px-6 py-3 shadow-2xl border border-blue-200 dark:border-blue-900/40 ring-1 ring-blue-100 dark:ring-blue-900/30" style={{boxShadow:'0 8px 32px 0 rgba(31,38,135,0.15)'}}> 
-                            {/* Quality */}
-                            <div className="flex items-center gap-2 group relative">
-                              <div className="relative">
-                                <button
-                                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-yellow-100 dark:bg-yellow-900/40 text-yellow-800 dark:text-yellow-200 font-bold shadow-md hover:scale-105 hover:shadow-lg hover:bg-yellow-200 dark:hover:bg-yellow-800/60 transition-all duration-200 focus:ring-2 focus:ring-yellow-400 focus:outline-none"
-                                  title="Video Quality"
-                                  tabIndex={0}
-                                >
-                                  <VideoIcon className="w-6 h-6" />
-                              <select
-                                id="video-quality"
-                                    className="appearance-none bg-transparent border-none outline-none text-base font-bold cursor-pointer rounded-full px-2 py-1 focus:ring-2 focus:ring-yellow-400 transition-all"
-                                value={selectedQuality}
-                                onChange={e => {
-                                  const quality = e.target.value;
-                                  setSelectedQuality(quality);
-                                  if (playerRef.current && typeof playerRef.current.setPlaybackQuality === 'function') {
-                                    playerRef.current.setPlaybackQuality(quality);
-                                    setTimeout(() => {
-                                      const actual = playerRef.current?.getPlaybackQuality?.() || quality;
-                                      setSelectedQuality(actual);
-                                      toast.success(`Video quality set to ${actual === 'auto' ? 'Auto' : actual.toUpperCase()}`);
-                                    }, 500);
-                                  }
-                                }}
-                              >
-                                <option value="auto">Auto</option>
-                                <option value="tiny">144p</option>
-                                <option value="small">240p</option>
-                                <option value="medium">360p</option>
-                                <option value="large">480p</option>
-                                <option value="hd720">720p</option>
-                                <option value="hd1080">1080p</option>
-                              </select>
-                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-yellow-600 dark:text-yellow-200"><svg width="16" height="16" fill="currentColor"><path d="M4 6l4 4 4-4"/></svg></span>
-                                </button>
-                                <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-yellow-600 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">Change video quality</span>
-                            </div>
-                            </div>
+                            
                             {/* Volume */}
-                            <div className="flex items-center gap-2 group relative">
-                              <div className="relative">
-                                <button
-                                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-200 font-bold shadow-md hover:scale-105 hover:shadow-lg hover:bg-blue-200 dark:hover:bg-blue-800/60 transition-all duration-200 focus:ring-2 focus:ring-blue-400 focus:outline-none"
-                                  title="Volume"
-                                  tabIndex={0}
-                                >
-                                  <Volume2 className="w-6 h-6" />
+                            <div className="relative group">
+                              <button
+                                className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white shadow-md hover:bg-neutral-800 focus:ring-2 focus:ring-white focus:outline-none transition-all duration-150"
+                                style={{ minWidth: 0, minHeight: 0, boxShadow: '0 2px 8px #0002', position: 'relative', overflow: 'hidden' }}
+                                tabIndex={0}
+                                title="Volume"
+                              >
+                                <Volume2 className="w-7 h-7 text-white" />
+                              </button>
                               <input
                                 type="range"
                                 min={0}
@@ -2788,57 +2908,68 @@ const VideoPlayer = () => {
                                     playerRef.current.setVolume(newVolume);
                                   }
                                 }}
-                                    className="w-28 accent-blue-500 cursor-pointer rounded-full bg-gray-200 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all"
+                                className="w-28 accent-blue-500 cursor-pointer rounded-full bg-gray-200 dark:bg-slate-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-all absolute left-1/2 -translate-x-1/2 bottom-14 opacity-0 group-hover:opacity-100 z-30"
                                 title="Volume"
+                                style={{ pointerEvents: 'auto' }}
                               />
-                                  <span className="ml-2 text-base font-bold text-blue-700 dark:text-blue-200 w-10 text-right">{volume}%</span>
-                                </button>
-                                <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-blue-700 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">Adjust volume</span>
-                            </div>
                             </div>
                             {/* Speed */}
-                            <div className="flex items-center gap-2 group relative">
-                              <div className="relative">
-                                <button
-                                  className="flex items-center gap-2 px-4 py-2 rounded-full bg-purple-100 dark:bg-purple-900/40 text-purple-800 dark:text-purple-200 font-bold shadow-md hover:scale-105 hover:shadow-lg hover:bg-purple-200 dark:hover:bg-purple-800/60 transition-all duration-200 focus:ring-2 focus:ring-purple-400 focus:outline-none"
-                                  title="Playback Speed"
-                                  tabIndex={0}
-                                >
-                                  <Code className="w-6 h-6" />
-                              <select
-                                id="playback-speed"
-                                    className="appearance-none bg-transparent border-none outline-none text-base font-bold cursor-pointer rounded-full px-2 py-1 focus:ring-2 focus:ring-purple-400 transition-all"
-                                defaultValue={1}
-                                onChange={e => {
-                                  const speed = Number(e.target.value);
-                                  if (playerRef.current) {
-                                    playerRef.current.setPlaybackRate(speed);
-                                  }
-                                }}
-                              >
-                                <option value={0.5}>0.5x</option>
-                                <option value={1}>1x</option>
-                                <option value={1.5}>1.5x</option>
-                                <option value={2}>2x</option>
-                              </select>
-                                  <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-purple-600 dark:text-purple-200"><svg width="16" height="16" fill="currentColor"><path d="M4 6l4 4 4-4"/></svg></span>
-                                </button>
-                                <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-purple-700 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">Change playback speed</span>
-                            </div>
+                            <div className="relative group">
+                              <Popover>
+                                <PopoverTrigger asChild>
+                                  <button
+                                    className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white shadow-md hover:bg-neutral-800 focus:ring-2 focus:ring-white focus:outline-none transition-all duration-150"
+                                    style={{ minWidth: 0, minHeight: 0, boxShadow: '0 2px 8px #0002', position: 'relative', overflow: 'hidden' }}
+                                    title="Playback Speed"
+                                  >
+                                    <Code className="w-7 h-7 text-white" />
+                                  </button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-32 p-2 bg-white border border-gray-200 rounded-xl shadow-xl flex flex-col items-center z-50">
+                                  {[0.5, 1, 1.5, 2].map(speed => (
+                                    <button
+                                      key={speed}
+                                      onClick={() => {
+                                        if (playerRef.current) playerRef.current.setPlaybackRate(speed);
+                                        setSelectedSpeed(speed);
+                                      }}
+                                      className={`w-full py-2 rounded-lg text-center font-bold text-sm transition-colors duration-150 ${selectedSpeed === speed ? 'bg-black text-white' : 'text-black hover:bg-gray-100'}`}
+                                    >
+                                      {speed}x
+                                    </button>
+                                  ))}
+                                </PopoverContent>
+                              </Popover>
                             </div>
                             {/* Fullscreen */}
                             <div className="relative group">
                               <button
-                              onClick={handleToggleFullscreen}
-                              title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-                                className="flex items-center gap-2 px-5 py-2 rounded-full bg-blue-600 text-white font-extrabold shadow-lg hover:scale-110 hover:bg-blue-700 focus:ring-2 focus:ring-blue-400 focus:outline-none transition-all duration-200 group-hover:animate-none"
-                                style={{ minWidth: 54 }}
+                                onClick={handleToggleFullscreen}
+                                title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+                                className="flex items-center justify-center w-12 h-12 rounded-full bg-black text-white shadow-md hover:bg-neutral-800 focus:ring-2 focus:ring-white focus:outline-none transition-all duration-150"
+                                style={{ minWidth: 0, minHeight: 0, boxShadow: '0 2px 8px #0002', position: 'relative', overflow: 'hidden' }}
                               >
-                                {isFullscreen ? <Minimize2 className="w-7 h-7" /> : <Maximize2 className="w-7 h-7" />}
-                                <span className="hidden sm:inline text-base">{isFullscreen ? 'Exit' : 'Full'} Screen</span>
+                                <span className="transition-transform duration-200">
+                                  {isFullscreen ? <Minimize2 className="w-7 h-7 text-white" /> : <Maximize2 className="w-7 h-7 text-white" />}
+                                </span>
                               </button>
-                              <span className="absolute left-1/2 -bottom-10 -translate-x-1/2 opacity-0 group-hover:opacity-100 bg-blue-700 text-white text-xs rounded-lg px-3 py-1 shadow-lg transition-all duration-200 z-20">{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
                             </div>
+                            <Button
+                variant="outline"
+                onClick={() => {
+                  setShowAllVideos(!showAllVideos);
+                  if (!showAllVideos) {
+                    setTimeout(() => {
+                      videoListsRef.current?.scrollIntoView({ behavior: 'smooth' });
+                    }, 100);
+                  }
+                }}
+            className="bg-black text-white rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black flex items-center gap-2"
+            style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
+          >
+            <List className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
+            {showAllVideos ? 'Hide' : 'Show'}
+          </Button>
                           </div>
                         </div>
                       </div>
@@ -3000,25 +3131,27 @@ const VideoPlayer = () => {
           ref={chatRef}
           style={{
             position: 'fixed',
-            left: chatPos.x,
-            top: chatPos.y,
-            width: 400,
-            maxWidth: '90vw',
-            height: 500,
-            maxHeight: '80vh',
-            background: 'white',
+            left: isChatMaximized ? '5vw' : chatPos.x,
+            top: isChatMaximized ? '5vh' : chatPos.y,
+            width: isChatMaximized ? '90vw' : 400,
+            maxWidth: '98vw',
+            height: isChatMaximized ? '90vh' : 500,
+            maxHeight: '98vh',
+            background: 'linear-gradient(135deg, #f8fafc 60%, #e0e7ef 100%)',
             borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
+            boxShadow: '0 8px 32px rgba(59,130,246,0.18)',
             zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             userSelect: dragging ? 'none' : 'auto',
             cursor: dragging ? 'grabbing' : 'default',
+            transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
+            border: '2px solid #2563eb',
           }}
         >
           <div
-            className="flex items-center justify-between px-4 py-3 bg-black text-white rounded-t-2xl cursor-move select-none"
+            className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-t-2xl cursor-move select-none shadow"
             onMouseDown={e => {
               setDragging(true);
               const rect = chatRef.current?.getBoundingClientRect();
@@ -3028,31 +3161,112 @@ const VideoPlayer = () => {
               });
             }}
           >
-            <span className="font-bold text-lg">Chat Room</span>
-            <button
-              onClick={() => setShowFloatingChat(false)}
-              className="text-white hover:text-red-400 text-xl font-bold focus:outline-none"
-              title="Close Chat"
-            >
-              ×
-            </button>
-      </div>
-          <div className="flex-1 overflow-y-auto px-4 py-2 bg-gray-50">
+            <span className="font-bold text-lg flex items-center gap-2">
+              <MessageSquare className="w-5 h-5 mr-1" /> Chat Room
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  setInChatCall(true);
+                  setCallStartTime(Date.now());
+                }}
+                className="text-white hover:text-green-300 text-xl font-bold focus:outline-none"
+                title="Start Chat Call"
+              >
+                <Phone className="w-5 h-5" />
+              </button>
+              <button
+                onClick={() => setIsChatMaximized(m => !m)}
+                className="text-white hover:text-blue-300 text-xl font-bold focus:outline-none"
+                title={isChatMaximized ? 'Restore' : 'Maximize'}
+              >
+                {isChatMaximized ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setShowFloatingChat(false)}
+                className="text-white hover:text-red-400 text-xl font-bold focus:outline-none"
+                title="Close Chat"
+              >
+                ×
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto px-4 py-2 bg-gradient-to-b from-blue-50 via-white to-blue-100">
             {/* Chat messages go here */}
             {chatMessages.length === 0 ? (
               <div className="text-gray-400 text-center mt-16">No messages yet. Start the conversation!</div>
             ) : (
-              chatMessages.map(msg => (
-                <div key={msg.id} className="mb-3">
-                  <div className="font-semibold text-sm text-gray-700">{msg.username}</div>
-                  <div className="text-gray-800 bg-white rounded-lg px-3 py-2 shadow-sm inline-block">{msg.content}</div>
-                  <div className="text-xs text-gray-400 mt-1">{new Date(msg.timestamp).toLocaleTimeString()}</div>
-                </div>
-              ))
+              chatMessages.map(msg =>
+                msg.type === 'system' ? (
+                  <div key={msg.id} className="mb-3 flex items-center justify-center">
+                    <div className="bg-gray-200 text-gray-700 italic rounded-xl px-4 py-2 shadow border border-gray-300 flex items-center gap-2 text-sm">
+                      <MessageSquare className="w-4 h-4 text-blue-500 mr-1" />
+                      <span style={{ whiteSpace: 'pre-line' }}>{msg.content}</span>
+                    </div>
+                  </div>
+                ) : (
+                  <div key={msg.id} className="mb-3 flex items-start gap-2 relative">
+                    <div className="flex-shrink-0">
+                      <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-blue-200 text-blue-700 font-bold text-lg">
+                        <User className="w-5 h-5" />
+                      </span>
+                    </div>
+                    <div>
+                      <div className="bg-white rounded-2xl px-4 py-2 shadow border border-blue-100 text-gray-800 max-w-xs break-words relative">
+                        <span className="block font-semibold text-blue-700 text-xs mb-1">{msg.username}</span>
+                        <span>{msg.content}</span>
+                        {msg.type === 'audio' && msg.audioUrl && (
+                          <audio controls src={msg.audioUrl} className="mt-2 w-full" />
+                        )}
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1 ml-2">{new Date(msg.timestamp).toLocaleTimeString()}</div>
+                      {/* Emoji reactions and button (existing code) */}
+                      <div className="flex gap-1 items-center mt-1">
+                        <button
+                          className="text-yellow-500 hover:bg-yellow-100 rounded-full p-1"
+                          style={{ width: 28, height: 28 }}
+                          title="React with Emoji"
+                          onClick={() => setShowReactions(msg.id)}
+                          type="button"
+                        >
+                          <Smile className="w-5 h-5" />
+                        </button>
+                        {showReactions === msg.id && (
+                          <div
+                            style={{ position: 'absolute', zIndex: 1000, background: 'white', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', padding: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}
+                            onMouseLeave={() => setShowReactions(null)}
+                          >
+                            {emojiList.map(emoji => (
+                              <button
+                                key={emoji}
+                                className="text-2xl p-1 hover:bg-gray-100 rounded"
+                                onClick={() => {
+                                  addReaction(msg.id, emoji);
+                                  setShowReactions(null);
+                                }}
+                                type="button"
+                              >
+                                {emoji}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                        {/* Show emoji reactions with counts */}
+                        {msg.reactions && Object.entries(msg.reactions).map(([emoji, users]) => (
+                          <span key={emoji} className="text-xl px-1 select-none">
+                            {emoji} <span className="text-xs align-top">{users.length}</span>
+                          </span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )
+              )
             )}
           </div>
           <form
-            className="flex items-center border-t border-gray-200 px-3 py-2 bg-white"
+            className="flex items-center border-t border-blue-200 px-3 py-2 bg-white"
+            style={{ boxShadow: '0 -2px 8px rgba(59,130,246,0.05)' }}
             onSubmit={e => {
               e.preventDefault();
               if (!newMessage.trim()) return;
@@ -3063,26 +3277,183 @@ const VideoPlayer = () => {
                 content: newMessage,
                 timestamp: Date.now(),
                 type: 'text',
-                reactions: {},
+                reactions: {}
               });
               setNewMessage('');
             }}
           >
             <input
               type="text"
-              className="flex-1 rounded-full border border-gray-300 px-4 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="flex-1 rounded-full border border-blue-200 px-4 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50"
               placeholder="Type a message..."
               value={newMessage}
               onChange={e => setNewMessage(e.target.value)}
               autoFocus
             />
             <button
+              type="button"
+              className={`rounded-full p-2 font-bold text-white ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-blue-600'} hover:bg-blue-700 transition flex items-center justify-center mr-2`}
+              onClick={isRecording ? stopRecording : startRecording}
+              title={isRecording ? 'Stop Recording' : 'Record Audio'}
+              style={{ width: 40, height: 40 }}
+            >
+              {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+            </button>
+            <button
+              type="button"
+              className="rounded-full p-2 text-yellow-500 hover:bg-yellow-100 transition flex items-center justify-center mr-2"
+              onClick={() => setShowEmojiPicker(v => !v)}
+              title="Add Emoji"
+              style={{ width: 40, height: 40 }}
+            >
+              <Smile className="w-6 h-6" />
+            </button>
+            {showEmojiPicker && (
+              <div
+                style={{ position: 'absolute', bottom: 56, left: 16, zIndex: 1000, background: 'white', borderRadius: 12, boxShadow: '0 4px 16px rgba(0,0,0,0.15)', padding: 8, display: 'flex', flexWrap: 'wrap', gap: 4 }}
+                onMouseLeave={() => setShowEmojiPicker(false)}
+              >
+                {emojiList.map(emoji => (
+                  <button
+                    key={emoji}
+                    className="text-2xl p-1 hover:bg-gray-100 rounded"
+                    onClick={() => {
+                      setNewMessage(prev => prev + emoji);
+                      setShowEmojiPicker(false);
+                    }}
+                    type="button"
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            )}
+            <button
               type="submit"
-              className="bg-black text-white rounded-full px-4 py-2 font-bold hover:bg-gray-900 transition"
+              className="bg-blue-600 text-white rounded-full px-4 py-2 font-bold hover:bg-blue-700 transition"
             >
               Send
             </button>
           </form>
+          {/* Chat Call Modal */}
+          {inChatCall && (
+            <div
+              style={{
+                position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100000,
+                background: 'rgba(37,99,235,0.25)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                animation: 'fade-in 0.3s',
+              }}
+              onClick={() => { setInChatCall(false); setCallStartTime(null); setLiveTextChatMessages([]); setLiveTextInput(''); }}
+            >
+              <div
+                className="bg-white/80 dark:bg-slate-900/90 rounded-3xl shadow-2xl p-0 max-w-md w-full relative flex flex-col items-center gap-0 animate-fade-in"
+                style={{ minHeight: 480, maxHeight: '95vh', width: 420, overflow: 'hidden', border: '2px solid #2563eb', boxShadow: '0 16px 64px rgba(37,99,235,0.10)' }}
+                onClick={e => e.stopPropagation()}
+              >
+                {/* Header */}
+                <div className="w-full flex items-center justify-between px-6 py-5 bg-gradient-to-r from-blue-600 to-blue-400 text-white rounded-t-3xl shadow">
+                  <span className="flex items-center gap-2 text-xl font-bold">
+                    <MessageSquare className="w-6 h-6 mr-1" /> Live Text Chat
+                  </span>
+                  <span className="bg-white/20 text-white font-mono text-base px-4 py-1 rounded-full shadow border border-white/30">{callTimer}</span>
+                  <button
+                    className="ml-4 text-white hover:text-red-200 text-2xl font-bold focus:outline-none"
+                    onClick={() => { setInChatCall(false); setCallStartTime(null); setLiveTextChatMessages([]); setLiveTextInput(''); }}
+                    title="End Session"
+                  >
+                    <PhoneOff className="w-7 h-7" />
+                  </button>
+                </div>
+                {/* Messages */}
+                <div className="flex-1 w-full overflow-y-auto bg-gradient-to-b from-blue-50 via-white to-blue-100 px-4 py-6" style={{ minHeight: 180, maxHeight: 260 }}>
+                  {liveTextChatMessages.length === 0 ? (
+                    <div className="text-gray-400 text-center mt-12">No messages yet. Start chatting!</div>
+                  ) : (
+                    liveTextChatMessages.map(msg => {
+                      const isYou = msg.username === 'You';
+                      return (
+                        <div key={msg.id} className={`mb-3 flex ${isYou ? 'justify-end' : 'justify-start'} items-end w-full`}>
+                          <div className={`max-w-[70%] ${isYou ? 'bg-blue-600 text-white ml-auto' : 'bg-white text-blue-900 mr-auto'} rounded-2xl px-4 py-2 shadow border ${isYou ? 'border-blue-400' : 'border-blue-100'} relative`} style={{ wordBreak: 'break-word' }}>
+                            <span className={`block font-semibold text-xs mb-1 ${isYou ? 'text-white/80' : 'text-blue-700/80'}`}>{msg.username}</span>
+                            <span>{msg.content}</span>
+                            <div className="text-xs text-gray-300 mt-1 text-right">{new Date(msg.timestamp).toLocaleTimeString()}</div>
+                          </div>
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
+                {/* Input area */}
+                <form
+                  className="w-full flex items-center gap-2 px-6 py-4 bg-white/80 dark:bg-slate-900/80 border-t border-blue-100 rounded-b-3xl shadow-lg"
+                  style={{ position: 'sticky', bottom: 0 }}
+                  onSubmit={e => {
+                    e.preventDefault();
+                    if (!liveTextInput.trim()) return;
+                    setLiveTextChatMessages(prev => [
+                      ...prev,
+                      {
+                        id: Date.now().toString(),
+                        userId: 'user1',
+                        username: 'You',
+                        content: liveTextInput,
+                        timestamp: Date.now(),
+                        type: 'text',
+                        reactions: {},
+                      },
+                    ]);
+                    setLiveTextInput('');
+                  }}
+                >
+                  <input
+                    type="text"
+                    className="flex-1 rounded-full border border-blue-200 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50 text-base shadow"
+                    placeholder="Type a message..."
+                    value={liveTextInput}
+                    onChange={e => setLiveTextInput(e.target.value)}
+                    autoFocus
+                  />
+                  <button
+                    type="submit"
+                    className="bg-blue-600 text-white rounded-full px-5 py-2 font-bold hover:bg-blue-700 transition shadow"
+                  >
+                    Send
+                  </button>
+                </form>
+                {/* End Session button (floating) */}
+                <button
+                  className="absolute left-1/2 -translate-x-1/2 bottom-6 bg-red-600 text-white rounded-full px-8 py-3 font-bold text-lg hover:bg-red-700 transition shadow-lg"
+                  style={{ zIndex: 10 }}
+                  onClick={() => {
+                    const sessionStart = liveTextChatMessages[0]?.timestamp;
+                    const sessionEnd = liveTextChatMessages[liveTextChatMessages.length - 1]?.timestamp;
+                    const messageCount = liveTextChatMessages.length;
+                    if (messageCount > 0) {
+                      setChatMessages(prev => [
+                        ...prev,
+                        {
+                          id: `system_${Date.now()}`,
+                          userId: 'system',
+                          username: 'System',
+                          content: `Live Text Chat session\nStart: ${sessionStart ? new Date(sessionStart).toLocaleTimeString() : ''}\nEnd: ${sessionEnd ? new Date(sessionEnd).toLocaleTimeString() : ''}\nMessages: ${messageCount}`,
+                          timestamp: Date.now(),
+                          type: 'system',
+                          reactions: {},
+                        },
+                        ...liveTextChatMessages,
+                      ]);
+                    }
+                    setInChatCall(false);
+                    setCallStartTime(null);
+                    setLiveTextChatMessages([]);
+                    setLiveTextInput('');
+                  }}
+                >
+                  End Session
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
       {/* Floating Notes Window */}
@@ -3091,12 +3462,12 @@ const VideoPlayer = () => {
           ref={notesRef}
           style={{
             position: 'fixed',
-            left: notesPos.x,
-            top: notesPos.y,
-            width: 400,
-            maxWidth: '90vw',
-            height: 500,
-            maxHeight: '80vh',
+            left: isNotesMaximized ? '5vw' : notesPos.x,
+            top: isNotesMaximized ? '5vh' : notesPos.y,
+            width: isNotesMaximized ? '90vw' : 400,
+            maxWidth: '98vw',
+            height: isNotesMaximized ? '90vh' : 500,
+            maxHeight: '98vh',
             background: 'white',
             borderRadius: 24,
             boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
@@ -3106,6 +3477,7 @@ const VideoPlayer = () => {
             overflow: 'hidden',
             userSelect: notesDragging ? 'none' : 'auto',
             cursor: notesDragging ? 'grabbing' : 'default',
+            transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
           }}
         >
           <div
@@ -3120,13 +3492,22 @@ const VideoPlayer = () => {
             }}
           >
             <span className="font-bold text-lg">Notes</span>
-            <button
-              onClick={() => setShowFloatingNotes(false)}
-              className="text-white hover:text-red-400 text-xl font-bold focus:outline-none"
-              title="Close Notes"
-            >
-              ×
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsNotesMaximized(m => !m)}
+                className="text-white hover:text-blue-300 text-xl font-bold focus:outline-none"
+                title={isNotesMaximized ? 'Restore' : 'Maximize'}
+              >
+                {isNotesMaximized ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setShowFloatingNotes(false)}
+                className="text-white hover:text-red-400 text-xl font-bold focus:outline-none"
+                title="Close Notes"
+              >
+                ×
+              </button>
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto px-4 py-2 bg-gray-50">
             {notes.filter(n => n.videoId === currentVideo?.id).length === 0 ? (
@@ -3135,25 +3516,88 @@ const VideoPlayer = () => {
               notes.filter(n => n.videoId === currentVideo?.id).map(note => (
                 <div key={note.id} className="mb-4 p-3 bg-white rounded-lg shadow border border-gray-200 flex justify-between items-start">
                   <div>
-                    <div className="text-gray-700 mb-1">{note.content}</div>
-                    <div className="text-xs text-gray-400">{new Date(note.timestamp).toLocaleTimeString()}</div>
+                    {editingNoteId === note.id ? (
+                      <>
+                        <textarea
+                          className="w-full rounded border border-gray-300 px-2 py-1 mb-2"
+                          value={currentNote}
+                          onChange={e => setCurrentNote(e.target.value)}
+                          rows={2}
+                          onPaste={handlePaste}
+                        />
+                        {/* Show images if any */}
+                        {noteImages.length > 0 && (
+                          <div className="flex gap-2 mb-2">
+                            {noteImages.map((img, idx) => (
+                              <img key={idx} src={img} alt="Note" className="w-12 h-12 object-cover rounded" />
+                            ))}
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <button
+                            className="bg-green-600 text-white rounded px-3 py-1 font-bold hover:bg-green-700"
+                            onClick={saveEditedNote}
+                          >
+                            Save
+                          </button>
+                          <button
+                            className="bg-gray-300 text-gray-700 rounded px-3 py-1 font-bold hover:bg-gray-400"
+                            onClick={() => setEditingNoteId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="text-gray-700 mb-1">{note.content}</div>
+                        {/* Show images if any */}
+                        {note.images && note.images.length > 0 && (
+                          <div className="flex gap-2 mb-2">
+                            {note.images.map((img, idx) => (
+                              <img key={idx} src={img} alt="Note" className="w-12 h-12 object-cover rounded" />
+                            ))}
+                          </div>
+                        )}
+                        {/* Show audio if any */}
+                        {note.audioUrl && (
+                          <audio controls src={note.audioUrl} className="mt-2" />
+                        )}
+                        <div className="text-xs text-gray-400 mt-1">{new Date(note.timestamp).toLocaleTimeString()}</div>
+                        <div className="flex gap-2 mt-1">
+                          <button
+                            className="text-blue-600 hover:underline text-xs font-bold"
+                            onClick={() => editNote(note.id)}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            className="ml-2 text-red-500 hover:text-red-700 text-lg font-bold"
+                            title="Delete Note"
+                            onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
+                          >
+                            ×
+                          </button>
+                          <button
+                            className="ml-2 text-blue-500 hover:text-blue-700 text-lg font-bold"
+                            title="Preview Note"
+                            onClick={() => setPreviewNote(note)}
+                          >
+                            <Eye className="w-5 h-5" />
+                          </button>
+                        </div>
+                      </>
+                    )}
                   </div>
-                  <button
-                    className="ml-2 text-red-500 hover:text-red-700 text-lg font-bold"
-                    title="Delete Note"
-                    onClick={() => setNotes(prev => prev.filter(n => n.id !== note.id))}
-                  >
-                    ×
-                  </button>
                 </div>
               ))
             )}
           </div>
           <form
-            className="flex items-center border-t border-gray-200 px-3 py-2 bg-white"
+            className="flex flex-col gap-2 border-t border-gray-200 px-3 py-2 bg-white"
             onSubmit={e => {
               e.preventDefault();
-              if (!noteInput.trim() || !currentVideo) return;
+              if (!noteInput.trim() && noteImages.length === 0 || !currentVideo) return;
               setNotes(prev => [
                 ...prev,
                 {
@@ -3162,22 +3606,80 @@ const VideoPlayer = () => {
                   timestamp: Date.now(),
                   videoId: currentVideo.id,
                   videoTitle: currentVideo.title,
+                  images: noteImages,
                 },
               ]);
               setNoteInput('');
+              setNoteImages([]);
             }}
           >
             <textarea
-              className="flex-1 rounded-full border border-gray-300 px-4 py-2 mr-2 focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
-              placeholder="Add a note..."
+              className="flex-1 rounded-full border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-green-400 resize-none"
+              placeholder="Add a note... (You can paste images/screenshots here)"
               value={noteInput}
               onChange={e => setNoteInput(e.target.value)}
               rows={1}
               style={{ minHeight: 36, maxHeight: 80 }}
+              onPaste={handlePaste}
             />
+            {/* Image upload/paste area */}
+            <div
+              className="flex items-center gap-2 mt-1"
+              style={{ minHeight: 48 }}
+            >
+              <label
+                htmlFor="note-image-upload"
+                className="flex items-center justify-center w-12 h-12 rounded-lg border-2 border-dashed border-gray-300 bg-gray-50 cursor-pointer hover:bg-gray-100 transition"
+                title="Paste or click to upload image"
+                style={{ position: 'relative' }}
+              >
+                <Image className="w-6 h-6 text-gray-400" />
+                <input
+                  id="note-image-upload"
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  style={{ display: 'none' }}
+                  onChange={handleImageUpload}
+                />
+              </label>
+              {/* Show image previews */}
+              {noteImages.length > 0 && (
+                <div className="flex gap-2 overflow-x-auto">
+                  {noteImages.map((img, idx) => (
+                    <div key={idx} className="relative group">
+                      <img src={img} alt="Note" className="w-12 h-12 object-cover rounded border border-gray-300" />
+                      <button
+                        type="button"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs font-bold shadow hover:bg-red-700"
+                        onClick={() => removeImage(idx)}
+                        title="Remove image"
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {/* Audio recording button and preview */}
+            <div className="flex items-center gap-2 mt-1">
+              <button
+                type="button"
+                className={`rounded-full p-2 font-bold text-white ${isRecording ? 'bg-red-500 animate-pulse' : 'bg-green-600'} hover:bg-green-700 transition flex items-center justify-center`}
+                onClick={isRecording ? stopRecording : startRecording}
+                title={isRecording ? 'Stop Recording' : 'Record Audio'}
+                style={{ width: 40, height: 40 }}
+              >
+                {isRecording ? <MicOff className="w-6 h-6" /> : <Mic className="w-6 h-6" />}
+              </button>
+              {audioChunksRef.current.length > 0 && (
+                <audio controls src={URL.createObjectURL(new Blob(audioChunksRef.current, { type: 'audio/webm' }))} className="ml-2" />
+              )}
+            </div>
             <button
               type="submit"
-              className="bg-green-600 text-white rounded-full px-4 py-2 font-bold hover:bg-green-700 transition"
+              className="bg-green-600 text-white rounded-full px-4 py-2 font-bold hover:bg-green-700 transition mt-2"
             >
               Add Note
             </button>
@@ -3190,24 +3692,26 @@ const VideoPlayer = () => {
           ref={pomodoroRef}
           style={{
             position: 'fixed',
-            left: pomodoroPos.x,
-            top: pomodoroPos.y,
-            width: 320,
-            maxWidth: '90vw',
-            height: 320,
-            background: 'white',
-            borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(220,38,38,0.15)',
+            left: isPomodoroMaximized ? '5vw' : pomodoroPos.x,
+            top: isPomodoroMaximized ? '5vh' : pomodoroPos.y,
+            width: isPomodoroMaximized ? '90vw' : 320,
+            maxWidth: '98vw',
+            height: isPomodoroMaximized ? '90vh' : 400,
+            background: 'linear-gradient(135deg, #fff 60%, #f3f4f6 100%)',
+            borderRadius: 28,
+            boxShadow: '0 8px 32px rgba(220,38,38,0.18)',
             zIndex: 9999,
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
             userSelect: pomodoroDragging ? 'none' : 'auto',
             cursor: pomodoroDragging ? 'grabbing' : 'default',
+            border: '2px solid #ef4444',
+            transition: 'all 0.2s cubic-bezier(.4,2,.6,1)',
           }}
         >
           <div
-            className="flex items-center justify-between px-4 py-3 bg-red-600 text-white rounded-t-2xl cursor-move select-none"
+            className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-red-600 to-pink-500 text-white rounded-t-2xl cursor-move select-none shadow"
             onMouseDown={e => {
               setPomodoroDragging(true);
               const rect = pomodoroRef.current?.getBoundingClientRect();
@@ -3217,35 +3721,78 @@ const VideoPlayer = () => {
               });
             }}
           >
-            <span className="font-bold text-lg">Pomodoro</span>
-            <button
-              onClick={() => setShowPomodoro(false)}
-              className="text-white hover:text-yellow-200 text-xl font-bold focus:outline-none"
-              title="Close Pomodoro"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50">
-            <div className="text-5xl font-extrabold text-red-600 mb-2">{formatPomodoroTime(pomodoroTime)}</div>
-            <div className="mb-4">
-              <span className={`px-3 py-1 rounded-full text-xs font-bold ${isWork ? 'bg-green-200 text-green-800' : 'bg-blue-200 text-blue-800'}`}>{isWork ? 'Work' : 'Break'}</span>
+            <span className="font-bold text-lg flex items-center gap-2">
+              <Timer className="w-5 h-5 mr-1" /> Pomodoro
+            </span>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsPomodoroMaximized(m => !m)}
+                className="text-white hover:text-blue-200 text-xl font-bold focus:outline-none"
+                title={isPomodoroMaximized ? 'Restore' : 'Maximize'}
+              >
+                {isPomodoroMaximized ? <Minimize2 className="w-5 h-5" /> : <Maximize2 className="w-5 h-5" />}
+              </button>
+              <button
+                onClick={() => setShowPomodoro(false)}
+                className="text-white hover:text-yellow-200 text-xl font-bold focus:outline-none"
+                title="Close Pomodoro"
+              >
+                ×
+              </button>
             </div>
-            <div className="flex gap-2 mb-4">
+          </div>
+          <div className="flex-1 flex flex-col items-center justify-center bg-gradient-to-b from-white via-gray-50 to-red-50 px-4 pb-4">
+            {/* Pomodoro stats - improved look */}
+            <div className="flex gap-3 justify-center mb-2 mt-2">
+              <div className="flex flex-col items-center bg-green-50 text-green-700 rounded-xl px-3 py-1 text-xs font-bold shadow-sm border border-green-200">
+                <span className="text-lg font-extrabold">{sessionsCompleted}</span>
+                <span className="uppercase tracking-wider">Sessions</span>
+              </div>
+              <div className="flex flex-col items-center bg-blue-50 text-blue-700 rounded-xl px-3 py-1 text-xs font-bold shadow-sm border border-blue-200">
+                <span className="text-lg font-extrabold">{breaksTaken}</span>
+                <span className="uppercase tracking-wider">Breaks</span>
+              </div>
+            </div>
+            {/* Progress ring for timer */}
+            <div className="relative flex items-center justify-center my-2" style={{ width: 120, height: 120 }}>
+              <svg width="120" height="120">
+                <circle
+                  cx="60" cy="60" r="54"
+                  stroke="#e5e7eb" strokeWidth="10" fill="none"
+                />
+                <circle
+                  cx="60" cy="60" r="54"
+                  stroke={isWork ? '#22c55e' : '#3b82f6'}
+                  strokeWidth="10"
+                  fill="none"
+                  strokeDasharray={339.292}
+                  strokeDashoffset={339.292 - (pomodoroTime / (isWork ? workDuration * 60 : breakDuration * 60)) * 339.292}
+                  strokeLinecap="round"
+                  style={{ transition: 'stroke-dashoffset 0.5s linear' }}
+                />
+              </svg>
+              <div className="absolute inset-0 flex flex-col items-center justify-center">
+                <span className={`text-3xl font-extrabold ${isWork ? 'text-green-600' : 'text-blue-600'}`}>{formatPomodoroTime(pomodoroTime)}</span>
+                <span className={`mt-1 px-3 py-0.5 rounded-full text-xs font-bold ${isWork ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700'}`}>{isWork ? 'Work' : 'Break'}</span>
+              </div>
+            </div>
+            {/* Controls - improved look */}
+            <div className="flex gap-2 mb-4 mt-2">
               <button
                 onClick={() => setPomodoroRunning(r => !r)}
-                className="px-4 py-2 rounded-full bg-red-600 text-white font-bold shadow hover:bg-red-700 transition"
+                className={`px-5 py-2 rounded-full font-bold shadow transition text-white ${pomodoroRunning ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
               >
                 {pomodoroRunning ? 'Pause' : 'Start'}
               </button>
               <button
-                onClick={() => { setPomodoroRunning(false); setPomodoroTime(isWork ? workDuration * 60 : breakDuration * 60); }}
-                className="px-4 py-2 rounded-full bg-gray-200 text-gray-700 font-bold shadow hover:bg-gray-300 transition"
+                onClick={handlePomodoroReset}
+                className="px-5 py-2 rounded-full bg-gray-200 text-gray-700 font-bold shadow hover:bg-gray-300 transition"
               >
                 Reset
               </button>
             </div>
-            <div className="flex gap-2 items-center">
+            {/* Duration inputs - improved look */}
+            <div className="flex gap-3 items-center mt-2">
               <label className="text-xs font-semibold text-gray-600">Work</label>
               <input
                 type="number"
@@ -3253,7 +3800,7 @@ const VideoPlayer = () => {
                 max={120}
                 value={workDuration}
                 onChange={e => setWorkDuration(Number(e.target.value))}
-                className="w-12 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-green-400"
+                className="w-12 rounded border border-green-300 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-green-400 bg-green-50"
               />
               <label className="text-xs font-semibold text-gray-600 ml-2">Break</label>
               <input
@@ -3262,7 +3809,7 @@ const VideoPlayer = () => {
                 max={60}
                 value={breakDuration}
                 onChange={e => setBreakDuration(Number(e.target.value))}
-                className="w-12 rounded border border-gray-300 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+                className="w-12 rounded border border-blue-300 px-2 py-1 text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 bg-blue-50"
               />
             </div>
           </div>
@@ -3304,7 +3851,7 @@ const VideoPlayer = () => {
             <span className="font-bold text-lg flex items-center">Ask AI</span>
             <button
               onClick={() => setShowAskAI(false)}
-              className="text-white hover:text-yellow-200 text-xl font-bold focus:outline-none"
+              className="bg-black text-white hover:bg-white hover:text-black text-xl font-bold focus:outline-none rounded-full px-3 py-1 transition-all duration-150"
               title="Close Ask AI"
             >
               ×
@@ -3330,6 +3877,71 @@ const VideoPlayer = () => {
               {aiAnswer}
             </div>
           </div>
+        </div>
+      )}
+      {/* Note Preview Modal */}
+      {previewNote && (
+        <div
+          style={{
+            position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 99999,
+            background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => setPreviewNote(null)}
+        >
+          <div
+            className="bg-white rounded-2xl shadow-2xl p-8 max-w-2xl w-full relative flex flex-col gap-4"
+            style={{ minHeight: 320 }}
+            onClick={e => e.stopPropagation()}
+          >
+            <button
+              className="absolute top-4 right-4 text-gray-500 hover:text-red-500 text-2xl font-bold"
+              onClick={() => setPreviewNote(null)}
+              title="Close Preview"
+            >
+              <X className="w-7 h-7" />
+            </button>
+            <div className="text-lg font-bold mb-2">{previewNote.videoTitle}</div>
+            <div className="text-gray-800 whitespace-pre-line mb-2">{previewNote.content}</div>
+            {/* Images with click-to-maximize */}
+            {previewNote.images && previewNote.images.length > 0 && (
+              <div className="flex gap-3 flex-wrap">
+                {previewNote.images.map((img, index) => (
+                  <img
+                    key={index}
+                    src={img}
+                    alt="Note"
+                    className="w-32 h-32 object-cover rounded cursor-pointer border border-gray-300 hover:shadow-lg"
+                    onClick={() => setFullscreenImage(img)}
+                    title="Click to maximize"
+                  />
+                ))}
+              </div>
+            )}
+            {/* Audio if present */}
+            {previewNote.audioUrl && (
+              <audio controls src={previewNote.audioUrl} className="mt-2" />
+            )}
+            <div className="text-xs text-gray-400 mt-2">{new Date(previewNote.timestamp).toLocaleString()}</div>
+          </div>
+        </div>
+      )}
+      {/* Fullscreen Image Overlay */}
+      {fullscreenImage && (
+        <div
+          style={{
+            position: 'fixed', left: 0, top: 0, width: '100vw', height: '100vh', zIndex: 100000,
+            background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}
+          onClick={() => setFullscreenImage(null)}
+        >
+          <img src={fullscreenImage} alt="Fullscreen" style={{ maxWidth: '90vw', maxHeight: '90vh', borderRadius: 16, boxShadow: '0 8px 32px rgba(0,0,0,0.5)' }} />
+          <button
+            style={{ position: 'fixed', top: 32, right: 32, background: 'rgba(0,0,0,0.7)', borderRadius: 24, padding: 8, border: 'none', cursor: 'pointer' }}
+            onClick={e => { e.stopPropagation(); setFullscreenImage(null); }}
+            title="Close Image"
+          >
+            <X className="w-8 h-8 text-white" />
+          </button>
         </div>
       )}
     </div>

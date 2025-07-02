@@ -1,16 +1,19 @@
 import { useState } from 'react';
-import { Plus, X, Loader2, Video as VideoIcon, Code, List, Image as ImageIcon } from 'lucide-react';
+import { Plus, X, Loader2, Video as VideoIcon, Code, List, Image as ImageIcon, Info, Settings, UploadCloud, Calendar, Clock, Lock, Link } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { Playlist, Video, ContentType } from '@/types/playlist';
 import { toast } from 'sonner';
 import AddCodingPlaylistModal from './AddCodingPlaylistModal';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from './ui/tooltip';
+import { ScrollArea } from './ui/scroll-area';
+import { Badge } from './ui/badge';
 
 interface AddPlaylistModalProps {
   isOpen: boolean;
@@ -897,49 +900,41 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
     onClose();
   };
 
+  const stepIcons = [Info, List, Settings];
+  const stepLabels = ['Info', 'Videos', 'Access'];
   const renderStepIndicator = () => (
-    <div className="flex items-center justify-center space-x-4 mb-8">
-      {[1, 2, 3].map((step) => (
-        <div key={step} className="flex items-center">
-          <div
-            className={`w-8 h-8 rounded-full flex items-center justify-center ${
-              currentStep === step
-                ? 'bg-blue-600 text-white'
-                : currentStep > step
-                ? 'bg-green-500 text-white'
-                : 'bg-gray-200 text-gray-600'
-            }`}
-          >
-            {currentStep > step ? (
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-            ) : (
-              step
+    <div className="flex items-center justify-center space-x-8 mb-8">
+      {[1, 2, 3].map((step, idx) => {
+        const Icon = stepIcons[idx];
+        return (
+          <div key={step} className="flex flex-col items-center">
+            <div
+              className={`w-10 h-10 rounded-full flex items-center justify-center shadow transition-all duration-200
+                ${currentStep === step ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white scale-110' :
+                  currentStep > step ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-600'}`}
+            >
+              <Icon className="w-6 h-6" />
+            </div>
+            <span className={`mt-2 text-xs font-semibold ${currentStep === step ? 'text-blue-600' : 'text-gray-500'}`}>{stepLabels[idx]}</span>
+            {idx < 2 && (
+              <div className={`w-16 h-1 mt-2 ${currentStep > step ? 'bg-green-500' : 'bg-gray-200'}`} />
             )}
           </div>
-          {step < 3 && (
-            <div
-              className={`w-16 h-1 ${
-                currentStep > step ? 'bg-green-500' : 'bg-gray-200'
-              }`}
-            />
-          )}
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 
   const renderStepContent = () => {
     const lockStatus = getTimeLockStatus();
-    
     switch (currentStep) {
       case 1:
         return (
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="playlist-title" className="text-sm font-semibold flex items-center gap-2">
+          <div className="space-y-8 bg-white dark:bg-gray-900 rounded-xl shadow p-8 border border-gray-100 dark:border-gray-800">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <Label htmlFor="playlist-title" className="text-base font-semibold flex items-center gap-2">
+                  <Info className="w-4 h-4 text-blue-500" />
                   <span>Playlist Title</span>
                   <span className="text-red-500">*</span>
                 </Label>
@@ -948,28 +943,64 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter a descriptive title..."
-                  className="h-11 text-base"
+                  className="h-12 text-base shadow-sm"
                 />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="content-type" className="text-sm font-semibold">Content Type</Label>
+                <Label htmlFor="content-type" className="text-base font-semibold mt-6">Content Type</Label>
                 <select
                   id="content-type"
                   value={contentType}
                   onChange={(e) => setContentType(e.target.value as ContentType)}
-                  className="w-full h-11 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full h-12 rounded-md border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 text-base focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-sm"
                 >
-                    <option value="course">Course</option>
-                    <option value="tutorial">Tutorial</option>
-                    <option value="lecture">Lecture</option>
+                  <option value="course">Course</option>
+                  <option value="tutorial">Tutorial</option>
+                  <option value="lecture">Lecture</option>
                   <option value="other">Other</option>
                 </select>
               </div>
+              <div className="flex flex-col items-center justify-center gap-4">
+                <Label className="text-base font-semibold flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-blue-500" />
+                  <span>Playlist Thumbnail</span>
+                  <span className="text-gray-500 text-xs">(Optional)</span>
+                </Label>
+                <div className="relative group w-48 h-32 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center bg-gray-50 dark:bg-gray-800 overflow-hidden cursor-pointer transition-all duration-200 hover:shadow-lg"
+                  onClick={() => setIsThumbnailModalOpen(true)}
+                  onDrop={e => {
+                    e.preventDefault();
+                    const file = e.dataTransfer.files[0];
+                    if (file && file.type.startsWith('image/')) {
+                      const reader = new FileReader();
+                      reader.onload = (ev) => setSelectedThumbnail(ev.target?.result as string);
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  onDragOver={e => e.preventDefault()}
+                >
+                  {selectedThumbnail ? (
+                    <img src={selectedThumbnail} alt="Selected thumbnail" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center w-full h-full text-gray-400">
+                      <UploadCloud className="w-10 h-10 mb-2" />
+                      <span>Drag & drop or click to select</span>
+                    </div>
+                  )}
+                  {selectedThumbnail && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="absolute top-2 right-2 h-7 w-7 bg-black/60 hover:bg-black/80 text-white"
+                      onClick={e => { e.stopPropagation(); setSelectedThumbnail(''); }}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              </div>
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="playlist-description" className="text-sm font-semibold flex items-center gap-2">
+            <div className="space-y-2 mt-8">
+              <Label htmlFor="playlist-description" className="text-base font-semibold flex items-center gap-2">
+                <Info className="w-4 h-4 text-blue-500" />
                 <span>Description</span>
                 <span className="text-gray-500 text-xs">(Optional)</span>
               </Label>
@@ -978,232 +1009,266 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Add a detailed description of your playlist..."
-                className="min-h-[120px] text-base resize-y"
+                className="min-h-[120px] text-base resize-y shadow-sm"
               />
             </div>
-
-            <div className="space-y-2">
-              <Label className="text-sm font-semibold flex items-center gap-2">
-                <span>Playlist Thumbnail</span>
-                <span className="text-gray-500 text-xs">(Optional)</span>
-              </Label>
-              <div className="flex items-center gap-4">
-                {selectedThumbnail ? (
-                  <div className="relative w-32 h-20 rounded-lg overflow-hidden">
-                    <img
-                      src={selectedThumbnail}
-                      alt="Selected thumbnail"
-                      className="w-full h-full object-cover"
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute top-1 right-1 h-6 w-6 bg-black/50 hover:bg-black/70 text-white"
-                      onClick={() => setSelectedThumbnail('')}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="w-32 h-20 rounded-lg border-2 border-dashed border-gray-300 dark:border-gray-700 flex items-center justify-center">
-                    <span className="text-gray-500 text-sm">No thumbnail</span>
-                  </div>
-                )}
-                <Button
-                  variant="outline"
-                  onClick={() => setIsThumbnailModalOpen(true)}
-                  className="h-11"
-                >
-                  {selectedThumbnail ? 'Change Thumbnail' : 'Select Thumbnail'}
-                </Button>
-              </div>
-            </div>
           </div>
         );
-
       case 2:
         return (
-          <div className="space-y-6">
-          <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'single' | 'playlist')} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
-              <TabsTrigger 
-                value="single" 
-                className="text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm rounded-md"
-              >
-                Single Video
-              </TabsTrigger>
-              <TabsTrigger 
-                value="playlist" 
-                className="text-sm font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm rounded-md"
-              >
-                YouTube Playlist
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="single" className="space-y-6">
-              <div className="grid grid-cols-2 gap-6">
-                <div className="space-y-2">
-                  <Label htmlFor="video-title" className="text-sm font-semibold flex items-center gap-2">
-                    <span>Video Title</span>
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="video-title"
-                    value={currentVideo.title}
-                    onChange={(e) => setCurrentVideo({ ...currentVideo, title: e.target.value })}
-                    placeholder="Enter video title..."
-                    className="h-11 text-base"
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="video-url" className="text-sm font-semibold flex items-center gap-2">
-                    <span>YouTube URL</span>
-                    <span className="text-red-500">*</span>
-                  </Label>
-                  <Input
-                    id="video-url"
-                    value={currentVideo.url}
-                    onChange={(e) => setCurrentVideo({ ...currentVideo, url: e.target.value })}
-                    placeholder="https://www.youtube.com/watch?v=..."
-                    className="h-11 text-base"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="scheduled-time" className="text-sm font-semibold flex items-center gap-2">
-                  <span>Schedule Time</span>
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="scheduled-time"
-                  type="datetime-local"
-                  value={currentVideo.scheduledTime}
-                  onChange={(e) => setCurrentVideo({ ...currentVideo, scheduledTime: e.target.value })}
-                  className="h-11 text-base"
-                />
-              </div>
-
-              <Button
-                onClick={addVideo}
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200"
-                disabled={isLoading}
-              >
-                {isLoading ? (
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                ) : (
-                  <Plus className="w-5 h-5 mr-2" />
+          <ScrollArea className="h-[60vh] w-full rounded-xl bg-white dark:bg-gray-900 shadow p-0 border border-gray-100 dark:border-gray-800">
+            <div className="p-8 space-y-8">
+              {/* Summary */}
+              <div className="flex flex-wrap items-center gap-4 mb-4">
+                <Badge className="bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300 font-semibold px-3 py-1">
+                  {videos.length} Video{videos.length !== 1 && 's'} Added
+                </Badge>
+                <Badge className="bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300 font-semibold px-3 py-1">
+                  {Math.round(videos.reduce((sum, v) => sum + v.watchTime, 0))} min Total
+                </Badge>
+                {(isLoading || isLoadingPlaylist) && (
+                  <span className="ml-2 animate-pulse text-blue-500 flex items-center gap-1">
+                    <Loader2 className="w-4 h-4 animate-spin" /> Processing...
+                  </span>
                 )}
-                Add Video
-              </Button>
-            </TabsContent>
-
-            <TabsContent value="playlist" className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="playlist-url" className="text-sm font-semibold flex items-center gap-2">
-                  <span>YouTube Playlist URL</span>
-                  <span className="text-red-500">*</span>
-                </Label>
-                <Input
-                  id="playlist-url"
-                  value={playlistUrl}
-                  onChange={(e) => setPlaylistUrl(e.target.value)}
-                  placeholder="https://www.youtube.com/playlist?list=..."
-                  className="h-11 text-base"
-                />
               </div>
-
-              <Button
-                onClick={handlePlaylistSubmit}
-                className="w-full h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200"
-                disabled={isLoadingPlaylist}
-              >
-                {isLoadingPlaylist ? (
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                ) : (
-                  <List className="w-5 h-5 mr-2" />
-                )}
-                Load and Add Playlist
-              </Button>
-            </TabsContent>
-          </Tabs>
-
-          {videos.length > 0 && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-semibold flex items-center gap-2">
-                  <VideoIcon className="w-5 h-5 text-blue-600" />
-                  Added Videos ({videos.length})
-                </h3>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setVideos([])}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
-                >
-                  Clear All
-                </Button>
-              </div>
-              <div className="max-h-[300px] overflow-y-auto space-y-3 pr-2 custom-scrollbar">
-                {videos.map((video, index) => (
-                  <Card key={index} className="p-4 hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-gray-800">
-                    <div className="flex items-start gap-4">
-                      <img
-                        src={video.thumbnail}
-                        alt={video.title}
-                        className="w-32 h-20 object-cover rounded-lg shadow-sm"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-medium text-base truncate">{video.title}</h4>
-                        <div className="mt-2 space-y-1">
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Duration: {Math.round(video.watchTime)} minutes
-                          </p>
-                          <p className="text-sm text-gray-600 dark:text-gray-400">
-                            Scheduled: {new Date(video.scheduledTime).toLocaleString()}
-                          </p>
+              <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'single' | 'playlist')} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 mb-6 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
+                  <TabsTrigger 
+                    value="single" 
+                    className="text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm rounded-md flex items-center gap-2"
+                  >
+                    <VideoIcon className="w-5 h-5" /> Single Video
+                  </TabsTrigger>
+                  <TabsTrigger 
+                    value="playlist" 
+                    className="text-base font-medium data-[state=active]:bg-white dark:data-[state=active]:bg-gray-900 data-[state=active]:shadow-sm rounded-md flex items-center gap-2"
+                  >
+                    <List className="w-5 h-5" /> YouTube Playlist
+                  </TabsTrigger>
+                </TabsList>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 border-b pb-8 mb-8">
+                  <TabsContent value="single" className="space-y-6">
+                    <Label htmlFor="video-title" className="text-base font-semibold flex items-center gap-2">
+                      <VideoIcon className="w-4 h-4 text-blue-500" />
+                      <span>Video Title</span>
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="video-title"
+                      value={currentVideo.title}
+                      onChange={(e) => setCurrentVideo({ ...currentVideo, title: e.target.value })}
+                      placeholder="Enter video title..."
+                      className="h-12 text-base shadow-sm"
+                    />
+                    <Label htmlFor="video-url" className="text-base font-semibold flex items-center gap-2 mt-4">
+                      <Link className="w-4 h-4 text-blue-500" />
+                      <span>YouTube URL</span>
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="video-url"
+                      value={currentVideo.url}
+                      onChange={(e) => setCurrentVideo({ ...currentVideo, url: e.target.value })}
+                      placeholder="https://www.youtube.com/watch?v=..."
+                      className="h-12 text-base shadow-sm"
+                    />
+                    <Label htmlFor="scheduled-time" className="text-base font-semibold flex items-center gap-2 mt-4">
+                      <Calendar className="w-4 h-4 text-blue-500" />
+                      <span>Schedule Time</span>
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="scheduled-time"
+                      type="datetime-local"
+                      value={currentVideo.scheduledTime}
+                      onChange={(e) => setCurrentVideo({ ...currentVideo, scheduledTime: e.target.value })}
+                      className="h-12 text-base shadow-sm"
+                    />
+                    <Button
+                      onClick={addVideo}
+                      className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200 mt-6"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <Plus className="w-5 h-5 mr-2" />
+                      )}
+                      Add Video
+                    </Button>
+                  </TabsContent>
+                  <TabsContent value="playlist" className="space-y-6">
+                    <Label htmlFor="playlist-url" className="text-base font-semibold flex items-center gap-2">
+                      <List className="w-4 h-4 text-blue-500" />
+                      <span>YouTube Playlist URL</span>
+                      <span className="text-red-500">*</span>
+                    </Label>
+                    <Input
+                      id="playlist-url"
+                      value={playlistUrl}
+                      onChange={(e) => setPlaylistUrl(e.target.value)}
+                      placeholder="https://www.youtube.com/playlist?list=..."
+                      className="h-12 text-base shadow-sm"
+                    />
+                    <Button
+                      onClick={handlePlaylistSubmit}
+                      className="w-full h-12 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200 mt-6"
+                      disabled={isLoadingPlaylist}
+                    >
+                      {isLoadingPlaylist ? (
+                        <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                      ) : (
+                        <List className="w-5 h-5 mr-2" />
+                      )}
+                      Load and Add Playlist
+                    </Button>
+                    {videos.length > 0 && (
+                      <div className="relative mt-6">
+                        <ScrollArea className="h-56 w-full rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2">
+                          <div className="flex flex-col gap-4">
+                            {videos.map((video, index) => (
+                              <TooltipProvider key={index}>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <Card className="flex flex-row items-center gap-4 p-4 hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-gray-800 relative">
+                                      <img
+                                        src={video.thumbnail}
+                                        alt={video.title}
+                                        className="w-24 h-16 object-cover rounded-lg shadow-sm"
+                                      />
+                                      <div className="flex-1 min-w-0">
+                                        <h4 className="font-medium text-base truncate" title={video.title}>{video.title}</h4>
+                                        <div className="mt-1 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                          <Calendar className="w-4 h-4" />
+                                          {new Date(video.scheduledTime).toLocaleString()}
+                                        </div>
+                                        <div className="mt-1 text-xs text-gray-500">{Math.round(video.watchTime)} min</div>
+                                      </div>
+                                      <Button
+                                        variant="ghost"
+                                        size="icon"
+                                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                        onClick={() => removeVideo(index)}
+                                      >
+                                        <X className="h-4 w-4" />
+                                      </Button>
+                                    </Card>
+                                  </TooltipTrigger>
+                                  <TooltipContent>
+                                    <span>{video.title}</span>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </TooltipProvider>
+                            ))}
+                          </div>
+                        </ScrollArea>
+                        <div className="sticky bottom-0 left-0 w-full flex justify-end gap-2 bg-gradient-to-t from-white/90 dark:from-gray-900/90 to-transparent pt-4 pb-2 z-10">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setVideos([])}
+                            className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                          >
+                            Clear All
+                          </Button>
+                          <Button
+                            onClick={handleNext}
+                            className="h-11 bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-medium text-base shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all duration-200"
+                            disabled={isLoading || isLoadingPlaylist}
+                          >
+                            Next
+                          </Button>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
-                        onClick={() => removeVideo(index)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
+                    )}
+                  </TabsContent>
+                </div>
+              </Tabs>
+              {/* Divider */}
+              <div className="border-t border-dashed border-gray-300 dark:border-gray-700 my-4" />
+              {/* Added Videos List (for single video tab) */}
+              {activeTab === 'single' && videos.length > 0 && (
+                <div className="space-y-4 mt-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold flex items-center gap-2">
+                      <VideoIcon className="w-5 h-5 text-blue-600" />
+                      Added Videos ({videos.length})
+                    </h3>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setVideos([])}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-900/20"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  <ScrollArea className="w-full max-w-full h-48 overflow-y-auto rounded-lg border border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 p-2">
+                    <div className="flex gap-4">
+                      {videos.map((video, index) => (
+                        <TooltipProvider key={index}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Card className="w-64 min-w-[16rem] p-4 hover:shadow-lg transition-all duration-200 border-gray-200 dark:border-gray-800 relative flex flex-col items-center">
+                                <img
+                                  src={video.thumbnail}
+                                  alt={video.title}
+                                  className="w-full h-32 object-cover rounded-lg shadow-sm mb-2"
+                                />
+                                <div className="absolute top-2 left-2 bg-blue-600 text-white text-xs px-2 py-1 rounded shadow">
+                                  {Math.round(video.watchTime)} min
+                                </div>
+                                <h4 className="font-medium text-base truncate w-full text-center" title={video.title}>{video.title}</h4>
+                                <div className="mt-2 flex items-center gap-2 text-xs text-gray-600 dark:text-gray-400">
+                                  <Calendar className="w-4 h-4" />
+                                  {new Date(video.scheduledTime).toLocaleString()}
+                                </div>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="absolute top-2 right-2 h-8 w-8 text-red-600 hover:text-red-700 hover:bg-red-100 dark:hover:bg-red-900/20"
+                                  onClick={() => removeVideo(index)}
+                                >
+                                  <X className="h-4 w-4" />
+                                </Button>
+                              </Card>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <span>{video.title}</span>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      ))}
                     </div>
-                  </Card>
-                ))}
-              </div>
+                  </ScrollArea>
+                </div>
+              )}
             </div>
-          )}
-          </div>
+          </ScrollArea>
         );
-
       case 3:
         return (
-          <div className="space-y-6">
-          <div className="border rounded-xl p-6 space-y-6 bg-white dark:bg-gray-900 shadow-sm">
-            <div className="flex items-center justify-between">
+          <div className="space-y-8 bg-white dark:bg-gray-900 rounded-xl shadow p-8 border border-gray-100 dark:border-gray-800">
+            <div className="flex items-center gap-4 mb-4">
+              <Lock className="w-5 h-5 text-blue-500" />
               <div>
-                <Label className="text-base font-semibold">Access Time Restriction</Label>
-                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                    {lockStatus.message}
-                  </p>
+                <Label className="text-lg font-semibold">Access Time Restriction</Label>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{lockStatus.message}</p>
               </div>
-              <div className="flex items-center space-x-3">
-                <span className="text-sm text-gray-600 dark:text-gray-400">Enable</span>
+            </div>
+            <div className="border-t pt-4">
+              <div className="flex items-center justify-between">
+                <span className="text-base font-semibold">Enable Restriction</span>
                 <div
                   className={`relative inline-flex h-7 w-14 items-center rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 ${
                     timeLock.enabled ? 'bg-blue-600' : 'bg-gray-200 dark:bg-gray-700'
                   }`}
-                    onClick={() => setTimeLock(prev => ({ 
-                      ...prev, 
-                      enabled: !prev.enabled,
-                      days: !prev.enabled ? [0, 1, 2, 3, 4, 5, 6] : prev.days 
-                    }))}
+                  onClick={() => setTimeLock(prev => ({
+                    ...prev,
+                    enabled: !prev.enabled,
+                    days: !prev.enabled ? [0, 1, 2, 3, 4, 5, 6] : prev.days
+                  }))}
                 >
                   <span
                     className={`inline-block h-5 w-5 transform rounded-full bg-white transition-transform ${
@@ -1212,142 +1277,134 @@ const VideoPlaylistModal = ({ isOpen, onClose, onAdd }: AddPlaylistModalProps) =
                   />
                 </div>
               </div>
-            </div>
-
-            {timeLock.enabled && (
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <Label className="text-base font-semibold">Quick Time Presets</Label>
-                    <div className="flex items-center gap-4">
-                      <div className="flex items-center gap-2">
-                        <Label htmlFor="time-format" className="text-sm">Time Format:</Label>
-                        <select
-                          id="time-format"
-                          value={timeLock.use24Hour ? '24h' : '12h'}
-                          onChange={(e) => setTimeLock(prev => ({ ...prev, use24Hour: e.target.value === '24h' }))}
-                          className="h-8 px-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
-                        >
-                          <option value="24h">24-hour</option>
-                          <option value="12h">12-hour (AM/PM)</option>
-                        </select>
-                      </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={resetTimeSettings}
-                    className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
-                  >
-                    Reset Time Settings
-                  </Button>
-                </div>
-                  </div>
-
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
-                  {timePresets.map((preset) => (
-                    <Button
-                      key={preset.label}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => applyTimePreset(preset)}
-                      className={`text-sm h-9 ${
-                        timeLock.startTime === preset.start && timeLock.endTime === preset.end
-                          ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
-                          : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                      }`}
-                    >
-                        <span className="mr-2">{preset.icon}</span>
-                      {preset.label}
-                    </Button>
-                  ))}
-                </div>
-
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <Label htmlFor="start-time" className="text-sm font-semibold">Access Start Time</Label>
-                      <div className="flex items-center gap-2">
-                    <Input
-                      id="start-time"
-                          type={timeLock.use24Hour ? "time" : "text"}
-                          value={formatTimeForDisplay(timeLock.startTime, timeLock.use24Hour)}
-                          onChange={(e) => {
-                            const newTime = parseTimeFromDisplay(e.target.value, timeLock.use24Hour);
-                            if (validateTimeRange(newTime, timeLock.endTime)) {
-                              setTimeLock(prev => ({ ...prev, startTime: newTime }));
-                            } else {
-                              toast.error('Start time must be before end time');
-                            }
-                          }}
-                      className="h-11 text-base"
-                          placeholder={timeLock.use24Hour ? "HH:mm" : "HH:mm AM/PM"}
-                    />
-                      </div>
-                    <p className="text-xs text-gray-500 mt-1">When users can start accessing the playlist</p>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="end-time" className="text-sm font-semibold">Access End Time</Label>
-                      <div className="flex items-center gap-2">
-                    <Input
-                      id="end-time"
-                          type={timeLock.use24Hour ? "time" : "text"}
-                          value={formatTimeForDisplay(timeLock.endTime, timeLock.use24Hour)}
-                          onChange={(e) => {
-                            const newTime = parseTimeFromDisplay(e.target.value, timeLock.use24Hour);
-                            if (validateTimeRange(timeLock.startTime, newTime)) {
-                              setTimeLock(prev => ({ ...prev, endTime: newTime }));
-                            } else {
-                              toast.error('End time must be after start time');
-                            }
-                          }}
-                      className="h-11 text-base"
-                          placeholder={timeLock.use24Hour ? "HH:mm" : "HH:mm AM/PM"}
-                    />
-                      </div>
-                    <p className="text-xs text-gray-500 mt-1">When users can no longer access the playlist</p>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                    <div className="flex items-center justify-between">
-                  <Label className="text-sm font-semibold block">Available Days</Label>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setTimeLock(prev => ({ 
-                          ...prev, 
-                          days: prev.days.length === 7 ? [] : [0, 1, 2, 3, 4, 5, 6] 
-                        }))}
-                        className="text-xs text-blue-600 hover:text-blue-700"
+              {timeLock.enabled && (
+                <div className="mt-6 space-y-6">
+                  <details className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4">
+                    <summary className="font-semibold cursor-pointer text-base mb-2">Advanced Time Settings</summary>
+                    <div className="flex items-center gap-4 mb-4">
+                      <Label htmlFor="time-format" className="text-sm">Time Format:</Label>
+                      <select
+                        id="time-format"
+                        value={timeLock.use24Hour ? '24h' : '12h'}
+                        onChange={(e) => setTimeLock(prev => ({ ...prev, use24Hour: e.target.value === '24h' }))}
+                        className="h-8 px-2 rounded border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800"
                       >
-                        {timeLock.days.length === 7 ? 'Clear All' : 'Select All'}
+                        <option value="24h">24-hour</option>
+                        <option value="12h">12-hour (AM/PM)</option>
+                      </select>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={resetTimeSettings}
+                        className="text-sm text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-200"
+                      >
+                        Reset Time Settings
                       </Button>
                     </div>
-                  <p className="text-xs text-gray-500">Select the days when users can access the playlist</p>
-                  <div className="flex flex-wrap gap-2">
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
-                      <Button
-                        key={day}
-                        variant={timeLock.days.includes(index) ? "default" : "outline"}
-                        size="sm"
-                        onClick={() => toggleDay(index)}
-                        className={`w-14 h-9 ${
-                          timeLock.days.includes(index)
-                            ? 'bg-blue-600 text-white hover:bg-blue-700'
-                            : 'hover:bg-gray-50 dark:hover:bg-gray-800'
-                        }`}
-                      >
-                        {day}
-                      </Button>
-                    ))}
-                  </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 mb-4">
+                      {timePresets.map((preset) => (
+                        <Button
+                          key={preset.label}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => applyTimePreset(preset)}
+                          className={`text-sm h-9 ${
+                            timeLock.startTime === preset.start && timeLock.endTime === preset.end
+                              ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-300'
+                              : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                          }`}
+                        >
+                          <span className="mr-2">{preset.icon}</span>
+                          {preset.label}
+                        </Button>
+                      ))}
+                    </div>
+                    <div className="grid grid-cols-2 gap-6 mb-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="start-time" className="text-sm font-semibold">Access Start Time</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="start-time"
+                            type={timeLock.use24Hour ? 'time' : 'text'}
+                            value={formatTimeForDisplay(timeLock.startTime, timeLock.use24Hour)}
+                            onChange={(e) => {
+                              const newTime = parseTimeFromDisplay(e.target.value, timeLock.use24Hour);
+                              if (validateTimeRange(newTime, timeLock.endTime)) {
+                                setTimeLock(prev => ({ ...prev, startTime: newTime }));
+                              } else {
+                                toast.error('Start time must be before end time');
+                              }
+                            }}
+                            className="h-11 text-base"
+                            placeholder={timeLock.use24Hour ? 'HH:mm' : 'HH:mm AM/PM'}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">When users can start accessing the playlist</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="end-time" className="text-sm font-semibold">Access End Time</Label>
+                        <div className="flex items-center gap-2">
+                          <Input
+                            id="end-time"
+                            type={timeLock.use24Hour ? 'time' : 'text'}
+                            value={formatTimeForDisplay(timeLock.endTime, timeLock.use24Hour)}
+                            onChange={(e) => {
+                              const newTime = parseTimeFromDisplay(e.target.value, timeLock.use24Hour);
+                              if (validateTimeRange(timeLock.startTime, newTime)) {
+                                setTimeLock(prev => ({ ...prev, endTime: newTime }));
+                              } else {
+                                toast.error('End time must be after start time');
+                              }
+                            }}
+                            className="h-11 text-base"
+                            placeholder={timeLock.use24Hour ? 'HH:mm' : 'HH:mm AM/PM'}
+                          />
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">When users can no longer access the playlist</p>
+                      </div>
+                    </div>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-semibold block">Available Days</Label>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setTimeLock(prev => ({
+                            ...prev,
+                            days: prev.days.length === 7 ? [] : [0, 1, 2, 3, 4, 5, 6]
+                          }))}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                        >
+                          {timeLock.days.length === 7 ? 'Clear All' : 'Select All'}
+                        </Button>
+                      </div>
+                      <p className="text-xs text-gray-500">Select the days when users can access the playlist</p>
+                      <div className="flex flex-wrap gap-2">
+                        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day, index) => (
+                          <Button
+                            key={day}
+                            variant={timeLock.days.includes(index) ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => toggleDay(index)}
+                            className={`w-14 h-9 ${
+                              timeLock.days.includes(index)
+                                ? 'bg-blue-600 text-white hover:bg-blue-700'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-800'
+                            }`}
+                          >
+                            {day}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                    <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg mt-4">
+                      <p className="text-sm text-blue-700 dark:text-blue-300">
+                        <span className="font-semibold">Note:</span> The playlist will be locked outside of the specified time range and on unselected days. Users will see a message indicating when the playlist will become available.
+                      </p>
+                    </div>
+                  </details>
                 </div>
-
-                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                  <p className="text-sm text-blue-700 dark:text-blue-300">
-                      <span className="font-semibold">Note:</span> The playlist will be locked outside of the specified time range and on unselected days. Users will see a message indicating when the playlist will become available.
-                  </p>
-                </div>
-              </div>
-            )}
+              )}
             </div>
           </div>
         );

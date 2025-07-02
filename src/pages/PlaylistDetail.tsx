@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play, Trash2, Share2, Users, Lock, Unlock } from 'lucide-react';
+import { ArrowLeft, Clock, Target, Calendar, Edit3, Save, X, Plus, Play, Trash2, Share2, Users, Lock, Unlock, MoreVertical, CheckCircle, PlayCircle, Edit2, ArrowRight, Copy, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -15,6 +15,11 @@ import { usePlaylists } from '@/context/PlaylistContext';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
 import { Switch } from '@/components/ui/switch';
 import { useSidebar } from '@/components/ui/sidebar';
+import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { ContextMenu, ContextMenuTrigger, ContextMenuContent, ContextMenuItem } from '@/components/ui/context-menu';
+import { Badge } from '@/components/ui/badge';
+import { VideoIcon } from 'lucide-react';
+import { useRef } from 'react';
 
 interface CompletedVideo {
   id: string;
@@ -629,9 +634,10 @@ const PlaylistDetail = () => {
         <Card className="bg-white/70 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 backdrop-blur-sm border border-gray-200/50 dark:border-slate-700/30">
           <CardContent className="py-8 text-center">
             <p className="text-red-600 dark:text-red-400 mb-4">{error}</p>
-            <Button onClick={() => navigate('/library')} className="mt-4">
+            <Button onClick={() => navigate('/library')} className="mt-10 px-6 py-2 rounded-full bg-white text-black border border-black shadow-lg flex items-center gap-2 text-lg font-semibold hover:bg-black hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black">
+              <ArrowLeft className="w-6 h-6 mr-2 text-black group-hover:text-white transition-colors" />
               Back to Library
-            </Button>
+            </Button> 
           </CardContent>
         </Card>
       </div>
@@ -662,6 +668,12 @@ const PlaylistDetail = () => {
   const completedVideosList = playlist.videos.filter(video => video.progress >= 100);
   const lockStatus = getTimeLockStatus(playlist.timeLock);
 
+  // Helper for progress
+  const getProgress = (video) => video.progress || 0;
+  const getDuration = (video) => Math.round(video.watchTime) || 0;
+  const getScheduled = (video) => video.scheduledTime ? new Date(video.scheduledTime).toLocaleString() : null;
+  const nextUpId = uncompletedVideos.length > 0 ? uncompletedVideos[0].id : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800/95 dark:to-indigo-950/95 transition-colors duration-200">
       <div className="container mx-auto px-4 pb-8 max-w-6xl">
@@ -673,24 +685,25 @@ const PlaylistDetail = () => {
                 ? navigate('/acceleratorlibrary')
                 : navigate('/library')
             }
-            className="mb-4 hover:bg-white/50 dark:hover:bg-slate-800/50 text-gray-700 dark:text-gray-300 transition-colors duration-200"
+            className="mt-10 mb-4 px-6 py-2 rounded-full bg-white text-black border border-black shadow-lg flex items-center gap-2 text-lg font-semibold hover:bg-black hover:text-white transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-black"
           >
-            <ArrowLeft className="w-4 h-4 mr-2" />
+            <ArrowLeft className="w-6 h-6 mr-2 text-black group-hover:text-white transition-colors" />
             {playlist.id === 'yt-V979Wd1gmTU' ? 'Back to Accelerator Library' : 'Back to Library'}
           </Button>
           
-          <div className="relative w-full h-[400px] mb-8 rounded-2xl overflow-hidden shadow-2xl">
+          <div className="relative w-full h-[400px] mb-8 rounded-2xl overflow-hidden shadow-2xl group">
+            {/* Cover image */}
             {playlist.thumbnail ? (
               <img
                 src={playlist.thumbnail}
                 alt={playlist.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700"
               />
             ) : playlist.videos.length > 0 ? (
               <img
                 src={playlist.videos[0].thumbnail}
                 alt={playlist.title}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover scale-105 group-hover:scale-110 transition-transform duration-700"
               />
             ) : (
               <div className="w-full h-full bg-gradient-to-br from-blue-100 to-purple-100 dark:from-blue-900 dark:to-purple-900 flex items-center justify-center">
@@ -700,10 +713,86 @@ const PlaylistDetail = () => {
                 </div>
               </div>
             )}
+            {/* Frosted glass overlay for info */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent" />
-            <div className="absolute bottom-0 left-0 right-0 p-8">
-              <h1 className="text-5xl font-bold text-white mb-3 drop-shadow-lg">{playlist.title}</h1>
-              <p className="text-gray-200 text-lg max-w-3xl drop-shadow-md">{playlist.description}</p>
+            <div className="absolute bottom-0 left-0 right-0 p-8 flex flex-col md:flex-row md:items-end md:justify-between gap-6 animate-fade-in-up">
+              <div className="backdrop-blur-md bg-black/40 rounded-xl p-6 shadow-lg max-w-2xl animate-fade-in-up">
+                <div className="flex items-center gap-3 mb-2">
+                  <VideoIcon className="w-7 h-7 text-blue-400" />
+                  <h1 className="text-4xl md:text-5xl font-bold text-white drop-shadow-lg animate-fade-in-up">{playlist.title}</h1>
+                </div>
+                <p className="text-gray-200 text-lg max-w-2xl drop-shadow-md animate-fade-in-up" style={{animationDelay: '100ms'}}>{playlist.description}</p>
+                <div className="flex flex-wrap gap-3 mt-4">
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                    <VideoIcon className="w-4 h-4 mr-1 inline" /> {playlist.videos.length} Videos
+                  </Badge>
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                    <Clock className="w-4 h-4 mr-1 inline" /> {Math.round(totalDuration)} min
+                  </Badge>
+                  <Badge variant="secondary" className="bg-white/20 text-white border-white/30 backdrop-blur-sm">
+                    {playlist.isPublic ? <Globe className="w-4 h-4 mr-1 inline" /> : <Lock className="w-4 h-4 mr-1 inline" />} {playlist.isPublic ? 'Public' : 'Private'}
+                  </Badge>
+                </div>
+              </div>
+              {/* Floating action bar */}
+              <div className="flex flex-col gap-3 items-end animate-fade-in-up">
+                <div className="flex gap-2 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-xl shadow-lg px-4 py-3">
+                  {playlist.id !== 'yt-V979Wd1gmTU' && (
+                    <>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" onClick={() => setIsInviteModalOpen(true)}>
+                              <Share2 className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Invite</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                      <TooltipProvider>
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button size="icon" variant="ghost" onClick={() => setIsAddVideoModalOpen(true)}>
+                              <Plus className="w-5 h-5" />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Add Video</TooltipContent>
+                        </Tooltip>
+                      </TooltipProvider>
+                    </>
+                  )}
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" onClick={handlePlayAll}>
+                          <Play className="w-5 h-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Play All</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost" onClick={() => {navigator.clipboard.writeText(window.location.href); toast.success('Link copied!')}}>
+                          <Copy className="w-5 h-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Copy Link</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button size="icon" variant="ghost">
+                          <MoreVertical className="w-5 h-5" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>More</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+              </div>
             </div>
           </div>
           
@@ -730,24 +819,6 @@ const PlaylistDetail = () => {
                 </div>
               </div>
               <div className="flex gap-3">
-                {playlist.id !== 'yt-V979Wd1gmTU' && (
-                  <>
-                    <Button
-                      onClick={() => setIsInviteModalOpen(true)}
-                      className="bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-700 hover:to-indigo-700 dark:from-purple-500 dark:to-indigo-500 dark:hover:from-purple-600 dark:hover:to-indigo-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
-                    >
-                      <Share2 className="w-4 h-4 mr-2" />
-                      Invite
-                    </Button>
-                    <Button
-                      onClick={() => setIsAddVideoModalOpen(true)}
-                      className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 dark:from-blue-500 dark:to-purple-500 dark:hover:from-blue-600 dark:hover:to-purple-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Video
-                    </Button>
-                  </>
-                )}
                 <Button
                   onClick={handlePlayAll}
                   className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 dark:from-green-500 dark:to-emerald-500 dark:hover:from-green-600 dark:hover:to-emerald-600 transition-all duration-200 shadow-md hover:shadow-lg px-6"
@@ -803,43 +874,72 @@ const PlaylistDetail = () => {
                   {uncompletedVideos.length} {uncompletedVideos.length === 1 ? 'video' : 'videos'}
                 </span>
               </div>
-              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar">
+              <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar">
                 {uncompletedVideos.length > 0 ? (
                   uncompletedVideos.map((video, index) => (
-                    <div 
-                      key={video.id}
-                      className="relative transform transition-all duration-200 hover:scale-[1.01]"
-                    >
-                      <div className="absolute right-4 top-4 z-10">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteVideoFromPlaylist(video.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div 
-                        className="cursor-pointer relative"
-                        onClick={() => handleVideoClick(video)}
-                      >
+                    <TooltipProvider key={video.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="relative min-w-[320px] max-w-[320px] group cursor-pointer rounded-2xl overflow-hidden shadow-lg bg-white/70 dark:bg-slate-900/80 border border-gray-200/50 dark:border-slate-700/30 transition-transform duration-200 hover:scale-[1.03]">
                         <img
                           src={video.thumbnail}
                           alt={video.title}
-                          className="w-full rounded-lg shadow-md"
-                        />
-                        <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          #{index + 1}
+                              className="w-full h-44 object-cover"
+                            />
+                            {/* Glass overlay on hover */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <PlayCircle className="w-7 h-7 text-white/90 hover:text-green-400 cursor-pointer" onClick={e => { e.stopPropagation(); handleVideoClick(video); }} />
+                                <span className="text-white font-semibold text-lg truncate max-w-[180px]">{video.title}</span>
                         </div>
+                              <div className="flex items-center gap-3 text-xs text-gray-200">
+                                <Clock className="w-4 h-4" />
+                                {getScheduled(video) || 'No schedule'}
                       </div>
                     </div>
+                            {/* Progress bar */}
+                            <div className="absolute bottom-0 left-0 w-full h-2 bg-gray-200/60 dark:bg-slate-700/60">
+                              <div className="h-2 rounded bg-gradient-to-r from-blue-500 to-purple-500" style={{ width: `${getProgress(video)}%` }} />
+                            </div>
+                            {/* Duration badge */}
+                            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full shadow">
+                              {getDuration(video)} min
+                            </div>
+                            {/* Next Up badge */}
+                            {video.id === nextUpId && (
+                              <div className="absolute top-3 left-3 bg-green-500 text-white text-xs px-3 py-1 rounded-full shadow flex items-center gap-1">
+                                <ArrowRight className="w-3 h-3" /> Next Up
+                              </div>
+                            )}
+                            {/* Context menu */}
+                            <ContextMenu>
+                              <ContextMenuTrigger asChild>
+                                <button className="absolute top-3 right-3 bg-white/80 dark:bg-slate-800/80 rounded-full p-1 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors z-10">
+                                  <MoreVertical className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+                                </button>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent className="z-50">
+                                <ContextMenuItem onClick={() => handleVideoClick(video)}>
+                                  <PlayCircle className="w-4 h-4 mr-2" /> Play
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => {/* TODO: Edit video */}}>
+                                  <Edit2 className="w-4 h-4 mr-2" /> Edit
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => deleteVideoFromPlaylist(video.id)}>
+                                  <Trash2 className="w-4 h-4 mr-2 text-red-500" /> Remove
+                                </ContextMenuItem>
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <span>{video.title}</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ))
                 ) : (
-                  <div className="text-center py-12 bg-white/50 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 rounded-lg border border-gray-200/50 dark:border-slate-700/30">
+                  <div className="text-center py-12 bg-white/50 dark:bg-gradient-to-br dark:from-slate-800/90 dark:to-slate-900/90 rounded-lg border border-gray-200/50 dark:border-slate-700/30 min-w-[320px]">
                     <p className="text-gray-600 dark:text-gray-200 transition-colors duration-200">
                       All videos are completed! 🎉
                     </p>
@@ -858,39 +958,62 @@ const PlaylistDetail = () => {
                     {completedVideosList.length} {completedVideosList.length === 1 ? 'video' : 'videos'}
                   </span>
                 </div>
-                <div className="space-y-4 max-h-[600px] overflow-y-auto pr-4 custom-scrollbar opacity-80">
+                <div className="flex gap-4 overflow-x-auto pb-2 custom-scrollbar opacity-80">
                   {completedVideosList.map((video, index) => (
-                    <div 
-                      key={video.id}
-                      className="relative transform transition-all duration-200 hover:scale-[1.01]"
-                    >
-                      <div className="absolute right-4 top-4 z-10">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 bg-white/80 dark:bg-slate-800/80 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 transition-colors duration-200"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            deleteVideoFromPlaylist(video.id);
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      <div 
-                        className="cursor-pointer relative"
-                        onClick={() => handleVideoClick(video)}
-                      >
+                    <TooltipProvider key={video.id}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <div className="relative min-w-[320px] max-w-[320px] group cursor-pointer rounded-2xl overflow-hidden shadow-lg bg-white/60 dark:bg-slate-900/70 border border-gray-200/50 dark:border-slate-700/30 transition-transform duration-200 hover:scale-[1.03]">
                         <img
                           src={video.thumbnail}
                           alt={video.title}
-                          className="w-full rounded-lg shadow-md"
-                        />
-                        <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded-full text-sm font-medium">
-                          #{playlist.videos.findIndex(v => v.id === video.id) + 1}
+                              className="w-full h-44 object-cover opacity-80"
+                            />
+                            {/* Glass overlay on hover */}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/30 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4">
+                              <div className="flex items-center gap-2 mb-2">
+                                <CheckCircle className="w-7 h-7 text-green-400" />
+                                <span className="text-white font-semibold text-lg truncate max-w-[180px]">{video.title}</span>
                         </div>
+                              <div className="flex items-center gap-3 text-xs text-gray-200">
+                                <Clock className="w-4 h-4" />
+                                {getScheduled(video) || 'No schedule'}
                       </div>
                     </div>
+                            {/* Progress bar (full) */}
+                            <div className="absolute bottom-0 left-0 w-full h-2 bg-gray-200/60 dark:bg-slate-700/60">
+                              <div className="h-2 rounded bg-gradient-to-r from-green-400 to-emerald-500" style={{ width: '100%' }} />
+                            </div>
+                            {/* Duration badge */}
+                            <div className="absolute bottom-3 right-3 bg-black/70 text-white text-xs px-2 py-1 rounded-full shadow">
+                              {getDuration(video)} min
+                            </div>
+                            {/* Context menu */}
+                            <ContextMenu>
+                              <ContextMenuTrigger asChild>
+                                <button className="absolute top-3 right-3 bg-white/80 dark:bg-slate-800/80 rounded-full p-1 hover:bg-gray-200 dark:hover:bg-slate-700 transition-colors z-10">
+                                  <MoreVertical className="w-5 h-5 text-gray-700 dark:text-gray-200" />
+                                </button>
+                              </ContextMenuTrigger>
+                              <ContextMenuContent className="z-50">
+                                <ContextMenuItem onClick={() => handleVideoClick(video)}>
+                                  <PlayCircle className="w-4 h-4 mr-2" /> Play
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => {/* TODO: Edit video */}}>
+                                  <Edit2 className="w-4 h-4 mr-2" /> Edit
+                                </ContextMenuItem>
+                                <ContextMenuItem onClick={() => deleteVideoFromPlaylist(video.id)}>
+                                  <Trash2 className="w-4 h-4 mr-2 text-red-500" /> Remove
+                                </ContextMenuItem>
+                              </ContextMenuContent>
+                            </ContextMenu>
+                          </div>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <span>{video.title}</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   ))}
                 </div>
               </div>
