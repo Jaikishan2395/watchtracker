@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
-import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code, Video as VideoIcon, Snowflake, MicOff, Eye, Phone, PhoneOff, User } from 'lucide-react';
+import { ArrowLeft, SkipBack, SkipForward, CheckCircle, Clock, Play, List, PlayCircle, RotateCcw, Timer, ChevronLeft, Send, Mic, Smile, Search, ThumbsUp, Heart, Star, Flag, MoreVertical, Pin, Trash2, MessageSquare, StickyNote, Save, Edit2, X, Image, Download, FileText, Tag, Volume2, Sun, Moon, Maximize2, Minimize2, Code, Video as VideoIcon, Snowflake, MicOff, Eye, Phone, PhoneOff, User, Share } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
@@ -244,7 +244,7 @@ const styles = `
   width: 100%;
   height: 100%;
   border: none;
-  /* pointer-events: none !important; */
+  pointer-events: none !important; /* Prevents all YouTube overlays and context menu */
 }
 
 /* Hide YouTube's default controls and hover effects */
@@ -254,7 +254,7 @@ const styles = `
 
 /* Ensure our custom controls still work */
 .video-controls {
-  pointer-events: auto !important;
+  pointer-events: auto !important; /* Allow your custom controls to work */
 }
 
 /* Custom Scrollbar Styles */
@@ -998,13 +998,13 @@ const VideoPlayer = () => {
           videoId,
           playerVars: {
             autoplay: 0,
-            controls: 0,
-            modestbranding: 1,
-            rel: 0,
-            showinfo: 0,
-            fs: 0,
-            iv_load_policy: 3,
-            disablekb: 1,
+            controls: 0,           // Hide YouTube controls
+            modestbranding: 1,     // Minimal YouTube branding
+            rel: 0,                // No related videos at end
+            showinfo: 0,           // Hide video info
+            fs: 0,                 // Hide fullscreen button (you handle fullscreen)
+            iv_load_policy: 3,     // Hide video annotations
+            disablekb: 1,          // Disable keyboard controls
             playsinline: 1,
             origin: window.location.origin,
             enablejsapi: 1,
@@ -1021,6 +1021,8 @@ const VideoPlayer = () => {
               if (event.data !== lastState) {
                 if (event.data === window.YT.PlayerState.PLAYING) {
                   startWatchTimeTracking();
+                  // Set hasPlayed to true on first play
+                  setHasPlayed(true);
                   // REMOVED: quality logic
                 } else if (event.data === window.YT.PlayerState.PAUSED || 
                            event.data === window.YT.PlayerState.ENDED) {
@@ -2432,6 +2434,9 @@ const VideoPlayer = () => {
   // Add this variable near the top of the component
   const showFreezeButton = false;
 
+  // Add after other useState declarations
+  const [hasPlayed, setHasPlayed] = useState(false);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -2664,6 +2669,7 @@ const VideoPlayer = () => {
                       }
                     }
                   }}
+                  onContextMenu={e => e.preventDefault()}
                 >
                   {/* Video Iframe */}
                   <div ref={iframeRef} className="w-full h-full z-10" />
@@ -2682,6 +2688,7 @@ const VideoPlayer = () => {
                         }
                       }}
                     >
+                      {/* Removed Share and Watch Later buttons from overlay */}
                       <img
                         src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(currentVideo.url)}/maxresdefault.jpg`}
                         onError={e => {
@@ -2698,8 +2705,8 @@ const VideoPlayer = () => {
                       </span>
                     </div>
                   )}
-                  {/* Stop Button Overlay */}
-                  {(isPlayerHovered && isStopwatchRunning && !isFullscreen) && (
+                  {/* Stop Button Overlay - always visible in fullscreen when playing, on hover in small screen */}
+                  {((isFullscreen && isStopwatchRunning) || (!isFullscreen && isPlayerHovered && isStopwatchRunning)) && (
                     <button
                       className="absolute inset-0 flex items-center justify-center z-40 group focus:outline-none"
                       onClick={() => {
@@ -2827,9 +2834,13 @@ const VideoPlayer = () => {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
-                    <CardTitle className="text-xl dark:text-white">
-                      {videoTitle || currentVideo.title}
-                    </CardTitle>
+                    {/* Removed video title */}
+                    {/* <CardTitle className="text-xl dark:text-white">{videoTitle || currentVideo.title}</CardTitle> */}
+                    {hasPlayed && (
+                      <>
+                        {/* Removed Share and Watch Later buttons */}
+                      </>
+                    )}
                     {showFreezeButton && (
                       <Button
                         variant={isFrozen ? 'destructive' : 'outline'}
@@ -3943,6 +3954,18 @@ const VideoPlayer = () => {
             <X className="w-8 h-8 text-white" />
           </button>
         </div>
+      )}
+      {isFullscreen && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0, left: 0, right: 0, bottom: 0,
+            zIndex: 30,
+            pointerEvents: 'auto',
+            background: 'transparent'
+          }}
+          onContextMenu={e => e.preventDefault()}
+        />
       )}
     </div>
   );
