@@ -282,6 +282,10 @@ const styles = `
 .dark .custom-scrollbar::-webkit-scrollbar-thumb:hover {
   background-color: rgba(75, 85, 99, 0.7);
 }
+
+.dark .youtube-player-container {
+  background: #0f172a;
+}
 `;
 
 // Add this after the styles declaration
@@ -2437,6 +2441,75 @@ const VideoPlayer = () => {
   // Add after other useState declarations
   const [hasPlayed, setHasPlayed] = useState(false);
 
+  // 1. Add handleDeleteVideo function near updateVideoProgress
+  const handleDeleteVideo = (videoId: string) => {
+    if (!playlist) return;
+    const videoIndex = playlist.videos.findIndex(v => v.id === videoId);
+    if (videoIndex === -1) return;
+
+    // Remove from playlist
+    const updatedVideos = playlist.videos.filter(v => v.id !== videoId);
+    const updatedPlaylist = { ...playlist, videos: updatedVideos };
+
+    // Update localStorage
+    const savedPlaylists = localStorage.getItem('youtubePlaylists');
+    if (savedPlaylists) {
+      const playlists: Playlist[] = JSON.parse(savedPlaylists);
+      const index = playlists.findIndex(p => p.id === id);
+      if (index !== -1) {
+        playlists[index] = updatedPlaylist;
+        localStorage.setItem('youtubePlaylists', JSON.stringify(playlists));
+      }
+    }
+
+    // Remove from completedVideos if present
+    const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
+    const newCompletedVideos = completedVideos.filter(v => v.id !== videoId);
+    localStorage.setItem('completedVideos', JSON.stringify(newCompletedVideos));
+
+    // Remove watch time data
+    localStorage.removeItem(`watchTime_${videoId}`);
+
+    // Update state
+    setPlaylist(updatedPlaylist);
+
+    // If the deleted video is currently playing
+    if (currentVideo && currentVideo.id === videoId) {
+      // Find next uncompleted video
+      const nextUncompletedIndex = updatedVideos.findIndex(v => v.progress < 100);
+      if (nextUncompletedIndex !== -1) {
+        setCurrentVideoIndex(nextUncompletedIndex);
+        setIsPlayerReady(false);
+        setTimeout(() => setIsPlayerReady(true), 100);
+        toast.success('Video deleted. Playing next uncompleted video.');
+      } else if (updatedVideos.length > 0) {
+        // If no uncompleted, but videos remain, play first
+        setCurrentVideoIndex(0);
+        setIsPlayerReady(false);
+        setTimeout(() => setIsPlayerReady(true), 100);
+        toast.success('Video deleted. Playing first video.');
+      } else {
+        // No videos left
+        setShowCompletionDialog(true);
+        toast.success('Video deleted. No videos left in playlist.');
+      }
+    } else {
+      toast.success('Video deleted from playlist.');
+    }
+
+    // Fire playlist update event
+    window.dispatchEvent(new CustomEvent('playlistUpdated', {
+      detail: {
+        playlistId: id,
+        updatedPlaylist
+      }
+    }));
+  };
+
+  useEffect(() => {
+    setShowAskAI(true);
+  }, []);
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -2510,7 +2583,7 @@ const VideoPlayer = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-200">
+    <div className={`container mx-auto px-4 py-8 transition-colors duration-300 ${isDarkMode ? 'bg-slate-900' : 'bg-white'}` }>
       {/* Advertisement Popup Overlay */}
       {showAdPopup && (
         <div
@@ -2545,7 +2618,7 @@ const VideoPlayer = () => {
               flexDirection: 'column',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '4px solid #2563eb',
+              border: '2px solid #2563eb',
             }}
           >
             <div style={{
@@ -2625,36 +2698,79 @@ const VideoPlayer = () => {
       )}
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center justify-between mb-8">
-              {playlist && (
-                <Button
-                  variant="outline"
-                  onClick={() => navigate(`/playlist/${playlist.id}`)}
+          {playlist && (
+            <Button
+              variant="outline"
+              onClick={() => navigate(`/playlist/${playlist.id}`)}
               className="bg-black text-white rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black flex items-center gap-2"
               style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
-                >
+            >
               <ArrowLeft className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
-                  Back to Playlist
-                </Button>
-              )}
-              
-          <Button
-            onClick={() => setShowAskAI(true)}
-            className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-bold px-6 py-2 shadow-md border border-blue-600 transition-all duration-200 hover:bg-white hover:text-blue-600 hover:border-blue-600 flex items-center gap-2 ml-2"
-            style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.10)' }}
-          >
-            Ask AI
-              </Button>
-            </div>
+              Back to Playlist
+            </Button>
+          )}
+          <div className="flex items-center gap-2">
+            <Button
+              onClick={() => setShowAskAI(true)}
+              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-bold px-6 py-2 shadow-md border border-blue-600 transition-all duration-200 hover:bg-white hover:text-blue-600 hover:border-blue-600 flex items-center gap-2"
+              style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.10)' }}
+            >
+              Ask AI
+            </Button>
+            <Button
+              onClick={() => setIsDarkMode((prev) => !prev)}
+              className="rounded-full font-bold px-4 py-2 shadow-md border border-blue-600 transition-all duration-200 bg-white text-blue-600 hover:bg-blue-600 hover:text-white flex items-center gap-2"
+              style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.10)' }}
+              title={isDarkMode ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {isDarkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </Button>
+          </div>
+        </div>
         <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
           {/* Enhanced Video Player Section */}
           <div className="xl:col-span-3 space-y-6">
-            <Card className="relative bg-white/90 dark:bg-slate-900/90 shadow-2xl rounded-3xl border-0 overflow-visible animate-fade-in border border-white/20 dark:border-slate-700/50">
+            <Card
+              className="
+                relative
+                bg-white/90
+                dark:bg-gradient-to-br dark:from-slate-900 dark:via-blue-900 dark:to-indigo-900
+                shadow-2xl
+                rounded-3xl
+                border-0
+                overflow-visible
+                animate-fade-in
+                border border-white/20 dark:border-blue-900/50
+                transition-all
+                duration-300
+              "
+            >
               <CardContent className="p-0 relative">
                 <div
                   ref={videoContainerRef}
-                  className={
-                    `relative aspect-video w-full rounded-3xl overflow-hidden shadow-xl bg-black${isFullscreen ? ' z-[9999] bg-black' : ''}`
-                  }
+                  className={`
+                    relative
+                    aspect-video
+                    w-full
+                    rounded-3xl
+                    overflow-hidden
+                    shadow-2xl
+                    transition-transform
+                    duration-300
+                    group
+                    border-4
+                    border-blue-400/30
+                    hover:scale-[1.01]
+                    hover:shadow-[0_8px_40px_0_rgba(37,99,235,0.25)]
+                    ${isFullscreen ? 'z-[9999] bg-black' : ''}
+                    ${isDarkMode ? 'bg-gradient-to-br from-slate-900 via-blue-900 to-indigo-900 border-blue-700/60' : 'bg-gradient-to-br from-slate-100 via-blue-50 to-indigo-100'}
+                  `}
+                  style={{
+                    boxShadow: isDarkMode
+                      ? '0 8px 40px 0 rgba(37,99,235,0.25), 0 0 0 2px #2563eb44'
+                      : '0 8px 40px 0 rgba(37,99,235,0.18)',
+                    border: isDarkMode ? '2px solid #2563eb88' : '2px solid #2563eb',
+                  }}
                   onMouseEnter={() => setIsPlayerHovered(true)}
                   onMouseLeave={() => setIsPlayerHovered(false)}
                   onClick={() => {
@@ -2678,8 +2794,11 @@ const VideoPlayer = () => {
                   {/* Central Play/Stop Button Overlay */}
                   {!isStopwatchRunning && currentVideo && (
                     <div
-                      className="absolute inset-0 z-20 flex items-center justify-center bg-black cursor-pointer"
-                      style={{ backgroundColor: '#000' }}
+                      className="absolute inset-0 z-30 flex items-center justify-center bg-black/60 cursor-pointer group animate-fade-in"
+                      style={{
+                        background: isDarkMode ? 'rgba(15,23,42,0.85)' : '#000',
+                        transition: 'background 0.3s',
+                      }}
                       onClick={() => {
                         if (isFrozen) return;
                         if (playerRef.current) {
@@ -2688,19 +2807,23 @@ const VideoPlayer = () => {
                         }
                       }}
                     >
-                      {/* Removed Share and Watch Later buttons from overlay */}
                       <img
                         src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(currentVideo.url)}/maxresdefault.jpg`}
                         onError={e => {
                           (e.currentTarget as HTMLImageElement).src = `https://img.youtube.com/vi/${extractVideoIdFromUrl(currentVideo.url)}/mqdefault.jpg`;
                         }}
                         alt="Video thumbnail"
-                        className="object-cover w-full h-full rounded-3xl"
-                        style={{ maxHeight: '100%', maxWidth: '100%' }}
+                        className="object-cover w-full h-full rounded-3xl scale-105 blur-[2px] brightness-75"
+                        style={{
+                          maxHeight: '100%',
+                          maxWidth: '100%',
+                          filter: 'blur(2px) brightness(0.75)',
+                          transition: 'filter 0.3s',
+                        }}
                       />
                       <span className="absolute inset-0 flex items-center justify-center">
-                        <span className="bg-white/80 hover:bg-white/90 rounded-full p-6 shadow-2xl border-4 border-blue-500/30 transition-all group-hover:scale-110">
-                          <PlayCircle className="w-16 h-16 text-blue-600 drop-shadow-xl" />
+                        <span className="bg-white/90 hover:bg-white/95 rounded-full p-8 shadow-2xl border-4 border-blue-500/40 transition-all group-hover:scale-110 animate-bounce-slow">
+                          <PlayCircle className="w-20 h-20 text-blue-600 drop-shadow-xl animate-pulse" />
                         </span>
                       </span>
                     </div>
@@ -2723,106 +2846,47 @@ const VideoPlayer = () => {
                       }}
                       aria-label="Stop video"
                     >
-                      <span className="bg-white/80 hover:bg-white/90 rounded-full p-6 shadow-2xl border-4 border-red-500/30 transition-all group-hover:scale-110">
-                        <Timer className="w-16 h-16 text-red-600 drop-shadow-xl" />
+                      <span className={`bg-white/80 hover:bg-white/90 rounded-full ${isFullscreen ? 'p-1' : 'p-3'} shadow-2xl border-4 border-red-500/30 transition-all group-hover:scale-110 animate-fade-in`}>
+                        {/* Hide icon in fullscreen when playing by hover */}
+                        {!(isFullscreen && isStopwatchRunning && isPlayerHovered) && (
+                          <Timer className={`${isFullscreen ? 'w-6 h-6' : 'w-10 h-10'} text-red-600 drop-shadow-xl`} />
+                        )}
                       </span>
                     </button>
                   )}
                   {/* Floating 10s skip buttons and timeline - skip buttons only in fullscreen, and add exit fullscreen button next to timeline in fullscreen */}
                   {playerRef.current && (
                     <>
-                      {/* Floating skip buttons - only show in fullscreen */}
+                      {/* Exit fullscreen button - only in fullscreen, always visible at bottom right */}
                       {isFullscreen && (
-                        <>
-                          <button
-                            onClick={() => {
-                              const cur = playerRef.current.getCurrentTime();
-                              playerRef.current.seekTo(Math.max(cur - 10, 0), true);
-                              playerRef.current.playVideo();
-                            }}
-                            style={{
-                              position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 30,
-                              background: 'rgba(0,0,0,0.7)', borderRadius: '50%', padding: 8, border: 'none', cursor: 'pointer',
-                              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                              touchAction: 'manipulation',
-                            }}
-                            className="sm:left-4 sm:w-12 sm:h-12"
-                            title="Back 10s"
-                          >
-                            <SkipBack className="w-7 h-7 text-white" />
-                          </button>
-                          <button
-                            onClick={() => {
-                              const cur = playerRef.current.getCurrentTime();
-                              const dur = playerRef.current.getDuration();
-                              playerRef.current.seekTo(Math.min(cur + 10, dur), true);
-                              playerRef.current.playVideo();
-                            }}
-                            style={{
-                              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)', zIndex: 30,
-                              background: 'rgba(0,0,0,0.7)', borderRadius: '50%', padding: 8, border: 'none', cursor: 'pointer',
-                              width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                              touchAction: 'manipulation',
-                            }}
-                            className="sm:right-4 sm:w-12 sm:h-12"
-                            title="Forward 10s"
-                          >
-                            <SkipForward className="w-7 h-7 text-white" />
-                          </button>
-                        </>
-                      )}
-                      {/* Timeline with current/total time - always visible, and exit fullscreen button in fullscreen */}
-                      <div
-                        style={{
-                          position: 'absolute', left: 0, right: 0, bottom: 4, zIndex: 30,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none',
-                          padding: '0 8px',
-                        }}
-                        className="sm:bottom-4"
-                      >
-                        <span style={{ color: 'white', fontWeight: 600, marginRight: 8, fontSize: 14, pointerEvents: 'auto', minWidth: 36, textAlign: 'right' }}>
-                          {formatTime(Math.floor(playerRef.current.getCurrentTime()))}
-                        </span>
-                        <div style={{ flex: 1, maxWidth: 320, margin: '0 4px', pointerEvents: 'auto' }}>
-                          <input
-                            type="range"
-                            min={0}
-                            max={playerRef.current.getDuration() || 1}
-                            value={playerRef.current.getCurrentTime()}
-                            onChange={e => playerRef.current.seekTo(Number(e.target.value))}
-                            style={{ width: '100%', accentColor: '#2563eb', height: 4 }}
-                          />
-                        </div>
-                        <span style={{ color: 'white', fontWeight: 600, marginLeft: 8, fontSize: 14, pointerEvents: 'auto', minWidth: 36, textAlign: 'left' }}>
-                          {formatTime(Math.floor(playerRef.current.getDuration()))}
-                        </span>
-                        {/* Exit fullscreen button - only in fullscreen */}
-                        {isFullscreen && (
+                        <div
+                          style={{
+                            position: 'absolute', right: 16, bottom: 16, zIndex: 40,
+                            pointerEvents: 'auto',
+                          }}
+                        >
                           <button
                             onClick={handleToggleFullscreen}
                             style={{
-                              marginLeft: 12,
-                              background: 'rgba(0,0,0,0.7)',
+                              background: 'rgba(0,0,0,0.6)',
                               borderRadius: '50%',
-                              padding: 8,
+                              padding: 16,
                               border: 'none',
                               cursor: 'pointer',
-                              width: 40,
-                              height: 40,
+                              width: 56,
+                              height: 56,
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
                               boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-                              pointerEvents: 'auto',
                             }}
+                            className="hover:scale-110 transition-transform"
                             title="Exit Fullscreen"
                           >
-                            <Minimize2 className="w-7 h-7 text-white" />
+                            <Minimize2 className="w-9 h-9 text-white" />
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </>
                   )}
                 </div>
@@ -2834,8 +2898,10 @@ const VideoPlayer = () => {
               <CardHeader>
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-2">
-                    {/* Removed video title */}
-                    {/* <CardTitle className="text-xl dark:text-white">{videoTitle || currentVideo.title}</CardTitle> */}
+                    {/* Show video title only when not frozen */}
+                    {!isFrozen && (
+                      <CardTitle className="text-xl dark:text-white">{videoTitle || currentVideo.title}</CardTitle>
+                    )}
                     {hasPlayed && (
                       <>
                         {/* Removed Share and Watch Later buttons */}
@@ -2975,7 +3041,7 @@ const VideoPlayer = () => {
                     }, 100);
                   }
                 }}
-            className="bg-black text-white rounded-full font-bold px-6 py-2 shadow-md border border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black flex items-center gap-2"
+            className="bg-black text-white dark:bg-blue-700 dark:text-white rounded-full font-bold px-6 py-2 shadow-md border border-black dark:border-blue-500 transition-all duration-200 hover:bg-white hover:text-black hover:border-black dark:hover:bg-blue-800 dark:hover:text-blue-200 flex items-center gap-2"
             style={{ boxShadow: '0 2px 8px rgba(0,0,0,0.10)' }}
           >
             <List className="w-5 h-5 mr-2 transition-all duration-200 group-hover:text-black" />
@@ -2985,22 +3051,19 @@ const VideoPlayer = () => {
                         </div>
                       </div>
 
+                      {/* Timeline/Progress Bar Below Complete Button */}
+                      <div className="flex flex-col items-center mt-4">
+                        <VideoTimeline
+                          playerRef={playerRef}
+                          isPlayerReady={isPlayerReady}
+                          currentVideo={currentVideo}
+                        />
+                      </div>
+
                       {/* Progress and Time Controls */}
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
-                          <Progress 
-                            value={playerRef.current ? (playerRef.current.getCurrentTime() / (playerRef.current.getDuration() || 1)) * 100 : 0} 
-                            className="h-2"
-                            onClick={(e) => {
-                              if (playerRef.current) {
-                                const rect = e.currentTarget.getBoundingClientRect();
-                                const x = e.clientX - rect.left;
-                                const percentage = x / rect.width;
-                                const duration = playerRef.current.getDuration();
-                                playerRef.current.seekTo(duration * percentage);
-                              }
-                            }}
-                          />
+                          {/* Progress bar removed for clear view */}
                         </div>
                       </div>
                     </div>
@@ -3058,6 +3121,20 @@ const VideoPlayer = () => {
                         className="relative group cursor-pointer min-w-[220px] max-w-[220px]"
                         onClick={() => selectVideo(playlist.videos.indexOf(video))}
                       >
+                        {/* Delete button (top left) - only show if not the current video */}
+                        {currentVideo?.id !== video.id && (
+                          <button
+                            className="absolute top-2 left-2 bg-red-600 text-white text-xs font-semibold px-2 py-1 rounded-full shadow-md z-10 hover:bg-red-700 transition-colors opacity-80 hover:opacity-100"
+                            style={{ pointerEvents: 'auto' }}
+                            title="Delete video from playlist"
+                            onClick={e => {
+                              e.stopPropagation();
+                              handleDeleteVideo(video.id);
+                            }}
+                          >
+                            <Trash2 className="w-4 h-4 inline-block mr-1" /> Delete
+                          </button>
+                        )}
                         <div className="relative aspect-video rounded-lg overflow-hidden">
                           <img
                             src={`https://img.youtube.com/vi/${extractVideoIdFromUrl(video.url)}/mqdefault.jpg`}
@@ -3972,3 +4049,179 @@ const VideoPlayer = () => {
 };
 
 export default VideoPlayer;
+
+// VideoTimeline component
+const VideoTimeline = ({ playerRef, isPlayerReady, currentVideo }) => {
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragTime, setDragTime] = useState(0);
+  const [hoverTime, setHoverTime] = useState(null);
+  const [isBuffering, setIsBuffering] = useState(false);
+  const timelineRef = useRef(null);
+  const rafRef = useRef(null);
+
+  // Animation frame update
+  const updateTimeline = useCallback(() => {
+    if (isPlayerReady && playerRef.current && !isDragging) {
+      const newTime = playerRef.current.getCurrentTime?.() || 0;
+      const newDuration = playerRef.current.getDuration?.() || 0;
+      setDuration(d => (d !== newDuration ? newDuration : d));
+      setCurrentTime(t => (Math.abs(t - newTime) > 0.1 ? newTime : t));
+    }
+    rafRef.current = requestAnimationFrame(updateTimeline);
+  }, [isPlayerReady, playerRef, isDragging]);
+
+  useEffect(() => {
+    rafRef.current = requestAnimationFrame(updateTimeline);
+    return () => rafRef.current && cancelAnimationFrame(rafRef.current);
+  }, [updateTimeline]);
+
+  // Buffering feedback (if possible)
+  useEffect(() => {
+    if (!playerRef.current) return;
+    const checkBuffering = () => {
+      try {
+        const state = playerRef.current.getPlayerState?.();
+        setIsBuffering(state === window.YT?.PlayerState?.BUFFERING);
+      } catch (err) {
+        // Ignore errors (e.g., player not ready)
+      }
+    };
+    const interval = setInterval(checkBuffering, 200);
+    return () => clearInterval(interval);
+  }, [playerRef]);
+
+  // Mouse/touch drag handlers
+  const getTimeFromEvent = useCallback((e) => {
+    const rect = timelineRef.current.getBoundingClientRect();
+    let x;
+    if (e.touches) {
+      x = e.touches[0].clientX - rect.left;
+    } else {
+      x = e.clientX - rect.left;
+    }
+    const percent = Math.max(0, Math.min(1, x / rect.width));
+    return percent * duration;
+  }, [duration]);
+
+  const handlePointerDown = useCallback((e) => {
+    setIsDragging(true);
+    const time = getTimeFromEvent(e);
+    setDragTime(time);
+    document.body.style.userSelect = 'none';
+  }, [getTimeFromEvent]);
+
+  const handlePointerMove = useCallback((e) => {
+    if (!isDragging) return;
+    const time = getTimeFromEvent(e);
+    setDragTime(time);
+  }, [isDragging, getTimeFromEvent]);
+
+  const handlePointerUp = useCallback(() => {
+    if (isDragging && playerRef.current) {
+      playerRef.current.seekTo(dragTime, true);
+      setCurrentTime(dragTime);
+    }
+    setIsDragging(false);
+    document.body.style.userSelect = '';
+  }, [isDragging, dragTime, playerRef]);
+
+  useEffect(() => {
+    if (isDragging) {
+      window.addEventListener('mousemove', handlePointerMove);
+      window.addEventListener('touchmove', handlePointerMove);
+      window.addEventListener('mouseup', handlePointerUp);
+      window.addEventListener('touchend', handlePointerUp);
+    } else {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchend', handlePointerUp);
+    }
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove);
+      window.removeEventListener('touchmove', handlePointerMove);
+      window.removeEventListener('mouseup', handlePointerUp);
+      window.removeEventListener('touchend', handlePointerUp);
+    };
+  }, [isDragging, handlePointerMove, handlePointerUp]);
+
+  // Hover time for tooltip
+  const handleMouseMove = useCallback((e) => {
+    const time = getTimeFromEvent(e);
+    setHoverTime(time);
+  }, [getTimeFromEvent]);
+  const handleMouseLeave = useCallback(() => setHoverTime(null), []);
+
+  // Keyboard support
+  const handleKeyDown = useCallback((e) => {
+    if (!playerRef.current) return;
+    if (e.key === 'ArrowLeft') {
+      playerRef.current.seekTo(Math.max((playerRef.current.getCurrentTime?.() || 0) - 5, 0), true);
+    } else if (e.key === 'ArrowRight') {
+      playerRef.current.seekTo(Math.min((playerRef.current.getCurrentTime?.() || 0) + 5, duration), true);
+    }
+  }, [playerRef, duration]);
+
+  // Render
+  const percent = duration ? ((isDragging ? dragTime : currentTime) / duration) * 100 : 0;
+  return (
+    <div className="w-full flex flex-col items-center">
+      <div
+        ref={timelineRef}
+        className="w-full h-3 bg-gray-200 dark:bg-slate-700 rounded-full relative cursor-pointer group"
+        style={{ maxWidth: 600 }}
+        onMouseDown={handlePointerDown}
+        onTouchStart={handlePointerDown}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+        aria-label="Video timeline"
+        role="slider"
+        aria-valuenow={Math.floor(isDragging ? dragTime : currentTime)}
+        aria-valuemin={0}
+        aria-valuemax={Math.floor(duration)}
+      >
+        <div
+          className="h-3 bg-blue-500 rounded-full transition-all"
+          style={{ width: `${percent}%` }}
+        />
+        {/* Thumb */}
+        <div
+          className="absolute top-1/2 left-0 transform -translate-y-1/2"
+          style={{ left: `${percent}%` }}
+        >
+          <div className="w-5 h-5 bg-blue-600 border-2 border-white rounded-full shadow -ml-2 -mt-1 group-hover:scale-110 transition-transform cursor-pointer" />
+        </div>
+        {/* Tooltip */}
+        {hoverTime !== null && (
+          <div
+            className="absolute -top-8 left-0 px-2 py-1 bg-black text-white text-xs rounded shadow"
+            style={{ left: `${((hoverTime / duration) * 100).toFixed(2)}%`, transform: 'translateX(-50%)' }}
+          >
+            {formatTime(Math.floor(hoverTime))}
+          </div>
+        )}
+        {/* Drag tooltip */}
+        {isDragging && (
+          <div
+            className="absolute -top-8 left-0 px-2 py-1 bg-blue-700 text-white text-xs rounded shadow"
+            style={{ left: `${((dragTime / duration) * 100).toFixed(2)}%`, transform: 'translateX(-50%)' }}
+          >
+            {formatTime(Math.floor(dragTime))}
+          </div>
+        )}
+        {/* Buffering spinner */}
+        {isBuffering && (
+          <div className="absolute right-2 top-1/2 -translate-y-1/2 animate-spin w-5 h-5 border-2 border-blue-400 border-t-transparent rounded-full" />
+        )}
+      </div>
+      <div className="flex justify-between w-full mt-1 text-xs text-gray-600 dark:text-gray-300" style={{ maxWidth: 600 }}>
+        <span>{formatTime(Math.floor(isDragging ? dragTime : currentTime))}</span>
+        <span>{formatTime(Math.floor(duration))}</span>
+      </div>
+    </div>
+  );
+};
