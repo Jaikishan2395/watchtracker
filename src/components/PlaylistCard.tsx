@@ -157,7 +157,7 @@ const PlaylistCard = ({ playlist, onDelete, delay = 0, readOnly = false }: Playl
       style={{ animationDelay: `${delay}ms` }}
     >
       {playlist.thumbnail && (
-        <div className="relative w-full h-64 overflow-hidden rounded-t-lg">
+        <div className="relative w-full h-40 overflow-hidden rounded-t-lg">
           <img
             src={playlist.thumbnail}
             alt={playlist.title}
@@ -170,10 +170,10 @@ const PlaylistCard = ({ playlist, onDelete, delay = 0, readOnly = false }: Playl
               target.parentElement!.innerHTML += `
                 <div class="absolute inset-0 flex items-center justify-center">
                   <div class="text-center text-white">
-                    <svg class="w-16 h-16 mx-auto mb-2" fill="currentColor" viewBox="0 0 24 24">
+                    <svg class="w-12 h-12 mx-auto mb-1" fill="currentColor" viewBox="0 0 24 24">
                       <path d="M8 5v14l11-7z"/>
                     </svg>
-                    <p class="text-sm font-medium">${playlist.title}</p>
+                    <p class="text-xs font-medium">${playlist.title}</p>
                   </div>
                 </div>
               `;
@@ -182,22 +182,22 @@ const PlaylistCard = ({ playlist, onDelete, delay = 0, readOnly = false }: Playl
           <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent" />
         </div>
       )}
-      <CardHeader className={`pb-3 ${playlist.thumbnail ? 'pt-6' : 'pt-4'}`}>
+      <CardHeader className={`pb-2 ${playlist.thumbnail ? 'pt-4' : 'pt-3'}`}>
         <div className="flex justify-between items-start">
-          <div className="flex items-center gap-3 flex-1 mr-2">
+          <div className="flex items-center gap-2 flex-1 mr-2">
             {isCodingPlaylist ? (
-              <Code className="w-6 h-6 text-green-600" />
+              <Code className="w-5 h-5 text-green-600" />
             ) : (
-              <Play className="w-6 h-6 text-blue-600" />
+              <Play className="w-5 h-5 text-blue-600" />
             )}
-            <CardTitle className="text-xl line-clamp-2 text-black">
+            <CardTitle className="text-lg line-clamp-2 text-black">
               {playlist.title}
             </CardTitle>
             {hasTimeSchedule && isLocked && (
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger>
-                    <Lock className="w-5 h-5 text-blue-500" />
+                    <Lock className="w-4 h-4 text-blue-500" />
                   </TooltipTrigger>
                   <TooltipContent>
                     <p>Unlocks at {unlockTime}</p>
@@ -262,47 +262,47 @@ const PlaylistCard = ({ playlist, onDelete, delay = 0, readOnly = false }: Playl
           )}
         </div>
         {playlist.description && (
-          <p className="text-base text-black line-clamp-2 mt-2">{playlist.description}</p>
+          <p className="text-sm text-black line-clamp-2 mt-1">{playlist.description}</p>
         )}
       </CardHeader>
       
-      <CardContent className="space-y-6 py-6">
-        <Progress value={totalProgress} className="h-3" />
+      <CardContent className="space-y-4 py-4">
+        <Progress value={totalProgress} className="h-2" />
         
-        <div className="grid grid-cols-2 gap-6 text-base">
+        <div className="grid grid-cols-2 gap-4 text-sm">
           <div className="flex items-center gap-2">
-            <Target className="w-5 h-5 text-green-600" />
+            <Target className="w-4 h-4 text-green-600" />
             <span className="text-black">{completedItems}/{totalItems} {isCodingPlaylist ? 'solved' : 'completed'}</span>
           </div>
           <div className="flex items-center gap-2">
-            <Clock className="w-5 h-5 text-blue-600" />
+            <Clock className="w-4 h-4 text-blue-600" />
             <span className="text-black">{Math.round(totalDuration)} {isCodingPlaylist ? 'min' : 'min'}</span>
           </div>
         </div>
 
         {/* Coding-specific stats */}
         {isCodingPlaylist && playlist.streakData && (
-          <div className="flex items-center gap-2 text-base text-orange-600">
-            <Flame className="w-5 h-5" />
+          <div className="flex items-center gap-2 text-sm text-orange-600">
+            <Flame className="w-4 h-4" />
             <span className="text-black">Streak: {playlist.streakData.currentStreak} days</span>
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-2">
-          <span className="text-base font-semibold text-black">
+        <div className="flex items-center justify-between pt-1">
+          <span className="text-sm font-semibold text-black">
             {Math.round(totalProgress)}% Complete
           </span>
           <Button 
-            size="lg" 
+            size="sm" 
             className={`${
               isCodingPlaylist 
                 ? 'bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700' 
                 : 'bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700'
-            } text-white px-6`}
+            } text-white px-4`}
             onClick={handleViewClick}
             disabled={isLocked}
           >
-            {isCodingPlaylist ? <Code className="w-4 h-4 mr-2" /> : <Play className="w-4 h-4 mr-2" />}
+            {isCodingPlaylist ? <Code className="w-3 h-3 mr-1" /> : <Play className="w-3 h-3 mr-1" />}
             {isLocked ? 'Locked' : 'View'}
           </Button>
         </div>

@@ -163,13 +163,6 @@ const Library = () => {
                     <Plus className="w-4 h-4 mr-2 text-black group-hover:text-white transition-colors" />
                     Add Content
                   </Button>
-                  <Button
-                    onClick={() => window.location.href = '/learningtrack'}
-                    className="relative overflow-hidden group transition-all duration-300 shadow-xl rounded-full px-4 py-1 text-base font-semibold bg-white text-black hover:bg-black hover:text-white flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-black"
-                  >
-                    <Code className="w-4 h-4 mr-2 text-black group-hover:text-white transition-colors" />
-                    Learning Track
-                  </Button>
                 </div>
                 <div className="flex justify-center">
                   <Tabs defaultValue="all" className="w-full max-w-3xl animate-fade-in-up">
@@ -200,7 +193,7 @@ const Library = () => {
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="all" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
                         {filteredPlaylists.map((playlist, index) => (
                           <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
                             <PlaylistCard
@@ -213,7 +206,7 @@ const Library = () => {
                       </div>
                     </TabsContent>
                     <TabsContent value="videos" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
                         {videoPlaylists.map((playlist, index) => (
                           <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
                             <PlaylistCard
@@ -226,7 +219,7 @@ const Library = () => {
                       </div>
                     </TabsContent>
                     <TabsContent value="coding" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
                         {codingPlaylists.map((playlist, index) => (
                           <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
                             <PlaylistCard
@@ -239,7 +232,7 @@ const Library = () => {
                       </div>
                     </TabsContent>
                     <TabsContent value="complete" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 gap-8 max-w-4xl mx-auto">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
                         {completedPlaylists.length > 0 ? (
                           completedPlaylists.map((playlist, index) => (
                             <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
