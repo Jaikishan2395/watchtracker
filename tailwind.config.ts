@@ -120,12 +120,12 @@ export default {
 	},
 	plugins: [
 		require("tailwindcss-animate"),
-		function({ addUtilities }: any) {
-			const newUtilities = {
+		function({ addUtilities }: { addUtilities: (utilities: Record<string, Record<string, string | Record<string, string>>>) => void }) {
+			const newUtilities: Record<string, Record<string, string | Record<string, string>>> = {
 				'.hover-scale': {
-					'@apply transition-transform duration-200': {},
+					'@apply transition-transform duration-200': '',
 					'&:hover': {
-						'@apply scale-105': {}
+						'@apply scale-105': ''
 					}
 				},
 				'.line-clamp-2': {

@@ -1,6 +1,9 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* @tailwind base; */
+/* @tailwind components; */
+/* @tailwind utilities; */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
 
 @layer base {
   :root {
@@ -34,12 +37,6 @@
     --ring: 221.2 83.2% 53.3%;
 
     --radius: 0.5rem;
-
-    /* Text colors for light theme */
-    --text-primary: 222.2 84% 4.9%;
-    --text-secondary: 215.4 16.3% 46.9%;
-    --text-muted: 215.4 16.3% 46.9%;
-    --text-inverted: 210 40% 98%;
 
     /* Sidebar colors for light theme */
     --sidebar-background: 0 0% 100%;
@@ -86,13 +83,7 @@
     --input: 217.2 32.6% 17.5%;
     --ring: 224.3 76.3% 48%;
 
-    /* Text colors for dark theme */
-    --text-primary: 210 40% 98%;
-    --text-secondary: 215 20.2% 65.1%;
-    --text-muted: 215 20.2% 65.1%;
-    --text-inverted: 222.2 84% 4.9%;
-
-    /* Sidebar colors for dark theme - FIXED */
+    /* Sidebar colors for dark theme */
     --sidebar-background: 222.2 84% 4.9%;
     --sidebar-foreground: 210 40% 98%;
     --sidebar-primary: 217.2 91.2% 59.8%;
@@ -125,11 +116,11 @@
 
   /* Global text color utilities */
   .text-on-dark {
-    @apply text-white dark:text-white;
+    @apply text-white;
   }
 
   .text-on-light {
-    @apply text-black dark:text-black;
+    @apply text-black;
   }
 
   .text-on-primary {
@@ -146,15 +137,15 @@
 
   /* Background-aware text colors */
   .bg-aware-text {
-    @apply [&:not(.dark)]:text-black dark:text-white;
+    @apply text-black dark:text-white;
   }
 
   .bg-aware-text-muted {
-    @apply [&:not(.dark)]:text-gray-600 dark:text-gray-300;
+    @apply text-gray-600 dark:text-gray-300;
   }
 
   .bg-aware-text-secondary {
-    @apply [&:not(.dark)]:text-gray-700 dark:text-gray-200;
+    @apply text-gray-700 dark:text-gray-200;
   }
 }
 
@@ -170,20 +161,20 @@
 
   /* Background-aware card styles */
   .bg-aware-card {
-    @apply [&:not(.dark)]:bg-white dark:bg-gray-800;
+    @apply bg-white dark:bg-gray-800;
   }
 
   .bg-aware-card-muted {
-    @apply [&:not(.dark)]:bg-gray-50 dark:bg-gray-900;
+    @apply bg-gray-50 dark:bg-gray-900;
   }
 
   /* Background-aware border styles */
   .bg-aware-border {
-    @apply [&:not(.dark)]:border-gray-200 dark:border-gray-700;
+    @apply border-gray-200 dark:border-gray-700;
   }
 
   .bg-aware-border-muted {
-    @apply [&:not(.dark)]:border-gray-100 dark:border-gray-800;
+    @apply border-gray-100 dark:border-gray-800;
   }
 
   /* Line clamp utilities for text truncation */
@@ -206,6 +197,16 @@
     display: -webkit-box;
     -webkit-box-orient: vertical;
     -webkit-line-clamp: 3;
+  }
+
+  /* Hide scrollbar while maintaining scroll functionality */
+  .scrollbar-hide {
+    -ms-overflow-style: none;  /* Internet Explorer 10+ */
+    scrollbar-width: none;  /* Firefox */
+  }
+  
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;  /* Safari and Chrome */
   }
 
   /* Sidebar animation utilities */

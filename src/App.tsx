@@ -23,6 +23,7 @@ import Premium from "./pages/Premium";
 import Classroom from "./pages/Classroom";
 import Clubs from "./pages/Clubs";
 import BridgeLab from "./pages/BridgeLab";
+import Launch from "./pages/Launch";
 import AcceleratorLibrary from "./pages/AcceleratorLibrary";
 import ViewCreate from './pages/viewCreate';
 import FindCoFounder from './pages/FindCoFounder';
@@ -81,6 +82,7 @@ const AppContent = () => {
               <Route path="/pomodoro" element={<Pomodoro />} />
               <Route path="/premium" element={<Premium />} />
               <Route path="/bridgelab" element={<BridgeLab />} />
+              <Route path="/launch" element={<Launch />} />
               <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
               <Route path="/view-create" element={<ViewCreate />} />
               <Route path="/shorts" element={<Shorts />} />
