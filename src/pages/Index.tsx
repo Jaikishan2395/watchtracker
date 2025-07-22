@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react';
-import { Clock, Target, TrendingUp, Play, Code, Share2, ThumbsUp, ThumbsDown, MessageCircle, Bookmark, Eye, Heart, MessageSquare, Share, BookmarkCheck, TrendingDown, ArrowUp, ArrowDown, Calendar } from 'lucide-react';
+import { Clock, Target, TrendingUp, Play, Code, Share2, ThumbsUp, ThumbsDown, MessageCircle, Bookmark, Eye, Heart, MessageSquare, Share, BookmarkCheck, TrendingDown, ArrowUp, ArrowDown, Calendar, LineChart, AreaChart } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatsCard from '@/components/StatsCard';
 import { PlaylistData, Playlist } from '@/types/playlist';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend, AreaChart, Area } from 'recharts';
 import NewProgressTabs from '@/components/NewProgressTabs';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -292,6 +292,44 @@ const Index = () => {
     }
   });
 
+  // --- Activity Over Time Data ---
+  function getDateKey(date: Date) {
+    return date.toISOString().split('T')[0];
+  }
+  const activityMap: Record<string, { date: string; videos: number; coding: number }> = {};
+  playlists.forEach(playlist => {
+    if (playlist.type === 'video' && playlist.videos) {
+      playlist.videos.forEach(v => {
+        if (v.completedAt) {
+          const d = new Date(v.completedAt);
+          const key = getDateKey(d);
+          if (!activityMap[key]) activityMap[key] = { date: key, videos: 0, coding: 0 };
+          activityMap[key].videos++;
+        }
+      });
+    } else if (playlist.type === 'coding' && playlist.codingQuestions) {
+      playlist.codingQuestions.forEach(q => {
+        if (q.dateSolved) {
+          const d = new Date(q.dateSolved);
+          const key = getDateKey(d);
+          if (!activityMap[key]) activityMap[key] = { date: key, videos: 0, coding: 0 };
+          activityMap[key].coding++;
+        }
+      });
+    }
+  });
+  const activityData = Object.values(activityMap).sort((a, b) => a.date.localeCompare(b.date));
+
+  // --- Badge Progress Data ---
+  const videoMilestones = [10, 25, 50, 100, 250, 500];
+  const codingMilestones = [10, 25, 50, 100, 250, 500];
+  const videosCompleted = activityData.reduce((sum, d) => sum + d.videos, 0);
+  const codingCompleted = activityData.reduce((sum, d) => sum + d.coding, 0);
+  const nextVideoMilestone = videoMilestones.find(m => m > videosCompleted) || videoMilestones[videoMilestones.length - 1];
+  const nextCodingMilestone = codingMilestones.find(m => m > codingCompleted) || codingMilestones[codingMilestones.length - 1];
+  const videoProgress = Math.min(100, Math.round((videosCompleted / nextVideoMilestone) * 100));
+  const codingProgress = Math.min(100, Math.round((codingCompleted / nextCodingMilestone) * 100));
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -402,6 +440,69 @@ const Index = () => {
                 <Bar dataKey="count" fill="#3b82f6" />
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <LineChart className="w-6 h-6" />
+              Activity Over Time
+            </CardTitle>
+            <CardDescription>Videos watched and coding problems solved per day.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <AreaChart data={activityData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <defs>
+                  <linearGradient id="colorVideos" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.1}/>
+                  </linearGradient>
+                  <linearGradient id="colorCoding" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.8}/>
+                    <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0.1}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Legend />
+                <Area type="monotone" dataKey="videos" stroke="#3b82f6" fillOpacity={1} fill="url(#colorVideos)" name="Videos Watched" />
+                <Area type="monotone" dataKey="coding" stroke="#8b5cf6" fillOpacity={1} fill="url(#colorCoding)" name="Problems Solved" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" />
+              Progress Toward Next Badge
+            </CardTitle>
+            <CardDescription>See how close you are to your next achievement!</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-4">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-blue-700 dark:text-blue-300">Videos Watched</span>
+                <span className="text-xs text-slate-500">{videosCompleted} / {nextVideoMilestone}</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-3 dark:bg-slate-700">
+                <div className="bg-blue-500 h-3 rounded-full transition-all duration-500" style={{ width: `${videoProgress}%` }} />
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-medium text-purple-700 dark:text-purple-300">Problems Solved</span>
+                <span className="text-xs text-slate-500">{codingCompleted} / {nextCodingMilestone}</span>
+              </div>
+              <div className="w-full bg-slate-200 rounded-full h-3 dark:bg-slate-700">
+                <div className="bg-purple-500 h-3 rounded-full transition-all duration-500" style={{ width: `${codingProgress}%` }} />
+              </div>
+            </div>
           </CardContent>
         </Card>
 
