@@ -1821,13 +1821,13 @@ const Classroom: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-100 via-white to-green-100 py-12 px-4 md:px-8 flex flex-col items-center">
+    <div className="min-h-screen bg-white py-12 px-4 md:px-8 flex flex-col items-center">
       <div className="w-full max-w-6xl relative">
         {/* Status Feature (moved above top-right controls) */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold text-pink-700 flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-pink-400" /> Status
+            <h2 className="text-xl font-bold text-black flex items-center gap-2">
+              <BarChart3 className="w-5 h-5 text-black" /> Status
             </h2>
           </div>
           <StatusCarousel />

@@ -1425,14 +1425,10 @@ const BridgeLab: React.FC = () => {
   const DiscoverBlogFeed = () => (
     <div className="w-full max-w-6xl mx-auto mt-6">
       {/* Tag Filter Section */}
-      <div className="bg-white rounded-3xl shadow-xl p-6 mb-6" onDoubleClick={() => setShowTagDropdown(!showTagDropdown)}>
+      <div className="bg-white rounded-2xl shadow-lg p-3 mb-4 max-w-[700px] w-full mx-auto" style={{ minHeight: 'unset' }} onDoubleClick={() => setShowTagDropdown(!showTagDropdown)}>
         {/* Header */}
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center justify-center w-12 h-12 bg-gradient-to-br from-gray-900 to-black rounded-2xl shadow-lg">
-              <Tag className="w-6 h-6 text-white" />
-            </div>
-          </div>
+        <div className="flex items-center justify-between mb-3">
+          {/* Removed tag logo for a cleaner, more compact look */}
           {tagFilter.length > 0 && (
             <div className="flex items-center gap-3">
               <span className="text-sm text-gray-700 bg-gray-100 px-3 py-1.5 rounded-full font-medium">
@@ -1452,8 +1448,8 @@ const BridgeLab: React.FC = () => {
           
         {/* Selected Tags - Enhanced Design */}
         {tagFilter.length > 0 && (
-          <div className="mb-4">
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div className="mb-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
               {tagFilter.map(tag => (
                 <div
                   key={tag}
@@ -1474,8 +1470,8 @@ const BridgeLab: React.FC = () => {
 
         {/* Available Tags - Only show custom tags */}
         {allTags.length > 0 && (
-          <div className="mb-4">
-            <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+          <div className="mb-2">
+            <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
               {allTags.map(tag => (
                 <button
                   key={tag}
@@ -1491,7 +1487,7 @@ const BridgeLab: React.FC = () => {
         )}
 
         {/* Enhanced Filter Section */}
-        <div className={`transition-all duration-300 overflow-hidden ${showTagDropdown ? 'max-h-80 opacity-100' : 'max-h-0 opacity-0'}`}>
+        <div className={`transition-all duration-300 overflow-hidden ${showTagDropdown ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'}`}>
           <div className="border-t border-gray-100 pt-4">
             {/* Search Section */}
             <div className="mb-4 tag-dropdown-container">
@@ -1533,8 +1529,8 @@ const BridgeLab: React.FC = () => {
 
             {/* Filter Results - Enhanced Design */}
             {showTagDropdown && (
-              <div className="bg-gray-50 rounded-3xl p-4 shadow-inner">
-                <div className="flex items-center justify-between mb-3">
+              <div className="bg-gray-50 rounded-2xl p-3 shadow-inner">
+                <div className="flex items-center justify-between mb-2">
                   <span className="text-sm font-semibold text-gray-900">Available Tags</span>
                   <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded-full">
                     {filteredTags.length} found
@@ -1542,7 +1538,7 @@ const BridgeLab: React.FC = () => {
                 </div>
                 
                 {filteredTags.length > 0 ? (
-                  <div className="flex gap-3 overflow-x-auto scrollbar-hide pb-2">
+                  <div className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
                     {filteredTags.slice(0, 40).map(tag => (
                       <button
                         key={tag}
@@ -1554,7 +1550,7 @@ const BridgeLab: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 text-sm py-6">
+                  <div className="text-center text-gray-500 text-sm py-3">
                     <Search className="w-8 h-8 mx-auto mb-2 text-gray-300" />
                     No tags found matching "{tagSearch}"
                   </div>
@@ -1562,7 +1558,7 @@ const BridgeLab: React.FC = () => {
                 
                 {/* Create New Tag Option */}
                 {tagSearch && !filteredTags.includes(tagSearch) && (
-                  <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="mt-2 pt-2 border-t border-gray-200">
                     <button
                       onClick={createTagFromSearch}
                       className="flex items-center gap-3 text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors p-2 rounded-xl hover:bg-white w-full"
@@ -1581,17 +1577,14 @@ const BridgeLab: React.FC = () => {
 
         {/* Enhanced New Tag Input */}
         {showNewTagInput && (
-          <div className="mt-4 p-4 bg-gradient-to-r from-gray-50 to-gray-100 rounded-3xl shadow-lg">
-            <div className="flex items-center gap-3 mb-3">
-              <div className="flex items-center justify-center w-10 h-10 bg-gray-900 rounded-2xl shadow-md">
-                <Plus className="w-5 h-5 text-white" />
-              </div>
+          <div className="mt-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-md">
+            <div className="flex items-center gap-2 mb-2">
               <div>
                 <span className="text-sm font-semibold text-gray-900">Create New Tag</span>
                 <p className="text-xs text-gray-600">Add a custom tag to your collection</p>
               </div>
             </div>
-            <div className="flex gap-3">
+            <div className="flex gap-2">
               <Input
                 value={newTagInput}
                 onChange={(e) => setNewTagInput(e.target.value)}
@@ -3718,8 +3711,8 @@ const BridgeLab: React.FC = () => {
       <div className="absolute inset-0 pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(circle, #e5e5e5 1px, transparent 1.5px)', backgroundSize: '32px 32px', opacity: 0.18 }} />
       {/* Fixed Logo at top left */}
       <div className="fixed top-6 left-6 z-50 flex flex-col items-center">
-        <div className="bg-gradient-to-r from-yellow-500 to-orange-400 text-white shadow-xl hover:from-yellow-600 hover:to-orange-500 transition-all duration-300 rounded-full p-1 flex items-center justify-center h-28 w-28">
-          <img src={BridgeLabLogo} alt="BridgeLab Logo" className="h-24 w-24 object-contain" />
+        <div className="bg-black text-white shadow-xl rounded-full p-1 flex items-center justify-center h-28 w-28 border border-white">
+          <img src={BridgeLabLogo} alt="BridgeLab Logo" className="h-24 w-24 object-contain bg-white rounded-full" />
         </div>
       </div>
       <div className="w-full max-w-7xl z-10" style={{ marginLeft: '9rem' }}>
@@ -3746,21 +3739,21 @@ const BridgeLab: React.FC = () => {
             <div className="flex items-center gap-3">
               <Button
                 onClick={() => setTab('new-post')}
-                className="bg-gradient-to-r from-blue-500 to-purple-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:from-blue-600 hover:to-purple-600 transition-all duration-200"
+                className="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md border-2 border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 New Post
               </Button>
               <Button
                 onClick={() => navigate('/launch')}
-                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200"
+                className="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:bg-gray-900 transition-all duration-200 border border-black"
               >
-                <Rocket className="w-4 h-4 mr-2" />
+                <Rocket className="w-4 h-4 mr-2 text-red-600" />
                 Launch
               </Button>
               <Button
                 onClick={() => navigate('/find-cofounder')}
-                className="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-4 py-2 rounded-full font-semibold shadow-lg hover:from-green-600 hover:to-emerald-600 transition-all duration-200"
+                className="bg-black text-white px-4 py-2 rounded-full font-semibold shadow-md border-2 border-black transition-all duration-200 hover:bg-white hover:text-black hover:border-black focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2"
               >
                 <Users className="w-4 h-4 mr-2" />
                 Find Co-founder

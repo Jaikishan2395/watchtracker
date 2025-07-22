@@ -13,15 +13,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { cn } from '@/lib/utils';
-import Editor from '@monaco-editor/react';
-import * as monaco from 'monaco-editor';
 import React from 'react';
 import { useSidebar } from '@/components/ui/sidebar';
+import { motion, AnimatePresence } from 'framer-motion';
+import celebrationLogo from '@/assets/logo.png';
 
 // Update the YouTube API types at the top of the file
 interface YouTubePlayer {
@@ -324,6 +322,101 @@ interface SpeechRecognitionAlternative {
 
 // Add this constant at the top of the file after imports
 const PISTON_API_URL = 'https://emkc.org/api/v2/piston/execute';
+
+// Add confetti animation helper (simple SVG or emoji-based)
+const Confetti = () => (
+  <div className="flex flex-wrap justify-center items-center gap-2 animate-bounce-slow">
+    <span className="text-5xl">🎉</span>
+    <span className="text-5xl">✨</span>
+    <span className="text-5xl">🎊</span>
+    <span className="text-5xl">✅</span>
+    <span className="text-5xl">🥳</span>
+  </div>
+);
+
+// Enhanced Confetti animation using framer-motion
+const ConfettiBurst = () => {
+  // Generate 32 confetti pieces with random positions/colors
+  const confetti = Array.from({ length: 32 }).map((_, i) => {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 0.7;
+    const duration = 1.2 + Math.random() * 0.8;
+    const size = 10 + Math.random() * 16;
+    const colors = [
+      'bg-blue-500', 'bg-pink-400', 'bg-yellow-400', 'bg-green-400', 'bg-purple-500', 'bg-red-400', 'bg-indigo-400', 'bg-orange-400', 'bg-teal-400', 'bg-fuchsia-400'
+    ];
+    const color = colors[Math.floor(Math.random() * colors.length)];
+    const rotate = Math.random() * 360;
+    return (
+      <motion.div
+        key={i}
+        initial={{ y: -40, opacity: 0, rotate }}
+        animate={{ y: 320 + Math.random() * 80, opacity: 1, rotate: rotate + 180 }}
+        transition={{ delay, duration, ease: 'easeOut' }}
+        className={`absolute top-0 left-0 ${color}`}
+        style={{
+          left: `${left}%`,
+          width: size,
+          height: size * (0.5 + Math.random()),
+          borderRadius: 4,
+          zIndex: 1,
+          boxShadow: '0 2px 8px #0002',
+        }}
+      />
+    );
+  });
+  return <div className="pointer-events-none absolute inset-0 overflow-visible z-10">{confetti}</div>;
+};
+
+// Animated checkmark SVG
+const AnimatedCheckmark = () => (
+  <motion.svg
+    width="96" height="96" viewBox="0 0 96 96" fill="none"
+    className="mx-auto mb-4 drop-shadow-glow"
+    aria-hidden="true"
+  >
+    <motion.circle
+      cx="48" cy="48" r="44"
+      stroke="#22c55e" strokeWidth="8" fill="#e0fbe6"
+      initial={{ scale: 0.7, opacity: 0 }}
+      animate={{ scale: 1, opacity: 1 }}
+      transition={{ type: 'spring', stiffness: 180, damping: 12, delay: 0.1 }}
+    />
+    <motion.path
+      d="M32 52l12 12 20-24"
+      stroke="#22c55e"
+      strokeWidth="8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      fill="none"
+      initial={{ pathLength: 0 }}
+      animate={{ pathLength: 1 }}
+      transition={{ duration: 0.7, delay: 0.3, ease: 'easeInOut' }}
+    />
+  </motion.svg>
+);
+
+// Sparkle background
+const SparkleBG = () => (
+  <div className="pointer-events-none absolute inset-0 z-0">
+    {Array.from({ length: 18 }).map((_, i) => (
+      <span
+        key={i}
+        className={`absolute sparkle animate-sparkle${(i % 3) + 1}`}
+        style={{
+          left: `${Math.random() * 100}%`,
+          top: `${Math.random() * 100}%`,
+          animationDelay: `${Math.random() * 3}s`,
+          background: 'radial-gradient(circle, #fff 60%, #aaa 100%)',
+          width: 8 + Math.random() * 8,
+          height: 8 + Math.random() * 8,
+          borderRadius: '50%',
+          opacity: 0.7,
+        }}
+      />
+    ))}
+  </div>
+);
 
 const VideoPlayer = () => {
   const { id } = useParams();
@@ -842,7 +935,6 @@ const VideoPlayer = () => {
   const markAsComplete = () => {
     if (playlist && currentVideo) {
       stopStopwatch(); // Stop the stopwatch when marking as complete
-      
       // Create a new array of videos with the updated progress
       const updatedVideos = playlist.videos.map(video => {
         if (video.id === currentVideo.id) {
@@ -850,18 +942,15 @@ const VideoPlayer = () => {
         }
         return video;
       });
-
-      // Create a new playlist object
       const updatedPlaylist = {
         ...playlist,
         videos: updatedVideos
       };
-
       // Update localStorage for playlists
       const savedPlaylists = localStorage.getItem('youtubePlaylists');
       if (savedPlaylists) {
         try {
-          const playlists: Playlist[] = JSON.parse(savedPlaylists);
+          const playlists = JSON.parse(savedPlaylists);
           const index = playlists.findIndex(p => p.id === id);
           if (index !== -1) {
             playlists[index] = updatedPlaylist;
@@ -871,10 +960,9 @@ const VideoPlayer = () => {
           console.error('Error updating localStorage:', error);
         }
       }
-
       // Store completed video in localStorage
-      const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]') as CompletedVideo[];
-      const videoToStore: CompletedVideo = {
+      const completedVideos = JSON.parse(localStorage.getItem('completedVideos') || '[]');
+      const videoToStore = {
         id: currentVideo.id,
         title: currentVideo.title,
         playlistId: playlist.id,
@@ -882,14 +970,12 @@ const VideoPlayer = () => {
         completedAt: new Date().toISOString(),
         watchTime: watchTimeData.cumulativeTime
       };
-
       // Check if video is already in completed list
-      const existingIndex = completedVideos.findIndex((v: CompletedVideo) => v.id === currentVideo.id);
+      const existingIndex = completedVideos.findIndex(v => v.id === currentVideo.id);
       if (existingIndex === -1) {
         completedVideos.push(videoToStore);
         localStorage.setItem('completedVideos', JSON.stringify(completedVideos));
       }
-
       // Reset watch time data for the completed video
       localStorage.removeItem(`watchTime_${currentVideo.id}`);
       setWatchTimeData({
@@ -900,34 +986,16 @@ const VideoPlayer = () => {
         stopCount: 0,
         cumulativeTime: 0
       });
-
-      // Update state with the new playlist
       setPlaylist(updatedPlaylist);
-
-      // Check if this was the last uncompleted video
-      const remainingUncompleted = updatedVideos.filter(v => v.progress < 100).length;
-      
-      // Stop the current video
-      if (playerRef.current) {
-        playerRef.current.pauseVideo();
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-
-      // Reset player ready state
-      setIsPlayerReady(false);
-
-      // Show completion dialog if this was the last video
-      if (remainingUncompleted === 0) {
         setShowCompletionDialog(true);
-      } else {
-        // Find and play the next uncompleted video
-        const nextUncompletedIndex = updatedVideos.findIndex(v => v.progress < 100);
+      // Wait 5 seconds, then close modal and go to next video if any
+      setTimeout(() => {
+        setShowCompletionDialog(false);
+        const nextUncompletedIndex = updatedPlaylist.videos.findIndex(v => v.progress < 100);
         if (nextUncompletedIndex !== -1) {
           selectVideo(nextUncompletedIndex);
         }
-      }
-
+      }, 5000);
       // Dispatch playlist update event
       window.dispatchEvent(new CustomEvent('playlistUpdated', {
         detail: {
@@ -935,7 +1003,6 @@ const VideoPlayer = () => {
           updatedPlaylist
         }
       }));
-
       toast.success('Video marked as complete!');
     }
   };
@@ -2621,40 +2688,78 @@ const VideoPlayer = () => {
               border: '2px solid #2563eb',
             }}
           >
-            <div style={{
-              fontSize: '2.5rem',
-              fontWeight: 800,
-              color: '#2563eb',
-              marginBottom: 32,
-              letterSpacing: '2px',
-              textShadow: '0 2px 8px #2563eb22',
-            }}>
-              
+            {/* Shimmer overlay */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+              <div className="w-full h-full animate-shimmer bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-60" />
             </div>
-            <div
-              style={{
-                width: '1000px',
-                height: '500px',
-                maxWidth: '100%',
-                maxHeight: '100%',
-                marginBottom: 40,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                background: '#e0e7ef',
-                borderRadius: 24,
-                border: '2px solid #2563eb33',
-                boxShadow: '0 4px 32px rgba(37,99,235,0.10)',
-              }}
+
+            {/* Flying rocket animation (centered at bottom, flies up with fire) */}
+            <motion.div
+              initial={{ y: 120, opacity: 0 }}
+              animate={{ y: -220, opacity: 1 }}
+              transition={{ duration: 2.2, type: 'spring', stiffness: 60, damping: 18 }}
+              className="absolute left-1/2 bottom-0 -translate-x-1/2 z-30 flex flex-col items-center"
+              style={{ pointerEvents: 'none' }}
+              aria-hidden="true"
             >
-              <ins
-                className="adsbygoogle"
-                style={{ display: 'block', width: '100%', height: '100%' }}
-                data-ad-client="ca-pub-XXXXXXXXXXXXXXX"
-                data-ad-slot="YYYYYYYYYYYY"
-                data-ad-format="auto"
-              />
-            </div>
+              {/* Fire/Flame behind rocket */}
+              <motion.span
+                initial={{ scale: 0.7, opacity: 0.7 }}
+                animate={{ scale: [0.7, 1.2, 0.7], opacity: [0.7, 1, 0.7] }}
+                transition={{ repeat: Infinity, duration: 0.5, ease: 'easeInOut' }}
+                className="text-4xl md:text-5xl mb-[-12px]"
+                style={{ filter: 'blur(1px)', color: '#fff', textShadow: '0 0 8px #000' }}
+              >🔥</motion.span>
+              {/* Rocket emoji */}
+              <motion.span
+                initial={{ scale: 0.8 }}
+                animate={{ scale: 1 }}
+                transition={{ type: 'spring', stiffness: 180, damping: 10, delay: 0.2 }}
+                className="text-6xl md:text-7xl drop-shadow-[0_2px_16px_black]"
+                style={{ color: '#fff', textShadow: '0 0 12px #000' }}
+              >🚀</motion.span>
+            </motion.div>
+
+            {/* Logo with white/black glow */}
+            <motion.img
+              src={celebrationLogo}
+              alt="Celebration Logo"
+              className="w-36 h-36 mx-auto mb-4 drop-shadow-[0_0_32px_white] dark:drop-shadow-[0_0_32px_black] border-4 border-white dark:border-black rounded-full bg-white/80 dark:bg-black/80 z-10"
+              initial={{ scale: 0.7, opacity: 0 }}
+              animate={{ scale: 1.15, opacity: 1 }}
+              transition={{ type: 'spring', stiffness: 180, damping: 12, delay: 0.1 }}
+            />
+
+            {/* Congratulatory text */}
+            <motion.div
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 16 }}
+              className="mt-2 text-5xl font-extrabold text-white dark:text-black text-center drop-shadow-[0_2px_16px_black] dark:drop-shadow-[0_2px_16px_white] z-10"
+            >
+              Congratulations!
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, type: 'spring', stiffness: 180, damping: 18 }}
+              className="mt-2 text-2xl font-semibold text-white dark:text-black text-center drop-shadow-[0_2px_8px_black] dark:drop-shadow-[0_2px_8px_white] z-10"
+            >
+              You completed this video
+            </motion.div>
+
+            {/* Shimmer animation keyframes */}
+            <style>{`
+              @keyframes shimmer {
+                0% { background-position: -400px 0; }
+                100% { background-position: 400px 0; }
+              }
+              .animate-shimmer {
+                background-size: 800px 100%;
+                animation: shimmer 2.5s linear infinite;
+              }
+            `}</style>
+
             {/* Timer/Close Button Area */}
             <div style={{ marginTop: 24 }}>
               {adPopupCanClose ? (
@@ -2712,8 +2817,8 @@ const VideoPlayer = () => {
           <div className="flex items-center gap-2">
             <Button
               onClick={() => setShowAskAI(true)}
-              className="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-full font-bold px-6 py-2 shadow-md border border-blue-600 transition-all duration-200 hover:bg-white hover:text-blue-600 hover:border-blue-600 flex items-center gap-2"
-              style={{ boxShadow: '0 2px 8px rgba(59,130,246,0.10)' }}
+              className={`rounded-full font-bold px-6 py-2 shadow-md border transition-all duration-200 flex items-center gap-2 ${isDarkMode ? 'bg-white text-black border-black hover:bg-black hover:text-white' : 'bg-black text-white border-black hover:bg-white hover:text-black'}`}
+              style={{ boxShadow: isDarkMode ? '0 2px 8px rgba(0,0,0,0.10)' : '0 2px 8px rgba(59,130,246,0.10)' }}
             >
               Ask AI
             </Button>
@@ -2948,11 +3053,10 @@ const VideoPlayer = () => {
                         <div className="flex items-center gap-3">
                           <Button
                             onClick={markAsComplete}
-                            className={`relative overflow-hidden transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 bg-black text-white ${currentVideo.progress >= 100 ? 'opacity-70 cursor-not-allowed' : ''}`}
+                            className={`relative overflow-hidden transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105 bg-white text-black border-2 border-black rounded-full font-bold px-6 py-2 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2`}
                             disabled={currentVideo.progress >= 100}
                           >
-                            <div className="absolute inset-0 bg-white/10 transform -skew-x-12 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
-                            <CheckCircle className="w-4 h-4 mr-2" />
+                            <CheckCircle className="w-4 h-4 mr-2 text-black" />
                             {currentVideo.progress >= 100 ? 'Completed' : 'Complete'}
                           </Button>
                           <div className="h-6 w-px bg-gradient-to-b from-gray-300 to-gray-400 dark:from-gray-600 dark:to-gray-700" />
@@ -3904,69 +4008,20 @@ const VideoPlayer = () => {
         </div>
       )}
       {/* Floating Ask AI Window */}
-      {showAskAI && (
-        <div
-          ref={askAIRef}
+      <Dialog open={showAskAI} onOpenChange={setShowAskAI}>
+        <DialogContent
+          className={`max-w-lg w-full p-8 rounded-2xl shadow-2xl border transition-all duration-200
+            ${isDarkMode ? 'bg-black text-white border-white' : 'bg-white text-black border-black'}
+          `}
           style={{
-            position: 'fixed',
-            left: askAIPos.x,
-            top: askAIPos.y,
-            width: 400,
-            maxWidth: '90vw',
-            height: 340,
-            background: 'white',
-            borderRadius: 24,
-            boxShadow: '0 8px 32px rgba(59,130,246,0.15)',
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-            overflow: 'hidden',
-            userSelect: askAIDragging ? 'none' : 'auto',
-            cursor: askAIDragging ? 'grabbing' : 'default',
+            boxShadow: isDarkMode
+              ? '0 8px 40px 0 rgba(0,0,0,0.25)'
+              : '0 8px 40px 0 rgba(0,0,0,0.10)'
           }}
         >
-          <div
-            className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-t-2xl cursor-move select-none"
-            onMouseDown={e => {
-              setAskAIDragging(true);
-              const rect = askAIRef.current?.getBoundingClientRect();
-              setAskAIDragOffset({
-                x: e.clientX - (rect?.left ?? 0),
-                y: e.clientY - (rect?.top ?? 0),
-              });
-            }}
-          >
-            <span className="font-bold text-lg flex items-center">Ask AI</span>
-            <button
-              onClick={() => setShowAskAI(false)}
-              className="bg-black text-white hover:bg-white hover:text-black text-xl font-bold focus:outline-none rounded-full px-3 py-1 transition-all duration-150"
-              title="Close Ask AI"
-            >
-              ×
-            </button>
-          </div>
-          <div className="flex-1 flex flex-col items-center justify-center bg-gray-50 px-4 py-2">
-            <textarea
-              className="w-full rounded border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 resize-none mb-2"
-              rows={2}
-              placeholder="Ask anything..."
-              value={aiQuestion}
-              onChange={e => setAIQuestion(e.target.value)}
-              disabled={aiLoading}
-            />
-            <button
-              onClick={handleAskAI}
-              disabled={aiLoading || !aiQuestion.trim()}
-              className="w-full rounded-full bg-gradient-to-r from-blue-500 to-purple-600 text-white font-bold py-2 mt-1 shadow hover:from-blue-600 hover:to-purple-700 transition disabled:opacity-60"
-            >
-              {aiLoading ? 'Thinking...' : 'Ask'}
-            </button>
-            <div className="w-full mt-4 p-3 rounded-lg bg-white border border-gray-200 min-h-[60px] text-gray-800 text-sm overflow-y-auto" style={{ maxHeight: 100 }}>
-              {aiAnswer}
-            </div>
-          </div>
-        </div>
-      )}
+          {/* ...Ask AI content... */}
+        </DialogContent>
+      </Dialog>
       {/* Note Preview Modal */}
       {previewNote && (
         <div
@@ -4044,6 +4099,138 @@ const VideoPlayer = () => {
           onContextMenu={e => e.preventDefault()}
         />
       )}
+      {/* Celebratory Completion Modal */}
+      <AnimatePresence>
+        {showCompletionDialog && (
+          <>
+            {/* Confetti effect: many small colored paper pieces falling from top */}
+            <div className="fixed inset-0 z-[10002] pointer-events-none">
+              {Array.from({ length: 36 }).map((_, i) => {
+                const left = Math.random() * 100;
+                const delay = Math.random() * 0.7;
+                const duration = 1.6 + Math.random() * 0.8;
+                const size = 8 + Math.random() * 10;
+                const colors = [
+                  'bg-red-500', 'bg-yellow-400', 'bg-green-400', 'bg-blue-500', 'bg-pink-400', 'bg-purple-500', 'bg-orange-400', 'bg-fuchsia-400', 'bg-indigo-400', 'bg-teal-400'
+                ];
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const rotate = Math.random() * 360;
+                return (
+                  <motion.div
+                    key={`confetti-${i}-${Date.now()}`}
+                    initial={{ y: -40, opacity: 0, rotate }}
+                    animate={{ y: '110vh', opacity: 1, rotate: rotate + 180 }}
+                    transition={{ delay, duration, ease: 'easeOut' }}
+                    className={`absolute top-0 left-0 ${color}`}
+                    style={{
+                      left: `${left}%`,
+                      width: size,
+                      height: size * (0.5 + Math.random()),
+                      borderRadius: 2,
+                      zIndex: 1,
+                      boxShadow: '0 2px 8px #0002',
+                    }}
+                  />
+                );
+              })}
+            </div>
+            {/* Modal overlay and content below */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/70"
+              aria-modal="true"
+              role="dialog"
+              tabIndex={-1}
+            >
+              {/* Confetti effect: only above/behind the modal box */}
+              <div className="absolute top-0 left-0 w-full h-full z-0 pointer-events-none">
+                {Array.from({ length: 36 }).map((_, i) => {
+                  const left = Math.random() * 100;
+                  const delay = Math.random() * 0.7;
+                  const duration = 1.6 + Math.random() * 0.8;
+                  const size = 8 + Math.random() * 10;
+                  const colors = [
+                    'bg-red-500', 'bg-yellow-400', 'bg-green-400', 'bg-blue-500', 'bg-pink-400', 'bg-purple-500', 'bg-orange-400', 'bg-fuchsia-400', 'bg-indigo-400', 'bg-teal-400'
+                  ];
+                  const color = colors[Math.floor(Math.random() * colors.length)];
+                  const rotate = Math.random() * 360;
+                  return (
+                    <motion.div
+                      key={`confetti-${i}-${Date.now()}`}
+                      initial={{ y: -40, opacity: 0, rotate }}
+                      animate={{ y: '420px', opacity: 1, rotate: rotate + 180 }}
+                      transition={{ delay, duration, ease: 'easeOut' }}
+                      className={`absolute top-0 left-0 ${color}`}
+                      style={{
+                        left: `${left}%`,
+                        width: size,
+                        height: size * (0.5 + Math.random()),
+                        borderRadius: 2,
+                        zIndex: 0,
+                        boxShadow: '0 2px 8px #0002',
+                      }}
+                    />
+                  );
+                })}
+              </div>
+              {/* Modal content (z-10+) */}
+              <motion.div
+                initial={{ scale: 0.85, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.85, opacity: 0 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22 }}
+                className="relative bg-white rounded-3xl shadow-2xl p-10 max-w-lg w-full flex flex-col items-center border-2 border-black/20 backdrop-blur-2xl overflow-hidden z-10"
+                style={{ boxShadow: '0 8px 64px 0 #0008, 0 2px 16px #fff2' }}
+              >
+                {/* Shimmer overlay */}
+                <div className="absolute inset-0 pointer-events-none z-0">
+                  <div className="w-full h-full animate-shimmer bg-gradient-to-r from-transparent via-black/10 to-transparent opacity-40" />
+                </div>
+                {/* Logo in grayscale or inverted for pure black/white */}
+                <motion.img
+                  src={celebrationLogo}
+                  alt="Celebration Logo"
+                  className="w-36 h-36 mx-auto mb-4 border-4 border-black rounded-full bg-white z-10"
+                  style={{ filter: 'grayscale(1) contrast(1.2)' }}
+                  initial={{ scale: 0.7, opacity: 0 }}
+                  animate={{ scale: 1.15, opacity: 1 }}
+                  transition={{ type: 'spring', stiffness: 180, damping: 12, delay: 0.1 }}
+                />
+                {/* Congratulatory text */}
+                <motion.div
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.4, type: 'spring', stiffness: 180, damping: 16 }}
+                  className="mt-2 text-5xl font-extrabold text-black text-center drop-shadow-[0_2px_16px_white] z-10"
+                >
+                  Congratulations!
+                </motion.div>
+                <motion.div
+                  initial={{ opacity: 0, y: 16 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.6, type: 'spring', stiffness: 180, damping: 18 }}
+                  className="mt-2 text-2xl font-semibold text-black text-center drop-shadow-[0_2px_8px_white] z-10"
+                >
+                  You completed this video
+                </motion.div>
+                {/* Shimmer animation keyframes */}
+                <style>{`
+                  @keyframes shimmer {
+                    0% { background-position: -400px 0; }
+                    100% { background-position: 400px 0; }
+                  }
+                  .animate-shimmer {
+                    background-size: 800px 100%;
+                    animation: shimmer 2.5s linear infinite;
+                  }
+                `}</style>
+              </motion.div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
     </div>
   );
 };

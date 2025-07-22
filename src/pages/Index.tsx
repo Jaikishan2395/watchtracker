@@ -4,14 +4,46 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatsCard from '@/components/StatsCard';
 import { PlaylistData, Playlist } from '@/types/playlist';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import CodingProgressDashboard from '@/components/CodingProgressDashboard';
-import ProgressTabs from '@/components/ProgressTabs';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
+import NewProgressTabs from '@/components/NewProgressTabs';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from 'sonner';
+
+interface CustomTooltipProps {
+  active?: boolean;
+  payload?: Array<{
+    color: string;
+    name: string;
+    value: number;
+    payload: {
+        type: 'video' | 'coding';
+    }
+  }>;
+  label?: string;
+}
+
+const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
+  if (active && payload && payload.length) {
+    const type = payload[0].payload.type;
+    return (
+      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{type} Playlist</p>
+        {payload.map((pld, index: number) => (
+          <div key={index} className="flex items-center gap-2 text-xs mt-1">
+            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: pld.color }} />
+            <p className="text-slate-600 dark:text-slate-400">{`${pld.name}:`}</p>
+            <p className="font-medium text-slate-700 dark:text-slate-300">{pld.value}</p>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return null;
+};
 
 const Index = () => {
   const [isLoading, setIsLoading] = useState(true);
@@ -208,6 +240,28 @@ const Index = () => {
     });
   };
 
+  const playlistChartData = playlists.map(playlist => {
+    let timeSpent = 0;
+    let contentWatched = 0;
+
+    if (playlist.type === 'video' && playlist.videos) {
+      timeSpent = playlist.videos.reduce((sum, v) => sum + (v.watchTime || 0), 0);
+      contentWatched = playlist.videos.filter(v => v.progress >= 100).length;
+    } else if (playlist.type === 'coding' && playlist.codingQuestions) {
+      timeSpent = playlist.codingQuestions.reduce((sum, q) => sum + (q.timeSpent || 0), 0);
+      contentWatched = playlist.codingQuestions.filter(q => q.solved).length;
+    }
+
+    return {
+      name: playlist.title,
+      'Time Spent (min)': timeSpent,
+      'Content Watched': contentWatched,
+      type: playlist.type,
+    };
+  }).filter(item => item['Time Spent (min)'] > 0 || item['Content Watched'] > 0);
+
+  const COLORS = ['#8884d8', '#82ca9d'];
+
   const progressData = [
     { name: 'Videos', completed: stats.completedVideos, total: stats.totalVideos },
     { name: 'Coding', completed: stats.solvedQuestions, total: stats.totalCodingQuestions }
@@ -217,6 +271,26 @@ const Index = () => {
     { name: 'Completed', value: stats.completedVideos + stats.solvedQuestions, color: '#10b981' },
     { name: 'Remaining', value: (stats.totalVideos - stats.completedVideos) + (stats.totalCodingQuestions - stats.solvedQuestions), color: '#e5e7eb' }
   ];
+
+  // --- Most Productive Hours Data ---
+  const hoursData = Array.from({ length: 24 }, (_, hour) => ({ hour, count: 0 }));
+  playlists.forEach(playlist => {
+    if (playlist.type === 'video' && playlist.videos) {
+      playlist.videos.forEach(v => {
+        if (v.completedAt) {
+          const d = new Date(v.completedAt);
+          hoursData[d.getHours()].count++;
+        }
+      });
+    } else if (playlist.type === 'coding' && playlist.codingQuestions) {
+      playlist.codingQuestions.forEach(q => {
+        if (q.dateSolved) {
+          const d = new Date(q.dateSolved);
+          hoursData[d.getHours()].count++;
+        }
+      });
+    }
+  });
 
   if (isLoading) {
     return (
@@ -271,18 +345,70 @@ const Index = () => {
           />
         </div>
 
-        {/* Coding Progress Dashboard */}
-        {stats.totalCodingQuestions > 0 && (
-          <div className="mb-8">
-            <h2 className="text-2xl font-semibold text-gray-800 mb-6">Coding Progress</h2>
-            <CodingProgressDashboard stats={stats} />
-          </div>
-        )}
+        <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-6 h-6" />
+              Playlist Stats
+            </CardTitle>
+            <CardDescription>Breakdown of time spent and content watched for each playlist.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div
+              style={{
+                overflowX: 'auto',
+                WebkitOverflowScrolling: 'touch',
+                scrollbarWidth: 'none',
+                msOverflowStyle: 'none',
+              }}
+              className="hide-scrollbar"
+            >
+              <style>{`
+                .hide-scrollbar::-webkit-scrollbar { display: none; }
+                .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
+              `}</style>
+              <div style={{ minWidth: Math.max(playlistChartData.length * 120, 400) }}>
+                <ResponsiveContainer width="100%" height={300}>
+                  <BarChart data={playlistChartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
+                    <CartesianGrid strokeDasharray="3 3" />
+                    <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
+                    <YAxis />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend />
+                    <Bar dataKey="Time Spent (min)" fill={COLORS[0]} />
+                    <Bar dataKey="Content Watched" fill={COLORS[1]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-6 h-6" />
+              Most Productive Hours
+            </CardTitle>
+            <CardDescription>When you are most active (videos watched or problems solved).</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={220}>
+              <BarChart data={hoursData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
+                <YAxis allowDecimals={false} />
+                <Tooltip formatter={v => `${v} activities`} />
+                <Bar dataKey="count" fill="#3b82f6" />
+              </BarChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
 
         {/* Progress Charts */}
         <div className="mb-8">
           {playlists.length > 0 ? (
-            <ProgressTabs playlists={playlists} />
+            <NewProgressTabs playlists={playlists} />
           ) : (
             <Card className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm border-0 shadow-lg">
               <CardContent className="py-8 text-center">
