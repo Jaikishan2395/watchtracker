@@ -1,16 +1,18 @@
 import { useState, useEffect } from 'react';
-import { Clock, Target, TrendingUp, Play, Code, Share2, ThumbsUp, ThumbsDown, MessageCircle, Bookmark, Eye, Heart, MessageSquare, Share, BookmarkCheck, TrendingDown, ArrowUp, ArrowDown, Calendar } from 'lucide-react';
+import { Clock, Target, TrendingUp, Play, Code, Share2, ThumbsUp, ThumbsDown, MessageCircle, Bookmark, Eye, Heart, MessageSquare, Share, BookmarkCheck, TrendingDown, ArrowUp, ArrowDown, Calendar, BarChart, Flame, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StatsCard from '@/components/StatsCard';
-import { PlaylistData, Playlist } from '@/types/playlist';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
+import { PlaylistData, Playlist, Video } from '@/types/playlist';
+import { BarChart as ReBarChart, Bar as ReBar, XAxis as ReXAxis, YAxis as ReYAxis, CartesianGrid, Tooltip as ReTooltip, ResponsiveContainer as ReResponsiveContainer, PieChart, Pie, Cell, LineChart, Line, Legend } from 'recharts';
 import NewProgressTabs from '@/components/NewProgressTabs';
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { toast } from 'sonner';
+import ActivityHeatmap from '@/components/ActivityHeatmap';
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
 
 interface CustomTooltipProps {
   active?: boolean;
@@ -63,6 +65,17 @@ const Index = () => {
     longestStreak: 0
   });
   const [playlists, setPlaylists] = useState<Playlist[]>([]);
+  // Add userStats calculation (copy from Profile)
+  const [userStats, setUserStats] = useState({
+    daysActive: 0,
+    hoursLearning: 0,
+    problemsSolved: 0,
+    tasksCompleted: 0,
+    joinDate: new Date().toISOString(),
+    currentStreak: 0,
+    longestStreak: 0,
+    lastActivityDate: new Date().toISOString().split('T')[0]
+  });
 
   useEffect(() => {
     const loadData = () => {
@@ -167,6 +180,76 @@ const Index = () => {
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  useEffect(() => {
+    // Calculate userStats from playlists (copy logic from Profile)
+    let joinDate = localStorage.getItem('userJoinDate');
+    if (!joinDate) {
+      joinDate = new Date().toISOString();
+      try { localStorage.setItem('userJoinDate', joinDate); } catch (e) { /* ignore localStorage error */ }
+    }
+    let lastActivityDate = localStorage.getItem('lastActivityDate');
+    if (!lastActivityDate) {
+      lastActivityDate = new Date().toISOString().split('T')[0];
+      try { localStorage.setItem('lastActivityDate', lastActivityDate); } catch (e) { /* ignore localStorage error */ }
+    }
+    const today = new Date().toISOString().split('T')[0];
+    const isActiveToday = lastActivityDate === today;
+    let currentStreak = 0;
+    let longestStreak = 0;
+    let hoursLearning = 0;
+    let completedVideos = 0;
+    let totalVideos = 0;
+    if (Array.isArray(playlists) && playlists.length > 0) {
+      try {
+        const totalMinutes = playlists.reduce((total, playlist) => {
+          if (!playlist.videos) return total;
+          return total + playlist.videos.reduce((playlistTotal, video) => {
+            if (!video.watchTime || !video.progress) return playlistTotal;
+            return playlistTotal + (video.watchTime * (video.progress || 0) / 100);
+          }, 0);
+        }, 0);
+        hoursLearning = Math.round(totalMinutes / 60 * 10) / 10;
+        completedVideos = playlists.reduce((total, playlist) => {
+          if (!playlist.videos) return total;
+          return total + playlist.videos.filter(video => video.progress >= 100).length;
+        }, 0);
+        totalVideos = playlists.reduce((total, playlist) => {
+          if (!playlist.videos) return total;
+          return total + playlist.videos.length;
+        }, 0);
+        playlists.forEach(playlist => {
+          if (playlist.streakData) {
+            currentStreak = Math.max(currentStreak, playlist.streakData.currentStreak || 0);
+            longestStreak = Math.max(longestStreak, playlist.streakData.longestStreak || 0);
+          }
+        });
+      } catch (e) { /* ignore playlist stats error */ }
+    }
+    const daysActive = Math.max(1, Math.floor((Date.now() - new Date(joinDate).getTime()) / (1000 * 60 * 60 * 24)));
+    if (isActiveToday) {
+      currentStreak = Math.max(currentStreak, 1);
+    } else {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yesterdayStr = yesterday.toISOString().split('T')[0];
+      if (lastActivityDate === yesterdayStr) {
+        currentStreak = Math.max(currentStreak, 1);
+      } else {
+        currentStreak = 0;
+      }
+    }
+    setUserStats({
+      daysActive,
+      hoursLearning,
+      problemsSolved: completedVideos,
+      tasksCompleted: completedVideos,
+      joinDate,
+      currentStreak,
+      longestStreak,
+      lastActivityDate
+    });
+  }, [playlists]);
 
   const calculateStats = (playlistsData: Playlist[]) => {
     let totalWatchTime = 0;
@@ -292,6 +375,88 @@ const Index = () => {
     }
   });
 
+  // --- Breaks Taken Card (Placeholder) ---
+  // For now, use a static value or session-based value
+  const breaksTaken = 5; // Placeholder, replace with persistent value if available
+  const breakDuration = 5; // minutes, placeholder
+  const totalBreakTime = breaksTaken * breakDuration;
+
+  // --- Pomodoro Break Sessions Data ---
+  type PomodoroSession = { id: string; date: string; duration: number; completedPomodoros: number; taskName: string; category: string; };
+  let pomodoroSessions: PomodoroSession[] = [];
+  try {
+    const saved = localStorage.getItem('pomodoroSessions');
+    if (saved) pomodoroSessions = JSON.parse(saved);
+  } catch (e) {
+    // Failed to parse pomodoroSessions from localStorage
+    console.error('Failed to parse pomodoroSessions from localStorage', e);
+  }
+
+  // Only count sessions as breaks if duration is 5 or 15 (short/long break)
+  const breakDurations = [5, 15];
+  const breakSessions = pomodoroSessions.filter(s => breakDurations.includes(s.duration));
+
+  // Aggregation state
+  const [breakAgg, setBreakAgg] = useState<'day' | 'week' | 'month'>('day');
+
+  // Helper to get start of week (Monday)
+  function getWeekStart(date: Date) {
+    const d = new Date(date);
+    const day = d.getDay();
+    const diff = d.getDate() - day + (day === 0 ? -6 : 1); // adjust when day is Sunday
+    d.setDate(diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+
+  // Aggregate break sessions
+  let breakData: { label: string; count: number }[] = [];
+  if (breakAgg === 'day') {
+    const now = new Date();
+    const days = Array.from({ length: 30 }, (_, i) => {
+      const d = new Date(now);
+      d.setDate(now.getDate() - (29 - i));
+      return d.toISOString().slice(0, 10);
+    });
+    breakData = days.map(date => ({
+      label: date,
+      count: breakSessions.filter(s => s.date.slice(0, 10) === date).length
+    }));
+  } else if (breakAgg === 'week') {
+    // Last 12 weeks
+    const now = new Date();
+    const weeks: string[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now);
+      d.setDate(now.getDate() - i * 7);
+      const weekStart = getWeekStart(d).toISOString().slice(0, 10);
+      weeks.push(weekStart);
+    }
+    breakData = weeks.map(weekStart => {
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekEnd.getDate() + 6);
+      return {
+        label: `${weekStart} - ${weekEnd.toISOString().slice(0, 10)}`,
+        count: breakSessions.filter(s => {
+          const d = new Date(s.date);
+          return d >= new Date(weekStart) && d <= weekEnd;
+        }).length
+      };
+    });
+  } else if (breakAgg === 'month') {
+    // Last 12 months
+    const now = new Date();
+    const months: string[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.toISOString().slice(0, 7));
+    }
+    breakData = months.map(month => ({
+      label: month,
+      count: breakSessions.filter(s => s.date.slice(0, 7) === month).length
+    }));
+  }
+
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -310,11 +475,128 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-6 py-8">
+        {/* Active Day Card at the top, centered and compact */}
+        <div className="flex justify-center mb-6">
+          <Card className="relative overflow-hidden bg-white/80 rounded-2xl animate-fade-in w-full max-w-xs">
+            <CardHeader className="pb-2 relative z-10">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-base md:text-lg font-bold flex items-center gap-2">
+                  <div className="p-2.5 rounded-xl bg-gray-100">
+                    <Calendar className="w-6 h-6 text-gray-700" />
+                  </div>
+                  {userStats.currentStreak >= 3 && (
+                    <span className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold animate-pulse">
+                      <Flame className="w-4 h-4 text-gray-700" /> {userStats.currentStreak}d streak
+                    </span>
+                  )}
+                </CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent className="relative z-10 flex flex-col items-center gap-4">
+              <div className="relative flex items-center justify-center mb-2">
+                <svg width="90" height="90" viewBox="0 0 90 90" className="block">
+                  <circle cx="45" cy="45" r="40" fill="none" stroke="#e0e7ef" strokeWidth="8" />
+                  <circle
+                    cx="45" cy="45" r="40" fill="none"
+                    stroke="url(#active-gradient)"
+                    strokeWidth="8"
+                    strokeDasharray={2 * Math.PI * 40}
+                    strokeDashoffset={2 * Math.PI * 40 * (1 - Math.min(1, userStats.daysActive / 30))}
+                    strokeLinecap="round"
+                    style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,2,.6,1)' }}
+                  />
+                  <defs>
+                    <linearGradient id="active-gradient" x1="0" y1="0" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+                      <stop stopColor="#3b82f6" />
+                      <stop offset="1" stopColor="#6366f1" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+                <div className="absolute inset-0 flex flex-col items-center justify-center">
+                  <span className="text-4xl font-extrabold text-black">
+                    {userStats.daysActive}
+                  </span>
+                  <span className="text-xs text-gray-400 font-medium">Days</span>
+                </div>
+              </div>
+              <div className="w-full text-center mt-2">
+                <span className="text-sm font-semibold text-black">
+                  {userStats.currentStreak >= 7
+                    ? '🔥 Amazing! You have a week-long streak!'
+                    : userStats.currentStreak >= 3
+                      ? 'Keep your streak alive!'
+                      : userStats.daysActive >= 3
+                        ? 'Great start! Stay consistent.'
+                        : 'Start your learning streak today!'}
+                </span>
+              </div>
+              <div className="w-full flex flex-col items-center mt-2 mb-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 border border-gray-200">
+                    <Flame className="w-7 h-7 blink-red" />
+                  </span>
+                  <span className="text-3xl font-extrabold text-black ml-2">{userStats.currentStreak}</span>
+                  <span className="text-base text-gray-500 font-medium ml-1">day streak</span>
+                  <span className="ml-2">
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-pointer text-gray-400">
+                          <Info className="w-4 h-4" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <span>Current streak: consecutive days you have been active. Keep it going for rewards!</span>
+                      </TooltipContent>
+                    </Tooltip>
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 mb-2">
+                  <span className="text-xs text-gray-400">Longest streak:</span>
+                  <span className="text-base font-semibold text-black">{userStats.longestStreak} days</span>
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gray-100 w-full">
+                {[...Array(7)].map((_, index) => {
+                  const date = new Date();
+                  date.setDate(date.getDate() - (6 - index));
+                  const dateStr = date.toISOString().split('T')[0];
+                  const isActive = userStats.lastActivityDate === dateStr;
+                  const isToday = dateStr === new Date().toISOString().split('T')[0];
+                  return (
+                    <div 
+                      key={index}
+                      className="flex-1 flex flex-col items-center gap-1 group"
+                    >
+                      <div 
+                        className={`w-full h-8 rounded-lg transition-all duration-300 flex items-center justify-center relative
+                          ${isActive 
+                            ? 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/40'
+                            : 'bg-gray-200/50'
+                          } ${isToday ? 'ring-2 ring-blue-500/40' : ''}`}
+                      >
+                        {isActive && <Flame className="w-4 h-4 text-orange-400 animate-pulse absolute left-1 top-1" />}
+                      </div>
+                      <span className={`text-[10px] text-gray-400 ${isToday ? 'font-medium text-black' : ''}`}>
+                        {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        {/* Activity Heatmap below the card */}
+        <div className="mb-8">
+          <ActivityHeatmap playlists={playlists} />
+        </div>
+        
+        
         {/* Stats Overview */}
         <div className="mb-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Video Content Overview</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
           <StatsCard
             title="Total Videos"
             value={stats.totalVideos.toString()}
@@ -343,6 +625,14 @@ const Index = () => {
             color="orange"
             delay="400"
           />
+          {/* New Breaks Card */}
+          <StatsCard
+            title="Breaks Taken"
+            value={`${breaksTaken} (${totalBreakTime} min)`}
+            icon={Calendar}
+            color="orange"
+            delay="500"
+          />
         </div>
 
         <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
@@ -368,17 +658,17 @@ const Index = () => {
                 .hide-scrollbar { scrollbar-width: none; -ms-overflow-style: none; }
               `}</style>
               <div style={{ minWidth: Math.max(playlistChartData.length * 120, 400) }}>
-                <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={playlistChartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
+                <ReResponsiveContainer width="100%" height={300}>
+                  <ReBarChart data={playlistChartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
                     <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
-                    <YAxis />
-                    <Tooltip content={<CustomTooltip />} />
+                    <ReXAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
+                    <ReYAxis />
+                    <ReTooltip content={<CustomTooltip />} />
                     <Legend />
-                    <Bar dataKey="Time Spent (min)" fill={COLORS[0]} />
-                    <Bar dataKey="Content Watched" fill={COLORS[1]} />
-                  </BarChart>
-                </ResponsiveContainer>
+                    <ReBar dataKey="Time Spent (min)" fill={COLORS[0]} />
+                    <ReBar dataKey="Content Watched" fill={COLORS[1]} />
+                  </ReBarChart>
+                </ReResponsiveContainer>
               </div>
             </div>
           </CardContent>
@@ -393,17 +683,55 @@ const Index = () => {
             <CardDescription>When you are most active (videos watched or problems solved).</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={hoursData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+            <ReResponsiveContainer width="100%" height={220}>
+              <ReBarChart data={hoursData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
-                <YAxis allowDecimals={false} />
-                <Tooltip formatter={v => `${v} activities`} />
-                <Bar dataKey="count" fill="#3b82f6" />
-              </BarChart>
-            </ResponsiveContainer>
+                <ReXAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
+                <ReYAxis allowDecimals={false} />
+                <ReTooltip formatter={v => `${v} activities`} />
+                <ReBar dataKey="count" fill="#3b82f6" />
+              </ReBarChart>
+            </ReResponsiveContainer>
           </CardContent>
         </Card>
+
+        {/* New Graphs Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Card className="bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart className="w-6 h-6" />
+                Break Sessions ({breakAgg === 'day' ? 'Per Day (30d)' : breakAgg === 'week' ? 'Per Week (12w)' : 'Per Month (12m)'})
+              </CardTitle>
+              <CardDescription>
+                Number of Pomodoro break sessions per {breakAgg}.
+              </CardDescription>
+              <div className="mt-2">
+                <Select value={breakAgg} onValueChange={v => setBreakAgg(v as 'day' | 'week' | 'month')}>
+                  <SelectTrigger className="w-40">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="day">Per Day (30d)</SelectItem>
+                    <SelectItem value="week">Per Week (12w)</SelectItem>
+                    <SelectItem value="month">Per Month (12m)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <ReResponsiveContainer width="100%" height={220}>
+                <ReBarChart data={breakData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <ReXAxis dataKey="label" tickFormatter={l => breakAgg === 'day' ? l.slice(5) : l} interval={breakAgg === 'day' ? 4 : 0} />
+                  <ReYAxis allowDecimals={false} />
+                  <ReTooltip formatter={v => `${v} sessions`} />
+                  <ReBar dataKey="count" fill="#f43f5e" />
+                </ReBarChart>
+              </ReResponsiveContainer>
+            </CardContent>
+          </Card>
+        </div>
 
         {/* Progress Charts */}
         <div className="mb-8">

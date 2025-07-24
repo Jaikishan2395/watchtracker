@@ -69,6 +69,23 @@ export function PomodoroTimer() {
     country: 'India'
   });
 
+  // Load sessions from localStorage on mount
+  useEffect(() => {
+    const saved = localStorage.getItem('pomodoroSessions');
+    if (saved) {
+      try {
+        setSessions(JSON.parse(saved));
+      } catch (e) {
+        // Failed to parse sessions from localStorage
+        console.error('Failed to parse pomodoroSessions from localStorage', e);
+      }
+    }
+  }, []);
+  // Persist sessions to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem('pomodoroSessions', JSON.stringify(sessions));
+  }, [sessions]);
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
