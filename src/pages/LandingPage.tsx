@@ -302,7 +302,7 @@ const LandingPage = () => {
               },
               {
                 icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
                 </svg>,
                 title: "Learning Ranks",
                 description: "Earn ranks and badges based on your learning hours and achievements",
@@ -533,69 +533,102 @@ const LandingPage = () => {
       </section>
 
       {/* How It Works Section */}
-      <section id="how-it-works" className="py-16 bg-gray-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              How It Works
+      <section id="how-it-works" className="py-20 bg-gradient-to-br from-white to-blue-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 -right-1/4 w-full h-full bg-gradient-to-br from-blue-100/40 to-indigo-100/40 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-block px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-full mb-4">
+              Get Started
+            </span>
+            <h2 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              How <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">EduBridge</span> Works
             </h2>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-              Get started with Edubridge in just a few simple steps
+            <p className="mt-4 max-w-2xl text-xl text-gray-600 mx-auto">
+              Start your learning journey in just three simple steps
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-12">
-            <div className="relative">
-              {/* Progress line */}
-              <div className="hidden md:block absolute top-0 left-1/2 transform -translate-x-1/2 h-full w-0.5 bg-blue-200"></div>
-              
-              {/* Steps */}
-              <div className="relative space-y-10 md:space-y-0 md:grid md:grid-cols-4 md:gap-8">
-                {[
-                  {
-                    number: "01",
-                    title: "Sign Up / Log In",
-                    description: "Users create an account using their email or phone number. They can set up a profile with their interests, education level, and goals."
-                  },
-                  {
-                    number: "02",
-                    title: "Choose Your Path",
-                    description: "Select from our range of courses"
-                  },
-                  {
-                    number: "03",
-                    title: "Start Learning",
-                    description: "Begin your educational journey"
-                  },
-                  {
-                    number: "04",
-                    title: "Get Certified",
-                    description: "Earn certificates and showcase your skills"
-                  }
-                ].map((step, index) => (
-                  <div key={index} className="relative">
-                    <div className="flex flex-col items-center text-center">
-                      <div className="flex items-center justify-center h-16 w-16 rounded-full bg-blue-600 text-white text-xl font-bold mb-4 relative z-10">
-                        {step.number}
-                      </div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        {step.title}
-                      </h3>
-                      <p className="mt-2 text-base text-gray-500">
-                        {step.description}
-                      </p>
-                    </div>
+          <div className="grid md:grid-cols-3 gap-8">
+            {[
+              {
+                number: '01',
+                title: 'Create Account',
+                description: 'Sign up with your email or social accounts to get started with your personalized learning experience.',
+                icon: (
+                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                  </svg>
+                ),
+                color: 'from-blue-500 to-blue-600'
+              },
+              {
+                number: '02',
+                title: 'Sign In',
+                description: 'Access your personalized dashboard and track your learning progress across all your devices.',
+                icon: (
+                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                  </svg>
+                ),
+                color: 'from-purple-500 to-purple-600'
+              },
+              {
+                number: '03',
+                title: 'Create Playlist',
+                description: 'Add videos or entire YouTube playlists with a single link to build your custom learning path.',
+                icon: (
+                  <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                  </svg>
+                ),
+                color: 'from-indigo-500 to-indigo-600'
+              }
+            ].map((step, index) => (
+              <motion.div
+                key={index}
+                className="bg-white rounded-2xl p-8 shadow-lg hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <div className="absolute -top-6 -right-6 w-32 h-32 bg-gradient-to-br from-blue-100/50 to-indigo-100/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                <div className="relative z-10">
+                  <div className={`inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-6 bg-gradient-to-r ${step.color} shadow-lg`}>
+                    {step.icon}
                   </div>
-                ))}
-              </div>
-            </div>
+                  <span className="text-5xl font-bold text-gray-100 absolute top-4 right-6 -z-10">{step.number}</span>
+                  <h3 className="text-xl font-bold text-gray-900 mb-3">{step.title}</h3>
+                  <p className="text-gray-600">{step.description}</p>
+                </div>
+              </motion.div>
+            ))}
           </div>
 
-          <div className="mt-12 text-center">
-            <Button className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg">
-              Get Started Now <ChevronRight className="ml-2 h-5 w-5" />
+          <motion.div 
+            className="mt-16 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            <Button 
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all group"
+              size="lg"
+            >
+              Get Started for Free
+              <ChevronRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
 
