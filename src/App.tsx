@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider,SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Routes, Route, useLocation, useParams, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -35,6 +35,7 @@ import { PlaylistProvider } from '@/context/PlaylistContext';
 import { Button } from "@/components/ui/button";
 import Shorts from "./pages/Shorts";
 
+
 import { ArrowLeft } from "lucide-react";
 
 const queryClient = new QueryClient();
@@ -56,7 +57,7 @@ function SidebarDoubleClickCloser({ children }: { children: React.ReactNode }) {
 
 const AppContent = () => {
   const location = useLocation();
-  const isAuthPage = ['/', '/login', '/create-account'].includes(location.pathname);
+  const isAuthPage = ['/', '/login', '/create-account', '/landing'].includes(location.pathname);
 
   useEffect(() => {
     // Load questions when the app starts
@@ -67,6 +68,7 @@ const AppContent = () => {
 
   return (
     <SidebarProvider>
+      
       <div className="min-h-screen flex w-full">
         {!isAuthPage && <AppSidebar />}
         <main className={`flex-1 ${!isAuthPage ? '' : 'w-full'}`}>

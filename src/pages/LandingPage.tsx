@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { Button } from '../components/ui/button';
-import { GraduationCap, Users, BookOpen, Award, Check, ChevronRight, Star, Plus, Minus, Mail, Instagram, Linkedin } from 'lucide-react';
+import { GraduationCap, Users, BookOpen, Award, Check, ChevronRight, Star, Plus, Minus, Mail, Instagram, Linkedin, PanelLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { cn } from '../lib/utils';
+import { useSidebar } from '../components/ui/sidebar';
 
 interface FAQItemProps {
   question: string;
@@ -17,7 +18,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
       className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
       initial={false}
       animate={{ 
-        backgroundColor: isOpen ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.8)',
+        backgroundColor: isOpen ? 'rgba(0, 0, 0, 0.9)' : 'rgba(255, 255, 255, 0.8)',
         scale: isOpen ? 1.02 : 1
       }}
     >
@@ -58,6 +59,7 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
 
 const LandingPage = () => {
   const [scrolled, setScrolled] = useState(false);
+  const { toggleSidebar } = useSidebar();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -83,6 +85,14 @@ const LandingPage = () => {
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center">
+            {/* Hamburger menu for sidebar toggle (visible on all screen sizes) */}
+            <button
+              className="mr-4 p-2 rounded-lg hover:bg-blue-100 transition"
+              onClick={toggleSidebar}
+              aria-label="Open sidebar"
+            >
+              <PanelLeft className="h-6 w-6 text-blue-600" />
+            </button>
             <motion.div 
               className="flex items-center"
               whileHover={{ scale: 1.02 }}

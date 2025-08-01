@@ -475,123 +475,126 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-6 py-8">
-        {/* Active Day Card at the top, centered and compact */}
--        <div className="flex justify-end mb-6 fixed top-4 right-4 z-50">
--          <Card className="relative overflow-hidden bg-white/80 rounded-2xl animate-fade-in w-full max-w-xs shadow-lg">
-            <CardHeader className="pb-2 relative z-10">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-base md:text-lg font-bold flex items-center gap-2">
-                  <div className="p-2.5 rounded-xl bg-gray-100">
-                    <Calendar className="w-6 h-6 text-gray-700" />
-                  </div>
-                  {userStats.currentStreak >= 3 && (
-                    <span className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold animate-pulse">
-                      <Flame className="w-4 h-4 text-gray-700" /> {userStats.currentStreak}d streak
-                    </span>
-                  )}
-                </CardTitle>
-              </div>
-            </CardHeader>
-            <CardContent className="relative z-10 flex flex-col items-center gap-4">
-              <div className="relative flex items-center justify-center mb-2">
-                <svg width="90" height="90" viewBox="0 0 90 90" className="block">
-                  <circle cx="45" cy="45" r="40" fill="none" stroke="#e0e7ef" strokeWidth="8" />
-                  <circle
-                    cx="45" cy="45" r="40" fill="none"
-                    stroke="url(#active-gradient)"
-                    strokeWidth="8"
-                    strokeDasharray={2 * Math.PI * 40}
-                    strokeDashoffset={2 * Math.PI * 40 * (1 - Math.min(1, userStats.daysActive / 30))}
-                    strokeLinecap="round"
-                    style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,2,.6,1)' }}
-                  />
-                  <defs>
-                    <linearGradient id="active-gradient" x1="0" y1="0" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-                      <stop stopColor="#3b82f6" />
-                      <stop offset="1" stopColor="#6366f1" />
-                    </linearGradient>
-                  </defs>
-                </svg>
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-4xl font-extrabold text-black">
-                    {userStats.daysActive}
-                  </span>
-                  <span className="text-xs text-gray-400 font-medium">Days</span>
-                </div>
-              </div>
-              <div className="w-full text-center mt-2">
-                <span className="text-sm font-semibold text-black">
-                  {userStats.currentStreak >= 7
-                    ? '🔥 Amazing! You have a week-long streak!'
-                    : userStats.currentStreak >= 3
-                      ? 'Keep your streak alive!'
-                      : userStats.daysActive >= 3
-                        ? 'Great start! Stay consistent.'
-                        : 'Start your learning streak today!'}
-                </span>
-              </div>
-              <div className="w-full flex flex-col items-center mt-2 mb-2">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 border border-gray-200">
-                    <Flame className="w-7 h-7 blink-red" />
-                  </span>
-                  <span className="text-3xl font-extrabold text-black ml-2">{userStats.currentStreak}</span>
-                  <span className="text-base text-gray-500 font-medium ml-1">day streak</span>
-                  <span className="ml-2">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <span className="cursor-pointer text-gray-400">
-                          <Info className="w-4 h-4" />
-                        </span>
-                      </TooltipTrigger>
-                      <TooltipContent>
-                        <span>Current streak: consecutive days you have been active. Keep it going for rewards!</span>
-                      </TooltipContent>
-                    </Tooltip>
-                  </span>
-                </div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-xs text-gray-400">Longest streak:</span>
-                  <span className="text-base font-semibold text-black">{userStats.longestStreak} days</span>
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gray-100 w-full">
-                {[...Array(7)].map((_, index) => {
-                  const date = new Date();
-                  date.setDate(date.getDate() - (6 - index));
-                  const dateStr = date.toISOString().split('T')[0];
-                  const isActive = userStats.lastActivityDate === dateStr;
-                  const isToday = dateStr === new Date().toISOString().split('T')[0];
-                  return (
-                    <div 
-                      key={index}
-                      className="flex-1 flex flex-col items-center gap-1 group"
-                    >
-                      <div 
-                        className={`w-full h-8 rounded-lg transition-all duration-300 flex items-center justify-center relative
-                          ${isActive 
-                            ? 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/40'
-                            : 'bg-gray-200/50'
-                          } ${isToday ? 'ring-2 ring-blue-500/40' : ''}`}
-                      >
-                        {isActive && <Flame className="w-4 h-4 text-orange-400 animate-pulse absolute left-1 top-1" />}
-                      </div>
-                      <span className={`text-[10px] text-gray-400 ${isToday ? 'font-medium text-black' : ''}`}>
-                        {date.toLocaleDateString('en-US', { weekday: 'short' })}
-                      </span>
+        {/* Responsive row: Heatmap (left, wider) and Active Day Card (right) at the very top */}
+        <div className="flex flex-col md:flex-row gap-6 mb-8 w-full">
+          {/* Heatmap - left, wider on desktop */}
+          <div className="md:w-2/3 w-full flex justify-center items-center">
+            <div className="w-full max-w-2xl">
+              <ActivityHeatmap playlists={playlists} />
+            </div>
+          </div>
+          {/* Active Day Card - right */}
+          <div className="md:w-1/3 w-full flex justify-center items-center">
+            <Card className="relative overflow-hidden bg-white/80 rounded-2xl animate-fade-in w-full max-w-xs shadow-lg">
+              <CardHeader className="pb-2 relative z-10">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-base md:text-lg font-bold flex items-center gap-2">
+                    <div className="p-2.5 rounded-xl bg-gray-100">
+                      <Calendar className="w-6 h-6 text-gray-700" />
                     </div>
-                  );
-                })}
-              </div>
-            </CardContent>
-          </Card>
+                    {userStats.currentStreak >= 3 && (
+                      <span className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold animate-pulse">
+                        <Flame className="w-4 h-4 text-gray-700" /> {userStats.currentStreak}d streak
+                      </span>
+                    )}
+                  </CardTitle>
+                </div>
+              </CardHeader>
+              <CardContent className="relative z-10 flex flex-col items-center gap-4">
+                <div className="relative flex items-center justify-center mb-2">
+                  <svg width="90" height="90" viewBox="0 0 90 90" className="block">
+                    <circle cx="45" cy="45" r="40" fill="none" stroke="#e0e7ef" strokeWidth="8" />
+                    <circle
+                      cx="45" cy="45" r="40" fill="none"
+                      stroke="url(#active-gradient)"
+                      strokeWidth="8"
+                      strokeDasharray={2 * Math.PI * 40}
+                      strokeDashoffset={2 * Math.PI * 40 * (1 - Math.min(1, userStats.daysActive / 30))}
+                      strokeLinecap="round"
+                      style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,2,.6,1)' }}
+                    />
+                    <defs>
+                      <linearGradient id="active-gradient" x1="0" y1="0" x2="90" y2="90" gradientUnits="userSpaceOnUse">
+                        <stop stopColor="#3b82f6" />
+                        <stop offset="1" stopColor="#6366f1" />
+                      </linearGradient>
+                    </defs>
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-4xl font-extrabold text-black">
+                      {userStats.daysActive}
+                    </span>
+                    <span className="text-xs text-gray-400 font-medium">Days</span>
+                  </div>
+                </div>
+                <div className="w-full text-center mt-2">
+                  <span className="text-sm font-semibold text-black">
+                    {userStats.currentStreak >= 7
+                      ? '🔥 Amazing! You have a week-long streak!'
+                      : userStats.currentStreak >= 3
+                        ? 'Keep your streak alive!'
+                        : userStats.daysActive >= 3
+                          ? 'Great start! Stay consistent.'
+                          : 'Start your learning streak today!'}
+                  </span>
+                </div>
+                <div className="w-full flex flex-col items-center mt-2 mb-2">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 border border-gray-200">
+                      <Flame className="w-7 h-7 blink-red" />
+                    </span>
+                    <span className="text-3xl font-extrabold text-black ml-2">{userStats.currentStreak}</span>
+                    <span className="text-base text-gray-500 font-medium ml-1">day streak</span>
+                    <span className="ml-2">
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="cursor-pointer text-gray-400">
+                            <Info className="w-4 h-4" />
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <span>Current streak: consecutive days you have been active. Keep it going for rewards!</span>
+                        </TooltipContent>
+                      </Tooltip>
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-3 mb-2">
+                    <span className="text-xs text-gray-400">Longest streak:</span>
+                    <span className="text-base font-semibold text-black">{userStats.longestStreak} days</span>
+                  </div>
+                </div>
+                <div className="flex items-center gap-1.5 p-2 rounded-lg bg-gray-100 w-full">
+                  {[...Array(7)].map((_, index) => {
+                    const date = new Date();
+                    date.setDate(date.getDate() - (6 - index));
+                    const dateStr = date.toISOString().split('T')[0];
+                    const isActive = userStats.lastActivityDate === dateStr;
+                    const isToday = dateStr === new Date().toISOString().split('T')[0];
+                    return (
+                      <div 
+                        key={index}
+                        className="flex-1 flex flex-col items-center gap-1 group"
+                      >
+                        <div 
+                          className={`w-full h-8 rounded-lg transition-all duration-300 flex items-center justify-center relative
+                            ${isActive 
+                              ? 'bg-gradient-to-b from-blue-500/30 to-indigo-500/30 border border-blue-500/40'
+                              : 'bg-gray-200/50'
+                            } ${isToday ? 'ring-2 ring-blue-500/40' : ''}`}
+                        >
+                          {isActive && <Flame className="w-4 h-4 text-orange-400 animate-pulse absolute left-1 top-1" />}
+                        </div>
+                        <span className={`text-[10px] text-gray-400 ${isToday ? 'font-medium text-black' : ''}`}>
+                          {date.toLocaleDateString('en-US', { weekday: 'short' })}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
-        {/* Activity Heatmap below the card */}
-        <div className="mb-8">
-          <ActivityHeatmap playlists={playlists} />
-        </div>
-        
-        
         {/* Stats Overview */}
         <div className="mb-6">
           <h2 className="text-2xl font-semibold text-gray-800 mb-4">Video Content Overview</h2>
