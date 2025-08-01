@@ -68,7 +68,7 @@ const AppContent = () => {
 
   return (
     <SidebarProvider>
-      <SidebarToggleButton />
+      
       <div className="min-h-screen flex w-full">
         {!isAuthPage && <AppSidebar />}
         <main className={`flex-1 ${!isAuthPage ? '' : 'w-full'}`}>
