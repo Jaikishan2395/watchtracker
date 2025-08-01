@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../components/ui/button';
 import { GraduationCap, Users, BookOpen, Award, Check, ChevronRight, Star, Plus, Minus, Mail, Instagram, Linkedin } from 'lucide-react';
-import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { cn } from '../lib/utils';
 
 interface FAQItemProps {
   question: string;
@@ -12,190 +13,472 @@ const FAQItem: React.FC<FAQItemProps> = ({ question, answer }) => {
   const [isOpen, setIsOpen] = useState(false);
 
   return (
-    <div className="border border-gray-200 rounded-lg overflow-hidden">
+    <motion.div 
+      className="bg-white/80 backdrop-blur-sm rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden border border-gray-100"
+      initial={false}
+      animate={{ 
+        backgroundColor: isOpen ? 'rgba(255, 255, 255, 0.9)' : 'rgba(255, 255, 255, 0.8)',
+        scale: isOpen ? 1.02 : 1
+      }}
+    >
       <button
-        className="w-full px-6 py-4 text-left flex justify-between items-center hover:bg-gray-50 focus:outline-none"
+        className="w-full px-6 py-5 text-left flex justify-between items-center focus:outline-none group"
         onClick={() => setIsOpen(!isOpen)}
       >
-        <span className="text-lg font-medium text-gray-900">{question}</span>
-        {isOpen ? (
-          <Minus className="h-5 w-5 text-gray-400" />
-        ) : (
-          <Plus className="h-5 w-5 text-gray-400" />
-        )}
+        <span className="text-lg font-semibold text-gray-800 group-hover:text-blue-600 transition-colors">
+          {question}
+        </span>
+        <motion.span
+          animate={{ rotate: isOpen ? 180 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="text-blue-500"
+        >
+          {isOpen ? (
+            <Minus className="h-5 w-5" />
+          ) : (
+            <Plus className="h-5 w-5" />
+          )}
+        </motion.span>
       </button>
-      {isOpen && (
-        <div className="px-6 pb-4 pt-0 text-gray-600">
-          <p>{answer}</p>
-        </div>
-      )}
-    </div>
+      <motion.div
+        initial={false}
+        animate={isOpen ? 'open' : 'collapsed'}
+        variants={{
+          open: { opacity: 1, height: 'auto', paddingTop: 0, paddingBottom: '1.5rem' },
+          collapsed: { opacity: 0, height: 0, paddingTop: 0, paddingBottom: 0 }
+        }}
+        transition={{ duration: 0.3, ease: 'easeInOut' }}
+        className="px-6 overflow-hidden"
+      >
+        <p className="text-gray-600">{answer}</p>
+      </motion.div>
+    </motion.div>
   );
 };
 
 const LandingPage = () => {
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 10);
+    };
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
       {/* Navigation */}
-      <nav className="bg-white shadow-sm">
+      <motion.nav 
+        className={cn(
+          "fixed w-full z-50 transition-all duration-300",
+          scrolled 
+            ? "bg-white/90 backdrop-blur-md shadow-md py-2" 
+            : "bg-transparent py-4"
+        )}
+        initial={{ y: -100 }}
+        animate={{ y: 0 }}
+        transition={{ duration: 0.5, ease: "easeOut" }}
+      >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16">
-            <div className="flex items-center">
-              <GraduationCap className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">EduBridge</span>
-            </div>
+          <div className="flex justify-between items-center">
+            <motion.div 
+              className="flex items-center"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+            >
+              <div className="p-2 rounded-lg bg-gradient-to-br from-blue-600 to-indigo-600 shadow-lg">
+                <GraduationCap className="h-6 w-6 text-white" />
+              </div>
+              <span className="ml-3 text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                EduBridge
+              </span>
+            </motion.div>
             <div className="hidden md:flex items-center space-x-8">
-              <a href="#features" className="text-gray-700 hover:text-blue-600">Features</a>
-              <a href="#how-it-works" className="text-gray-700 hover:text-blue-600">How It Works</a>
-              <a href="#testimonials" className="text-gray-700 hover:text-blue-600">Testimonials</a>
-              <a href="#faq" className="text-gray-700 hover:text-blue-600">FAQ</a>
-              <Button className="bg-blue-600 hover:bg-blue-700">Get Started</Button>
+              {[
+                { name: 'Features', href: '#features' },
+                { name: 'How It Works', href: '#how-it-works' },
+                { name: 'Testimonials', href: '#testimonials' },
+                { name: 'FAQ', href: '#faq' },
+              ].map((item) => (
+                <motion.a
+                  key={item.name}
+                  href={item.href}
+                  className="text-gray-700 hover:text-blue-600 font-medium transition-colors relative group"
+                  whileHover={{ y: -2 }}
+                >
+                  {item.name}
+                  <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-blue-600 transition-all group-hover:w-full"></span>
+                </motion.a>
+              ))}
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-6 py-2 rounded-xl shadow-lg hover:shadow-xl transition-all">
+                  Get Started
+                </Button>
+              </motion.div>
             </div>
           </div>
         </div>
-      </nav>
+      </motion.nav>
 
       {/* Hero Section */}
-      <section className="py-12 px-4">
-        <div className="max-w-7xl mx-auto">
-          <div className="text-center">
-            <h1 className="text-4xl font-bold text-gray-900 sm:text-5xl">
-              Transform Your Learning Journey
-            </h1>
-            <p className="mt-4 text-xl text-gray-600">
-              Join thousands of learners worldwide and gain in-demand skills.
-            </p>
-            <div className="mt-8">
-              <Button className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg">
-                Start Learning Free
-              </Button>
-            </div>
-          </div>
+      <section className="pt-32 pb-20 px-4 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[120%] h-[120%] bg-gradient-to-r from-blue-100/40 to-indigo-100/40 rounded-full blur-3xl"></div>
+          <div className="absolute top-1/4 -right-1/4 w-96 h-96 bg-blue-200/30 rounded-full blur-3xl"></div>
+          <div className="absolute bottom-1/4 -left-1/4 w-96 h-96 bg-indigo-200/30 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto relative z-10">
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <motion.div 
+              className="inline-block px-4 py-2 mb-6 rounded-full bg-blue-100 text-blue-700 text-sm font-medium"
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              transition={{ delay: 0.2, duration: 0.5 }}
+            >
+              🚀 Join 50,000+ successful learners
+            </motion.div>
+            
+            <motion.h1 
+              className="text-4xl font-bold text-gray-900 sm:text-6xl md:text-7xl leading-tight max-w-4xl mx-auto"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.6 }}
+            >
+              <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
+                Transform
+              </span> Your Learning Journey
+            </motion.h1>
+            
+            <motion.p 
+              className="mt-6 text-xl text-gray-600 max-w-2xl mx-auto"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4, duration: 0.6 }}
+            >
+              Master in-demand skills with our interactive courses and join a community of passionate learners worldwide.
+            </motion.p>
+            
+            <motion.div 
+              className="mt-10 flex flex-col sm:flex-row justify-center gap-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5, duration: 0.6 }}
+            >
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-6 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all">
+                  Start Learning Free
+                  <ChevronRight className="ml-2 h-5 w-5" />
+                </Button>
+              </motion.div>
+              <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
+                <Button variant="outline" className="px-8 py-6 text-lg font-medium rounded-xl border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-700 transition-all">
+                  Explore Courses
+                </Button>
+              </motion.div>
+            </motion.div>
+            
+            <motion.div 
+              className="mt-12 flex items-center justify-center space-x-4"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.6 }}
+            >
+              <div className="flex -space-x-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div 
+                    key={i}
+                    className="h-10 w-10 rounded-full border-2 border-white bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md"
+                    style={{ zIndex: 5 - i }}
+                  />
+                ))}
+              </div>
+              <div className="text-left">
+                <div className="flex items-center">
+                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                  <Star className="h-5 w-5 text-yellow-400 fill-yellow-400" />
+                </div>
+                <p className="text-sm text-gray-600">Rated 4.9/5 by 10,000+ learners</p>
+              </div>
+            </motion.div>
+          </motion.div>
         </div>
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              What Edubridge Offers
+      <section id="features" className="py-20 bg-white relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 -right-1/4 w-full h-full bg-gradient-to-br from-blue-50 to-indigo-50 rounded-full opacity-70 blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-block px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-full mb-4">
+              Why Choose Us
+            </span>
+            <h2 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              What Edubridge <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Offers</span>
             </h2>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-              Comprehensive learning experience designed to help you succeed
+            <p className="mt-4 max-w-2xl text-xl text-gray-600 mx-auto">
+              Comprehensive learning experience designed to help you succeed in your career
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-12 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                icon: <GraduationCap className="h-12 w-12 text-blue-600" />,
+                icon: <GraduationCap className="h-6 w-6 text-white" />,
                 title: "Expert Instructors",
-                description: "Learn from industry professionals with real-world experience"
+                description: "Learn from industry professionals with real-world experience",
+                color: "from-blue-500 to-blue-600"
               },
               {
-                icon: <Users className="h-12 w-12 text-green-600" />,
+                icon: <Users className="h-6 w-6 text-white" />,
                 title: "Community Learning",
-                description: "Join a vibrant community of learners and mentors"
+                description: "Join a vibrant community of learners and mentors",
+                color: "from-indigo-500 to-indigo-600"
               },
               {
-                icon: <BookOpen className="h-12 w-12 text-purple-600" />,
+                icon: <BookOpen className="h-6 w-6 text-white" />,
                 title: "Comprehensive Courses",
-                description: "Access a wide range of courses across various domains"
+                description: "Access a wide range of courses across various domains",
+                color: "from-purple-500 to-purple-600"
               },
               {
-                icon: <Award className="h-12 w-12 text-orange-500" />,
+                icon: <Award className="h-6 w-6 text-white" />,
                 title: "Certification",
-                description: "Earn recognized certificates upon course completion"
+                description: "Earn recognized certificates upon course completion",
+                color: "from-pink-500 to-pink-600"
               }
             ].map((feature, index) => (
-              <div key={index} className="pt-6">
-                <div className="flow-root bg-gray-50 rounded-lg px-6 pb-8 h-full">
-                  <div className="-mt-6">
-                    <div className="flex items-center justify-center h-12 w-12 rounded-md bg-white text-white shadow-md mx-auto">
-                      {feature.icon}
-                    </div>
-                    <h3 className="mt-8 text-lg font-medium text-gray-900 text-center">
-                      {feature.title}
-                    </h3>
-                    <p className="mt-5 text-base text-gray-500 text-center">
-                      {feature.description}
-                    </p>
+              <motion.div 
+                key={index}
+                className="group relative"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.4, delay: index * 0.1 }}
+              >
+                <div className="absolute -inset-0.5 bg-gradient-to-r rounded-xl opacity-0 group-hover:opacity-100 blur transition duration-300 group-hover:duration-200" />
+                <div className="relative h-full bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 group-hover:border-transparent">
+                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-r ${feature.color} shadow-lg mb-6`}>
+                    {feature.icon}
+                  </div>
+                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
+                    {feature.title}
+                  </h3>
+                  <p className="text-gray-600">
+                    {feature.description}
+                  </p>
+                  <div className="mt-6">
+                    <a 
+                      href="#" 
+                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 group-hover:translate-x-1 transition-transform"
+                    >
+                      Learn more
+                      <ChevronRight className="ml-1 h-4 w-4" />
+                    </a>
                   </div>
                 </div>
-              </div>
+              </motion.div>
             ))}
           </div>
+          
+          <motion.div 
+            className="mt-16 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            <Button 
+              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all"
+              size="lg"
+            >
+              Explore All Features
+              <ChevronRight className="ml-2 h-5 w-5" />
+            </Button>
+          </motion.div>
         </div>
       </section>
 
       {/* Comparison Section */}
-      <section id="comparison" className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              Why Choose Edubridge?
+      <section id="comparison" className="py-20 bg-gradient-to-br from-slate-50 to-blue-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 -left-1/4 w-full h-full bg-gradient-to-br from-blue-100/40 to-indigo-100/40 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-block px-4 py-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-full mb-4">
+              Why We're Different
+            </span>
+            <h2 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              The <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Edubridge</span> Advantage
             </h2>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-              See how we compare to traditional learning platforms
+            <p className="mt-4 max-w-2xl text-xl text-gray-600 mx-auto">
+              See how we stack up against traditional learning platforms
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-12">
-            <div className="overflow-hidden shadow ring-1 ring-black ring-opacity-5 md:rounded-lg">
-              <table className="min-w-full divide-y divide-gray-300">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th scope="col" className="py-3.5 pl-4 pr-3 text-left text-sm font-semibold text-gray-900 sm:pl-6">
-                      Features
-                    </th>
-                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-900">
-                      Edubridge
-                    </th>
-                    <th scope="col" className="px-3 py-3.5 text-center text-sm font-semibold text-gray-500">
-                      Other Platforms
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {[
-                    { feature: "Interactive Learning", edubridge: true, others: false },
-                    { feature: "Personalized Learning Paths", edubridge: true, others: false },
-                    { feature: "Live Projects & Real-world Applications", edubridge: true, others: false },
-                    { feature: "1:1 Mentor Support", edubridge: true, others: false },
-                    { feature: "Job Placement Assistance", edubridge: true, others: false },
-                    { feature: "Community & Peer Learning", edubridge: true, others: false },
-                    { feature: "Lifetime Access to Course Materials", edubridge: true, others: false },
-                    { feature: "Industry-Recognized Certifications", edubridge: true, others: true },
-                    { feature: "Self-paced Learning", edubridge: true, others: true },
-                    { feature: "Video Lectures", edubridge: true, others: true },
-                  ].map((item, index) => (
-                    <tr key={index} className={index % 2 === 0 ? 'bg-gray-50' : 'bg-white'}>
-                      <td className="whitespace-nowrap py-4 pl-4 pr-3 text-sm font-medium text-gray-900 sm:pl-6">
-                        {item.feature}
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-center">
-                        <Check className="h-5 w-5 text-green-500 mx-auto" />
-                      </td>
-                      <td className="whitespace-nowrap px-3 py-4 text-center">
-                        {item.others ? (
-                          <Check className="h-5 w-5 text-gray-300 mx-auto" />
-                        ) : (
-                          <span className="inline-flex items-center rounded-full bg-red-100 px-2.5 py-0.5 text-xs font-medium text-red-800">Limited</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+          <motion.div 
+            className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl overflow-hidden border border-gray-100"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, delay: 0.2 }}
+          >
+            <div className="grid grid-cols-12 bg-gradient-to-r from-blue-600 to-indigo-600 text-white">
+              <div className="col-span-12 md:col-span-7 p-6 md:p-8">
+                <h3 className="text-2xl font-bold">Features</h3>
+              </div>
+              <div className="col-span-6 md:col-span-3 p-6 md:p-8 text-center border-l border-white/10">
+                <h3 className="text-2xl font-bold">Edubridge</h3>
+                <p className="text-blue-100 mt-1">The Complete Package</p>
+              </div>
+              <div className="col-span-6 md:col-span-2 p-6 md:p-8 text-center border-l border-white/10">
+                <h3 className="text-2xl font-bold text-gray-200">Others</h3>
+                <p className="text-blue-100/80 mt-1">Limited Features</p>
+              </div>
             </div>
-
-            <div className="mt-8 text-center">
-              <Button className="bg-blue-600 hover:bg-blue-700 px-8 py-3 text-lg">
-                Start Your Journey Today
-              </Button>
+            
+            <div className="divide-y divide-gray-100">
+              {[
+                { 
+                  feature: "Interactive Learning", 
+                  description: "Engaging, hands-on learning experiences",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "Personalized Learning Paths", 
+                  description: "Customized to your goals and pace",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "Real-world Projects", 
+                  description: "Build portfolio-worthy projects",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "1:1 Mentor Support", 
+                  description: "Guidance from industry experts",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "Job Placement Assistance", 
+                  description: "Career support and opportunities",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "Community Learning", 
+                  description: "Connect with peers and mentors",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "Lifetime Access", 
+                  description: "To all course materials and updates",
+                  edubridge: true, 
+                  others: false 
+                },
+                { 
+                  feature: "Industry Certifications", 
+                  description: "Recognized by top companies",
+                  edubridge: true, 
+                  others: true 
+                },
+                { 
+                  feature: "Self-paced Learning", 
+                  description: "Learn at your own convenience",
+                  edubridge: true, 
+                  others: true 
+                },
+              ].map((item, index) => (
+                <motion.div 
+                  key={index}
+                  className="grid grid-cols-12 hover:bg-blue-50/50 transition-colors duration-200"
+                  initial={{ opacity: 0, x: -10 }}
+                  whileInView={{ opacity: 1, x: 0 }}
+                  viewport={{ once: true, margin: "-50px" }}
+                  transition={{ duration: 0.4, delay: index * 0.05 }}
+                >
+                  <div className="col-span-12 md:col-span-7 p-5 md:p-6">
+                    <h4 className="font-semibold text-gray-900">{item.feature}</h4>
+                    <p className="text-sm text-gray-500 mt-1">{item.description}</p>
+                  </div>
+                  <div className="col-span-6 md:col-span-3 p-5 md:p-6 flex items-center justify-center border-t md:border-t-0 border-l border-gray-100">
+                    <div className="flex items-center justify-center w-8 h-8 rounded-full bg-green-100 text-green-600">
+                      <Check className="h-5 w-5" />
+                    </div>
+                  </div>
+                  <div className="col-span-6 md:col-span-2 p-5 md:p-6 flex items-center justify-center border-t md:border-t-0 border-l border-gray-100">
+                    {item.others ? (
+                      <div className="flex items-center justify-center w-8 h-8 rounded-full bg-gray-100 text-gray-400">
+                        <Check className="h-5 w-5" />
+                      </div>
+                    ) : (
+                      <span className="px-3 py-1 rounded-full text-xs font-medium bg-red-50 text-red-700">Limited</span>
+                    )}
+                  </div>
+                </motion.div>
+              ))}
             </div>
-          </div>
+            
+            <div className="p-8 bg-gray-50/50 border-t border-gray-100">
+              <div className="max-w-4xl mx-auto text-center">
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">Ready to transform your career?</h3>
+                <p className="text-gray-600 mb-6">Join thousands of learners who have accelerated their careers with Edubridge</p>
+                <motion.div 
+                  className="flex flex-col sm:flex-row justify-center gap-4"
+                  initial={{ opacity: 0, y: 10 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true }}
+                  transition={{ delay: 0.3 }}
+                >
+                  <Button 
+                    className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all"
+                    size="lg"
+                  >
+                    Start Learning Free
+                  </Button>
+                  <Button 
+                    variant="outline" 
+                    className="px-8 py-3 text-lg font-medium rounded-xl border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-700 transition-all"
+                    size="lg"
+                  >
+                    Talk to an Advisor
+                  </Button>
+                </motion.div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </section>
 
