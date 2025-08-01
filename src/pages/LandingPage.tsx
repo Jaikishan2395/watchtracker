@@ -243,28 +243,68 @@ const LandingPage = () => {
           <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
             {[
               {
-                icon: <GraduationCap className="h-6 w-6 text-white" />,
-                title: "Expert Instructors",
-                description: "Learn from industry professionals with real-world experience",
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>,
+                title: "Smart Playlists",
+                description: "Create custom course playlists by adding videos or entire YouTube playlists with just a link",
                 color: "from-blue-500 to-blue-600"
               },
               {
-                icon: <Users className="h-6 w-6 text-white" />,
-                title: "Community Learning",
-                description: "Join a vibrant community of learners and mentors",
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>,
+                title: "Learning Analytics",
+                description: "Track your learning sessions, progress, and break times with detailed analytics",
                 color: "from-indigo-500 to-indigo-600"
               },
               {
-                icon: <BookOpen className="h-6 w-6 text-white" />,
-                title: "Comprehensive Courses",
-                description: "Access a wide range of courses across various domains",
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>,
+                title: "Pomodoro Timer",
+                description: "Built-in Pomodoro timer to enhance focus and productivity during study sessions",
                 color: "from-purple-500 to-purple-600"
               },
               {
-                icon: <Award className="h-6 w-6 text-white" />,
-                title: "Certification",
-                description: "Earn recognized certificates upon course completion",
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>,
+                title: "AI Chat Assistant",
+                description: "Get instant help from our AI chatbot for any learning-related questions",
                 color: "from-pink-500 to-pink-600"
+              },
+              {
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                </svg>,
+                title: "Group Study Rooms",
+                description: "Create or join study rooms to learn and collaborate with friends in real-time",
+                color: "from-green-500 to-green-600"
+              },
+              {
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>,
+                title: "Smart Notes",
+                description: "Take and organize notes with markdown support and video timestamps",
+                color: "from-yellow-500 to-yellow-600"
+              },
+              {
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                </svg>,
+                title: "Learning Ranks",
+                description: "Earn ranks and badges based on your learning hours and achievements",
+                color: "from-red-500 to-red-600"
+              },
+              {
+                icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>,
+                title: "Gamified Learning",
+                description: "Earn coins and rewards for completing lessons and achieving milestones",
+                color: "from-amber-500 to-amber-600"
               }
             ].map((feature, index) => (
               <motion.div 
@@ -367,52 +407,52 @@ const LandingPage = () => {
             <div className="divide-y divide-gray-100">
               {[
                 { 
-                  feature: "Interactive Learning", 
-                  description: "Engaging, hands-on learning experiences",
+                  feature: "Smart Playlists", 
+                  description: "Create custom course playlists from any video or YouTube playlist",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "Personalized Learning Paths", 
-                  description: "Customized to your goals and pace",
+                  feature: "Learning Analytics", 
+                  description: "Track sessions, progress, and break times with detailed insights",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "Real-world Projects", 
-                  description: "Build portfolio-worthy projects",
+                  feature: "Pomodoro Timer", 
+                  description: "Built-in timer for focused study sessions",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "1:1 Mentor Support", 
-                  description: "Guidance from industry experts",
+                  feature: "AI Chat Assistant", 
+                  description: "24/7 learning support and guidance",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "Job Placement Assistance", 
-                  description: "Career support and opportunities",
+                  feature: "Group Study Rooms", 
+                  description: "Collaborate with friends in real-time",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "Community Learning", 
-                  description: "Connect with peers and mentors",
+                  feature: "Smart Notes", 
+                  description: "Markdown support with video timestamps",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "Lifetime Access", 
-                  description: "To all course materials and updates",
+                  feature: "Learning Ranks", 
+                  description: "Earn ranks based on learning hours",
                   edubridge: true, 
                   others: false 
                 },
                 { 
-                  feature: "Industry Certifications", 
-                  description: "Recognized by top companies",
+                  feature: "Gamified Learning", 
+                  description: "Earn coins and rewards for achievements",
                   edubridge: true, 
-                  others: true 
+                  others: false 
                 },
                 { 
                   feature: "Self-paced Learning", 
@@ -702,7 +742,7 @@ const LandingPage = () => {
                 </a>
               </div>
               <p className="mt-4 text-sm text-gray-400">
-                © {new Date().getFullYear()} EduBridge. All rights reserved.
+                &copy; {new Date().getFullYear()} EduBridge. All rights reserved.
               </p>
             </div>
           </div>
