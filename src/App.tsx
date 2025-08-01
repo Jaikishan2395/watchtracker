@@ -34,6 +34,7 @@ import { loadQuestionsFromFile } from './utils/loadQuestions';
 import { PlaylistProvider } from '@/context/PlaylistContext';
 import { Button } from "@/components/ui/button";
 import Shorts from "./pages/Shorts";
+import { SidebarToggleButton } from "@/components/ui/SidebarToggleButton";
 
 import { ArrowLeft } from "lucide-react";
 
@@ -56,7 +57,7 @@ function SidebarDoubleClickCloser({ children }: { children: React.ReactNode }) {
 
 const AppContent = () => {
   const location = useLocation();
-  const isAuthPage = ['/', '/login', '/create-account'].includes(location.pathname);
+  const isAuthPage = ['/', '/login', '/create-account', '/landing'].includes(location.pathname);
 
   useEffect(() => {
     // Load questions when the app starts
@@ -67,6 +68,7 @@ const AppContent = () => {
 
   return (
     <SidebarProvider>
+      <SidebarToggleButton />
       <div className="min-h-screen flex w-full">
         {!isAuthPage && <AppSidebar />}
         <main className={`flex-1 ${!isAuthPage ? '' : 'w-full'}`}>
