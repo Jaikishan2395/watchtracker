@@ -1,7 +1,7 @@
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
+import { SidebarProvider,SidebarTrigger, useSidebar } from "@/components/ui/sidebar";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter as Router, Routes, Route, useLocation, useParams, useNavigate } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
@@ -34,7 +34,7 @@ import { loadQuestionsFromFile } from './utils/loadQuestions';
 import { PlaylistProvider } from '@/context/PlaylistContext';
 import { Button } from "@/components/ui/button";
 import Shorts from "./pages/Shorts";
-import { SidebarToggleButton } from "@/components/ui/SidebarToggleButton";
+
 
 import { ArrowLeft } from "lucide-react";
 
