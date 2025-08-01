@@ -56,6 +56,15 @@ const menuItems = [
     customIcon: bridgelabLogo,
   },
   {
+    title: 'Landing Page',
+    url: '/landing',
+    icon: Home,
+    gradient: 'from-purple-600 to-purple-800',
+    bgGradient: 'from-purple-50/80 to-white/80',
+    hoverGradient: 'from-purple-100/90 to-purple-50/90',
+    glow: 'shadow-purple-500/20',
+  },
+  {
     title: 'To-Do',
     url: '/todo',
     icon: CheckSquare,

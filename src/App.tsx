@@ -24,6 +24,7 @@ import Classroom from "./pages/Classroom";
 import Clubs from "./pages/Clubs";
 import BridgeLab from "./pages/BridgeLab";
 import Launch from "./pages/Launch";
+import LandingPage from "./pages/LandingPage";
 import AcceleratorLibrary from "./pages/AcceleratorLibrary";
 import ViewCreate from './pages/viewCreate';
 import FindCoFounder from './pages/FindCoFounder';
@@ -86,7 +87,7 @@ const AppContent = () => {
               <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
               <Route path="/view-create" element={<ViewCreate />} />
               <Route path="/shorts" element={<Shorts />} />
-
+              <Route path="/landing" element={<LandingPage />} />
               <Route path="/find-cofounder" element={<FindCoFounder />} />
               <Route 
                 path="/playlist/:playlistId" 

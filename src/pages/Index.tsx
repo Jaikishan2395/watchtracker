@@ -476,8 +476,8 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
       <div className="container mx-auto px-6 py-8">
         {/* Active Day Card at the top, centered and compact */}
-        <div className="flex justify-center mb-6">
-          <Card className="relative overflow-hidden bg-white/80 rounded-2xl animate-fade-in w-full max-w-xs">
+-        <div className="flex justify-end mb-6 fixed top-4 right-4 z-50">
+-          <Card className="relative overflow-hidden bg-white/80 rounded-2xl animate-fade-in w-full max-w-xs shadow-lg">
             <CardHeader className="pb-2 relative z-10">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-base md:text-lg font-bold flex items-center gap-2">
