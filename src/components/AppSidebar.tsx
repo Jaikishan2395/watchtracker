@@ -84,48 +84,48 @@ export function AppSidebar() {
 
   return (
     <>
-      <Sidebar className={`modern-sidebar bg-white/95 border-r border-gray-100 shadow-xl backdrop-blur-lg transition-all duration-300 ease-in-out ${isOpen ? 'w-64' : 'w-20'}`} defaultOpen={true}>
-        <SidebarHeader className="modern-sidebar-header flex flex-col items-center justify-center w-full pt-5 pb-3 relative group/header">
+      <Sidebar className={`modern-sidebar bg-black/95 border-r border-gray-900 shadow-2xl backdrop-blur-lg transition-all duration-300 ease-in-out ${isOpen ? 'w-72' : 'w-20'}`}>
+        <SidebarHeader className="modern-sidebar-header flex flex-col items-center justify-center w-full pt-6 pb-4 relative group/header">
           <div className="flex flex-col items-center w-full relative">
-            {/* Logo with animated border */}
+            {/* Logo with subtle glow */}
             <div className={`relative group/logo transition-all duration-300 ${isOpen ? 'scale-100' : 'scale-90'}`}>
-              <div className={`absolute inset-0 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 opacity-0 group-hover/logo:opacity-100 transition-opacity duration-300 blur-md -z-10 ${isOpen ? 'w-16 h-16' : 'w-14 h-14'}`}></div>
-              <div className={`relative rounded-2xl p-2 bg-white/90 backdrop-blur-sm border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 ${isOpen ? 'w-16 h-16' : 'w-14 h-14'}`}>
+              <div className={`absolute inset-0 rounded-xl bg-white/5 group-hover/logo:bg-white/10 transition-all duration-300 ${isOpen ? 'w-14 h-14' : 'w-12 h-12'}`}></div>
+              <div className={`relative rounded-xl p-2 bg-black border border-gray-800 hover:border-gray-700 transition-all duration-300 ${isOpen ? 'w-14 h-14' : 'w-12 h-12'}`}>
                 <img 
                   src={logo} 
                   alt="EduBridge Logo" 
-                  className="w-full h-full object-contain transition-transform duration-300 group-hover/logo:scale-105" 
+                  className="w-full h-full object-contain transition-transform duration-300 group-hover/logo:scale-105 invert" 
                 />
               </div>
             </div>
             
             {/* App Name with fade-in animation */}
-            <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-20 mt-3' : 'max-h-0 mt-0'}`}>
-              <h2 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className={`overflow-hidden transition-all duration-300 ${isOpen ? 'max-h-20 mt-4' : 'max-h-0 mt-0'}`}>
+              <h2 className="text-xl font-bold text-white">
                 EduBridge
               </h2>
               {isOpen && (
-                <p className="text-xs text-gray-500 mt-0.5 font-medium">Learning Platform</p>
+                <p className="text-xs text-gray-400 mt-1 font-medium tracking-wider">LEARNING PLATFORM</p>
               )}
             </div>
           </div>
           <button 
             onClick={toggleSidebar}
-            className="absolute -right-3 top-8 bg-white border border-gray-200 rounded-full p-1 shadow-md hover:shadow-lg transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+            className="absolute -right-3 top-8 bg-black border border-gray-800 hover:border-gray-700 rounded-full p-1.5 shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-110 focus:outline-none focus:ring-2 focus:ring-white/20"
           >
             {isOpen ? (
-              <ChevronLeft className="w-4 h-4 text-gray-600" />
+              <ChevronLeft className="w-4 h-4 text-gray-300" />
             ) : (
-              <ChevronRight className="w-4 h-4 text-gray-600" />
+              <ChevronRight className="w-4 h-4 text-gray-300" />
             )}
           </button>
-          <div className={`w-4/5 h-[1px] bg-gradient-to-r from-transparent via-gray-200 to-transparent my-3 transition-all duration-500 ${isOpen ? 'opacity-100' : 'opacity-0'}`} />
+          <div className="w-4/5 h-[1px] bg-gradient-to-r from-transparent via-gray-800 to-transparent my-4" />
         </SidebarHeader>
         
         <SidebarContent className="flex-1 px-3 py-1 overflow-y-auto custom-scrollbar">
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1.5">
+              <SidebarMenu className="space-y-2">
                 {menuItems.map((item) => {
                   const isActive = location.pathname === item.url;
                   return (
@@ -138,26 +138,28 @@ export function AppSidebar() {
                           "flex items-center w-full h-12 px-3 text-sm font-medium rounded-lg",
                           isActive
                             ? [
-                                `bg-gradient-to-r ${item.gradient} text-white`,
-                                "shadow-lg hover:shadow-xl",
-                                "font-semibold",
+                                "bg-white/10 text-white",
+                                "border border-white/10",
+                                "backdrop-blur-sm",
+                                "font-semibold"
                               ]
                             : [
-                                `bg-white text-gray-700 hover:bg-gray-50`,
-                                "hover:shadow-md hover:scale-[1.02]"
+                                "text-gray-300 hover:bg-white/5 hover:text-white",
+                                "hover:border hover:border-white/5",
+                                "hover:backdrop-blur-sm"
                               ]
                         )}
                         iconOnly={!isOpen}
                       >
                         <div className={cn(
-                          "icon-container flex items-center justify-center rounded-lg transition-all duration-200",
+                          "flex items-center justify-center rounded-lg transition-all duration-200",
+                          "w-8 h-8 flex-shrink-0",
                           isActive
                             ? [
-                                "bg-white/20 p-1.5 text-white"
+                                "bg-white text-black"
                               ]
                             : [
-                                `bg-${item.gradient.split(' ')[0].replace('from-', '')}-100 p-1.5`,
-                                `text-${item.gradient.split(' ')[0].replace('from-', '')}-600`,
+                                "bg-black/30 text-gray-300 group-hover:text-white",
                                 "group-hover:scale-110"
                               ]
                         )}>
@@ -165,15 +167,18 @@ export function AppSidebar() {
                             <img 
                               src={item.customIcon} 
                               alt={item.title} 
-                              className={`w-4 h-4 object-contain ${isActive ? 'invert' : ''}`} 
+                              className={`w-4 h-4 object-contain ${isActive ? 'invert' : 'opacity-80 group-hover:opacity-100'}`} 
                             />
                           ) : (
-                            <item.icon className="w-4 h-4" />
+                            <item.icon className={`w-4 h-4 ${isActive ? 'text-black' : 'text-current'}`} />
                           )}
                         </div>
                         {isOpen && (
-                          <span className={`ml-3 transition-opacity duration-200 ${isActive ? 'text-white' : 'text-gray-700'}`}>
+                          <span className={`ml-3 transition-all duration-200 ${isActive ? 'text-white' : 'text-gray-300 group-hover:text-white'}`}>
                             {item.title}
+                            {isActive && (
+                              <span className="absolute right-3 w-1.5 h-1.5 bg-white rounded-full"></span>
+                            )}
                           </span>
                         )}
                       </SidebarMenuButton>
@@ -185,23 +190,23 @@ export function AppSidebar() {
           </SidebarGroup>
         </SidebarContent>
         
-        <SidebarFooter className="px-3 py-3 border-t border-gray-100 bg-white/50 backdrop-blur-md">
-          <div className={`w-4/5 h-px bg-gradient-to-r from-transparent via-gray-200 to-transparent my-2 mx-auto ${!isOpen ? 'w-1/2' : ''}`} />
+        <SidebarFooter className="px-3 py-3 border-t border-gray-800 bg-black/50 backdrop-blur-md">
+          <div className={`w-4/5 h-px bg-gradient-to-r from-transparent via-gray-800 to-transparent my-3 mx-auto ${!isOpen ? 'w-1/2' : ''}`} />
           <SidebarGroup>
             <SidebarGroupContent>
-              <SidebarMenu className="space-y-1.5">
+              <SidebarMenu className="space-y-2">
                 <SidebarMenuItem>
                   <SidebarMenuButton
                     onClick={() => navigate('/settings')}
                     className={cn(
                       "group relative overflow-hidden transition-all duration-200 ease-out",
                       "flex items-center w-full h-12 px-3 text-sm font-medium rounded-lg",
-                      "bg-white text-gray-700 hover:bg-gray-50 hover:shadow-md"
+                      "text-gray-300 hover:bg-white/5 hover:text-white"
                     )}
                     tooltip={!isOpen ? "Settings" : undefined}
                     iconOnly={!isOpen}
                   >
-                    <div className="icon-container flex items-center justify-center rounded-lg bg-gray-100 p-1.5 text-gray-600 transition-all duration-200 group-hover:scale-110">
+                    <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-black/30 text-gray-300 transition-all duration-200 group-hover:bg-white/10 group-hover:text-white">
                       <Settings className="w-4 h-4" />
                     </div>
                     {isOpen && <span className="ml-3">Settings</span>}
@@ -214,16 +219,16 @@ export function AppSidebar() {
                     className={cn(
                       "group relative overflow-hidden transition-all duration-200 ease-out",
                       "flex items-center w-full h-12 px-3 text-sm font-medium rounded-lg",
-                      "bg-gradient-to-r from-blue-500 to-blue-600 text-white",
-                      "hover:shadow-md hover:from-blue-600 hover:to-blue-700"
+                      "bg-white text-black hover:bg-white/90",
+                      "hover:shadow-lg hover:scale-[1.02]"
                     )}
                     tooltip={!isOpen ? "Login" : undefined}
                     iconOnly={!isOpen}
                   >
-                    <div className="icon-container flex items-center justify-center rounded-lg bg-white/20 p-1.5 text-white transition-all duration-200 group-hover:scale-110">
+                    <div className="flex items-center justify-center rounded-lg w-8 h-8 bg-black text-white transition-all duration-200 group-hover:scale-110">
                       <LogIn className="w-4 h-4" />
                     </div>
-                    {isOpen && <span className="ml-3">Login</span>}
+                    {isOpen && <span className="ml-3 font-medium">Login</span>}
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               </SidebarMenu>
