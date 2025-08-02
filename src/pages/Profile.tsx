@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Calendar, Clock, Code, CheckCircle, User, Trophy, Target, Zap, Moon, Sun, TrendingUp, TrendingDown, Star, Crown, Medal, Flame, Rocket, Brain, BookOpen, Award, AlertCircle, Info, Instagram, Facebook, Twitter, MessageCircle, Share2, Globe, Download, Share, Bell, Settings, Users } from 'lucide-react';
+import { ArrowLeft, Calendar, Clock, Code, CheckCircle, User, Trophy, Target, Zap, Moon, Sun, TrendingUp, TrendingDown, Star, Crown, Medal, Flame, Rocket, Brain, BookOpen, Award, AlertCircle, Info, Instagram, Facebook, Twitter, MessageCircle, Share2, Globe, Download, Share, Bell, Settings, Users, BarChart3 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -398,6 +398,20 @@ const Profile = () => {
     loadUserData();
   }, [playlists]);
 
+  // Mock rank history data for the trend graph
+  const rankHistory = [
+    { day: 'Mon', rank: 24 },
+    { day: 'Tue', rank: 20 },
+    { day: 'Wed', rank: 18 },
+    { day: 'Thu', rank: 15 },
+    { day: 'Fri', rank: 12 },
+    { day: 'Sat', rank: 10 },
+    { day: 'Sun', rank: 8 },
+  ];
+
+  // Calculate rank improvement
+  const rankImprovement = rankHistory[0].rank - rankHistory[rankHistory.length - 1].rank;
+
   // Calculate achievement level based on user stats
   const achievementLevel = userStats.hoursLearning >= 100 ? 'Grand Master' :
                          userStats.hoursLearning >= 50 ? 'Master' :
@@ -554,25 +568,62 @@ const Profile = () => {
         <div className="container mx-auto px-4 py-0">
           <div className={`${cardBg} rounded-xl p-4 transition-all duration-300 ${cardHoverEffect} relative overflow-hidden`}>
             <div className="relative z-10">
-              <div className="flex items-start justify-end w-full">
-                {/* Profile Section - Moved to left */}
-                <div className="relative group flex flex-col items-center min-w-0 mr-auto">
-                  <Avatar className="w-20 h-20 ring-2 ring-gray-200 shadow-lg transition-all duration-300 group-hover:scale-105 group-hover:ring-gray-300 relative z-10 mb-3">
-                    <AvatarImage src="" />
-                    <AvatarFallback className="bg-gray-100 text-black text-2xl font-bold">
-                      <User className="w-8 h-8 text-black" />
-                    </AvatarFallback>
-                  </Avatar>
+              <div className="flex flex-col md:flex-row items-start md:items-center justify-between w-full gap-6 md:gap-8">
+                {/* Enhanced Profile Section */}
+                <div className="relative group flex-1 w-full">
+                  <div className="flex flex-col md:flex-row items-center md:items-start gap-6">
+                    <div className="relative">
+                      <div className="absolute -inset-1 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                      <Avatar className="w-24 h-24 ring-4 ring-white shadow-xl transition-all duration-300 group-hover:scale-105 relative z-10">
+                        <AvatarImage src="" />
+                        <AvatarFallback className="bg-gradient-to-br from-blue-500 to-purple-600 text-white text-3xl font-bold">
+                          <User className="w-10 h-10" />
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="absolute -bottom-2 -right-2 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-xs font-bold px-3 py-1 rounded-full shadow-lg flex items-center gap-1 z-20">
+                        <Star className="w-3 h-3 fill-yellow-300 text-yellow-300" />
+                        <span>Pro</span>
+                      </div>
+                    </div>
 
-                  {/* Profile Name and Member Since */}
-                  <div className="mt-3 text-center">
-                    <h1 className="text-xl font-bold text-black mb-1">
-                      Your Profile
-                    </h1>
-                    <p className={`${textMuted} text-sm flex items-center justify-center gap-2 mb-2`}>
-                      <Calendar className="w-4 h-4 text-gray-400" />
-                      Member since {new Date(userStats.joinDate).toLocaleDateString()}
-                    </p>
+                    {/* Profile Info */}
+                    <div className="text-center md:text-left mt-2">
+                      <div className="flex flex-col items-center md:items-start gap-1">
+                        <h1 className="text-2xl md:text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-800 to-gray-900 dark:from-white dark:to-gray-200">
+                          Your Profile
+                        </h1>
+                        <p className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1.5">
+                          <span className="flex h-2 w-2 relative">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                          </span>
+                          Active Now
+                        </p>
+                      </div>
+                      
+                      <div className="flex flex-wrap items-center justify-center md:justify-start gap-4 mt-3">
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <Calendar className="w-4 h-4 mr-1.5 text-gray-400" />
+                          Joined {new Date(userStats.joinDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
+                        </div>
+                        <div className="hidden md:block w-px h-4 bg-gray-200"></div>
+                        <div className="flex items-center text-sm text-gray-600 dark:text-gray-300">
+                          <Flame className="w-4 h-4 mr-1.5 text-orange-400" />
+                          {userStats.currentStreak} day streak
+                        </div>
+                      </div>
+                      
+                      <div className="mt-4 flex flex-wrap gap-2 justify-center md:justify-start">
+                        <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-200 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors">
+                          <Code className="w-3.5 h-3.5 mr-1.5" />
+                          Developer
+                        </Badge>
+                        <Badge className="bg-purple-100 text-purple-800 hover:bg-purple-200 dark:bg-purple-900/30 dark:text-purple-300 dark:hover:bg-purple-900/50 transition-colors">
+                          <BookOpen className="w-3.5 h-3.5 mr-1.5" />
+                          Learner
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -591,55 +642,182 @@ const Profile = () => {
         <div className="container mx-auto px-4 py-8">
           {/* Statistics Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6 mb-8">
-          </div>
-
-          {/* Achievements Section */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Progress Overview */}
-            <Card className={`${cardBg} rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '400ms' }}>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2 text-2xl text-black">
-                  <Target className="w-6 h-6 text-black" />
-                  Learning Progress
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="flex justify-between items-center p-4 rounded-xl bg-gray-100 border border-gray-200">
-                  <span className="text-base text-gray-500">Current Level</span>
-                  <Badge variant="outline" className="font-semibold border-gray-300 px-4 py-1.5 text-sm text-black">
-                    {achievementLevel}
+            {/* Learning Rank Card */}
+            <Card className={`${cardBg} rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '150ms' }}>
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                    <Trophy className="w-5 h-5 text-amber-500" />
+                    Learning Rank
+                  </CardTitle>
+                  <Badge variant="outline" className="flex items-center gap-1 border-amber-200 bg-amber-50 text-amber-700">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    #{rankHistory[rankHistory.length - 1].rank} Global
                   </Badge>
                 </div>
-                <Separator className="bg-gray-200" />
-                <div className="space-y-4">
-                  {[
-                    { label: 'Learning Streak', value: `${userStats.daysActive} days` },
-                    { label: 'Completion Rate', value: `${userStats.problemsSolved > 0 ? Math.round((userStats.tasksCompleted / userStats.problemsSolved) * 100) : 0}%` },
-                    { label: 'Avg. Daily Learning', value: `${userStats.daysActive > 0 ? `${Math.round((userStats.hoursLearning / userStats.daysActive) * 10) / 10}h` : '0h'}` }
-                  ].map((stat) => (
-                    <div key={stat.label} className="flex justify-between items-center p-3 rounded-lg hover:bg-gray-100 transition-colors duration-300">
-                      <span className="text-base text-gray-500">{stat.label}</span>
-                      <span className="font-semibold text-lg text-black">
-                        {stat.value}
-                      </span>
-                    </div>
-                  ))}
+              </CardHeader>
+              <CardContent>
+                <div className="h-[120px] relative">
+                  {/* Rank Trend Graph */}
+                  <div className="absolute inset-0">
+                    <svg width="100%" height="100%" viewBox="0 0 300 120" className="overflow-visible">
+                      {/* Grid lines */}
+                      {[20, 60, 100].map((y, i) => (
+                        <line 
+                          key={i}
+                          x1="0" 
+                          y1={y} 
+                          x2="300" 
+                          y2={y} 
+                          stroke="#e5e7eb" 
+                          strokeWidth="1" 
+                          strokeDasharray="2 2"
+                        />
+                      ))}
+                      
+                      {/* Trend line */}
+                      <polyline
+                        fill="none"
+                        stroke="#f59e0b"
+                        strokeWidth="2.5"
+                        strokeLinejoin="round"
+                        strokeLinecap="round"
+                        points={rankHistory.map((item, i) => {
+                          const x = 30 + (i * 40);
+                          const y = (item.rank / 25) * 100;
+                          return `${x},${y}`;
+                        }).join(' ')}
+                      />
+                      
+                      {/* Data points */}
+                      {rankHistory.map((item, i) => {
+                        const x = 30 + (i * 40);
+                        const y = (item.rank / 25) * 100;
+                        return (
+                          <g key={i}>
+                            <circle 
+                              cx={x} 
+                              cy={y} 
+                              r="4" 
+                              fill="#f59e0b" 
+                              stroke="white" 
+                              strokeWidth="2"
+                              className="transition-all duration-300 hover:r-5"
+                            />
+                            <text 
+                              x={x} 
+                              y={y - 8} 
+                              textAnchor="middle" 
+                              className="text-[10px] font-medium fill-gray-700"
+                            >
+                              {item.rank}
+                            </text>
+                          </g>
+                        );
+                      })}
+                      
+                      {/* X-axis labels */}
+                      {rankHistory.map((item, i) => {
+                        const x = 30 + (i * 40);
+                        return (
+                          <text 
+                            key={i} 
+                            x={x} 
+                            y="115" 
+                            textAnchor="middle" 
+                            className="text-[9px] fill-gray-500"
+                          >
+                            {item.day}
+                          </text>
+                        );
+                      })}
+                    </svg>
+                  </div>
+                </div>
+                
+                <div className="mt-4 flex justify-between items-center text-sm">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-amber-400"></div>
+                    <span className="text-gray-600">Your Rank Trend</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-600 font-medium">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>Improved by {rankImprovement} rank{rankImprovement !== 1 ? 's' : ''} this week</span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
+            
+            {/* Learning Stats Card */}
+            <Card className={`${cardBg} rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '300ms' }}>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <BarChart3 className="w-5 h-5 text-blue-500" />
+                  Weekly Progress
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Learning Time</span>
+                      <span className="font-medium">{Math.round(userStats.hoursLearning * 10) / 10}h</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500 ease-out" 
+                        style={{ width: `${Math.min(100, (userStats.hoursLearning / 20) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Problems Solved</span>
+                      <span className="font-medium">{userStats.problemsSolved}</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-500 ease-out" 
+                        style={{ width: `${Math.min(100, (userStats.problemsSolved / 15) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <div className="flex justify-between text-sm mb-1">
+                      <span className="text-gray-600">Active Days</span>
+                      <span className="font-medium">{userStats.daysActive} days</span>
+                    </div>
+                    <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+                      <div 
+                        className="bg-gradient-to-r from-purple-400 to-purple-600 h-2 rounded-full transition-all duration-500 ease-out" 
+                        style={{ width: `${Math.min(100, (userStats.daysActive / 7) * 100)}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
+          {/* Achievements Section */}
+          <div className="grid grid-cols-1 gap-6">
             {/* Recent Achievements */}
             <Card className={`${cardBg} rounded-2xl ${cardHoverEffect} animate-fade-in`} style={{ animationDelay: '450ms' }}>
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle className="flex items-center gap-2 text-2xl text-black">
-                  <Zap className="w-6 h-6 text-black" />
-                  Recent Achievements
-                </CardTitle>
+              <CardHeader className="flex flex-row items-center justify-between border-b border-gray-100 pb-4">
+                <div>
+                  <CardTitle className="flex items-center gap-2 text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+                    <Zap className="w-6 h-6 text-yellow-400" />
+                    Recent Achievements
+                  </CardTitle>
+                  <p className="text-sm text-gray-500 mt-1">Your learning milestones and accomplishments</p>
+                </div>
                 <Dialog>
                   <DialogTrigger asChild>
-                    <Button variant="outline" className="gap-2 text-black border-gray-300">
-                      <Award className="w-4 h-4 text-black" />
-                      View  Awards List
+                    <Button variant="outline" className="gap-2 text-gray-700 hover:bg-gray-100 border-gray-200 transition-all duration-300 hover:shadow-sm">
+                      <Award className="w-4 h-4 text-yellow-500" />
+                      View All Awards
                     </Button>
                   </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[80vh] overflow-hidden flex flex-col p-0">
@@ -822,8 +1000,156 @@ const Profile = () => {
                   </DialogContent>
                 </Dialog>
               </CardHeader>
-              <CardContent>
-                
+              <CardContent className="pt-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Learning Time Achievements */}
+                  <div className={`p-4 rounded-xl border ${userStats.hoursLearning >= 10 ? 'bg-gradient-to-br from-green-50 to-white border-green-100' : 'bg-gray-50 border-gray-100'} transition-all duration-300 hover:shadow-md`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-lg ${userStats.hoursLearning >= 10 ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-400'}`}>
+                          <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Dedicated Learner</h4>
+                          <p className="text-sm text-gray-500">Complete 10+ hours</p>
+                        </div>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${userStats.hoursLearning >= 10 ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-500'}`}>
+                        {userStats.hoursLearning >= 10 ? 'Achieved' : 'In Progress'}
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-green-400 to-emerald-500 h-2 rounded-full transition-all duration-700 ease-out" 
+                          style={{ width: `${Math.min(100, (userStats.hoursLearning / 10) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-right mt-1 text-gray-500">
+                        {Math.min(10, Math.round(userStats.hoursLearning * 10) / 10)}/10 hours
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Goals Achieved */}
+                  <div className={`p-4 rounded-xl border ${userStats.problemsSolved >= 5 ? 'bg-gradient-to-br from-blue-50 to-white border-blue-100' : 'bg-gray-50 border-gray-100'} transition-all duration-300 hover:shadow-md`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-lg ${userStats.problemsSolved >= 5 ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-400'}`}>
+                          <Target className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Goal Crusher</h4>
+                          <p className="text-sm text-gray-500">Complete 5+ goals</p>
+                        </div>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${userStats.problemsSolved >= 5 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-500'}`}>
+                        {userStats.problemsSolved >= 5 ? 'Achieved' : 'In Progress'}
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-blue-400 to-sky-500 h-2 rounded-full transition-all duration-700 ease-out" 
+                          style={{ width: `${Math.min(100, (userStats.problemsSolved / 5) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-right mt-1 text-gray-500">
+                        {userStats.problemsSolved}/5 goals
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Streak Achievement */}
+                  <div className={`p-4 rounded-xl border ${userStats.currentStreak >= 7 ? 'bg-gradient-to-br from-orange-50 to-white border-orange-100' : 'bg-gray-50 border-gray-100'} transition-all duration-300 hover:shadow-md`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-lg ${userStats.currentStreak >= 7 ? 'bg-orange-100 text-orange-600' : 'bg-gray-100 text-gray-400'}`}>
+                          <Flame className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Streak Master</h4>
+                          <p className="text-sm text-gray-500">7+ day streak</p>
+                        </div>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${userStats.currentStreak >= 7 ? 'bg-orange-100 text-orange-800' : 'bg-gray-100 text-gray-500'}`}>
+                        {userStats.currentStreak >= 7 ? 'Achieved' : 'In Progress'}
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-orange-400 to-amber-500 h-2 rounded-full transition-all duration-700 ease-out" 
+                          style={{ width: `${Math.min(100, (userStats.currentStreak / 7) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-right mt-1 text-gray-500">
+                        {userStats.currentStreak}/7 days
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Consistency Achievement */}
+                  <div className={`p-4 rounded-xl border ${userStats.daysActive >= 7 ? 'bg-gradient-to-br from-purple-50 to-white border-purple-100' : 'bg-gray-50 border-gray-100'} transition-all duration-300 hover:shadow-md`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`p-2.5 rounded-lg ${userStats.daysActive >= 7 ? 'bg-purple-100 text-purple-600' : 'bg-gray-100 text-gray-400'}`}>
+                          <Calendar className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <h4 className="font-medium text-gray-900">Consistent Learner</h4>
+                          <p className="text-sm text-gray-500">7+ active days</p>
+                        </div>
+                      </div>
+                      <div className={`px-2 py-1 rounded-full text-xs font-medium ${userStats.daysActive >= 7 ? 'bg-purple-100 text-purple-800' : 'bg-gray-100 text-gray-500'}`}>
+                        {userStats.daysActive >= 7 ? 'Achieved' : 'In Progress'}
+                      </div>
+                    </div>
+                    <div className="mt-3">
+                      <div className="w-full bg-gray-100 rounded-full h-2">
+                        <div 
+                          className="bg-gradient-to-r from-purple-400 to-violet-500 h-2 rounded-full transition-all duration-700 ease-out" 
+                          style={{ width: `${Math.min(100, (userStats.daysActive / 7) * 100)}%` }}
+                        ></div>
+                      </div>
+                      <p className="text-xs text-right mt-1 text-gray-500">
+                        {userStats.daysActive}/7 days
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Achievement Categories */}
+                <div className="mt-6 grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="p-3 bg-blue-50 rounded-lg border border-blue-100 text-center">
+                    <div className="mx-auto w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center mb-2">
+                      <Trophy className="w-5 h-5 text-blue-600" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700">Learning</p>
+                    <p className="text-xs text-gray-500">Milestones</p>
+                  </div>
+                  <div className="p-3 bg-green-50 rounded-lg border border-green-100 text-center">
+                    <div className="mx-auto w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mb-2">
+                      <CheckCircle className="w-5 h-5 text-green-600" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700">Goals</p>
+                    <p className="text-xs text-gray-500">Achieved</p>
+                  </div>
+                  <div className="p-3 bg-amber-50 rounded-lg border border-amber-100 text-center">
+                    <div className="mx-auto w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center mb-2">
+                      <Flame className="w-5 h-5 text-amber-600" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700">Streaks</p>
+                    <p className="text-xs text-gray-500">Maintained</p>
+                  </div>
+                  <div className="p-3 bg-purple-50 rounded-lg border border-purple-100 text-center">
+                    <div className="mx-auto w-10 h-10 rounded-full bg-purple-100 flex items-center justify-center mb-2">
+                      <Calendar className="w-5 h-5 text-purple-600" />
+                    </div>
+                    <p className="text-sm font-medium text-gray-700">Consistency</p>
+                    <p className="text-xs text-gray-500">Tracking</p>
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
