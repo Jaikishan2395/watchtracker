@@ -629,9 +629,188 @@ const Profile = () => {
 
                 
 
-                {/* Earnings Section with Notification Button */}
+                {/* Animated Coin Jar */}
                 <div className="w-[280px]">
                   <div className="flex flex-col gap-4">
+                    <div className="relative group">
+                      {/* Animated gradient background */}
+                      <div className="absolute inset-0 bg-gradient-to-br from-amber-400 to-yellow-500 rounded-2xl opacity-10 group-hover:opacity-20 transition-all duration-500 blur-xl"></div>
+                      
+                      <Card className={`relative bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-700/50 shadow-lg hover:shadow-xl transition-all duration-300 hover:-translate-y-1`}>
+                        <CardContent className="p-5">
+                          <div className="flex justify-between items-start mb-4">
+                            <div>
+                              <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Learning Coins</p>
+                              <div className="flex items-end gap-1">
+                                <span className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-amber-500 to-yellow-600">
+                                  {Math.round(userStats.hoursLearning * 100).toLocaleString()}
+                                </span>
+                                <span className="text-sm text-gray-400 mb-0.5">coins</span>
+                              </div>
+                            </div>
+                            <div className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 rounded-full text-xs font-medium text-amber-700 dark:text-amber-400 flex items-center">
+                              <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.828 2.829a1 1 0 101.415-1.415L11 9.586V6z" clipRule="evenodd" />
+                              </svg>
+                              {Math.round((userStats.hoursLearning * 20) / (userStats.hoursLearning * 100) * 100) || 0}% this month
+                            </div>
+                          </div>
+                          
+                          {/* Premium Animated Jar */}
+                          <div className="relative h-56 w-full mt-6 mb-2 flex items-center justify-center">
+                            {/* Jar glass container with 3D effect */}
+                            <div className="relative w-40 h-full">
+                              {/* Jar glass reflection */}
+                              <div className="absolute inset-0 rounded-2xl bg-gradient-to-br from-white/30 to-white/10 dark:from-white/10 dark:to-transparent backdrop-blur-[1px] z-10 opacity-70" 
+                                   style={{
+                                     clipPath: 'polygon(0% 0%, 100% 0%, 100% 100%, 30% 100%, 0% 80%)',
+                                     borderRadius: '50% 50% 1rem 1rem / 60% 60% 40% 40%'
+                                   }}>
+                              </div>
+                              
+                              {/* Jar outer glass */}
+                              <div className="absolute inset-0 rounded-2xl bg-gradient-to-b from-white/40 to-transparent dark:from-gray-800/30 dark:to-gray-900/30 backdrop-blur-[2px] border-2 border-white/40 dark:border-gray-600/30 shadow-[inset_0_8px_32px_0_rgba(255,255,255,0.3)] dark:shadow-[inset_0_8px_32px_0_rgba(0,0,0,0.3)] overflow-hidden">
+                                {/* Coins fill with 3D effect */}
+                                <div 
+                                  className="absolute bottom-0 left-0 right-0 transition-all duration-1000 ease-out overflow-hidden"
+                                  style={{
+                                    height: `${Math.min(100, Math.max(10, (userStats.hoursLearning * 100) / 2000 * 100))}%`,
+                                    background: 'linear-gradient(145deg, #f59e0b 0%, #d97706 30%, #b45309 70%, #92400e 100%)',
+                                    borderRadius: '0 0 1rem 1rem',
+                                    boxShadow: 'inset 0 -10px 20px rgba(0,0,0,0.1)'
+                                  }}
+                                >
+                                  {/* Individual coins with random positioning */}
+                                  {[...Array(30)].map((_, i) => (
+                                    <div 
+                                      key={i}
+                                      className="absolute rounded-full bg-yellow-400 border-2 border-yellow-500 shadow-md"
+                                      style={{
+                                        width: `${Math.random() * 10 + 10}px`,
+                                        height: '4px',
+                                        left: `${10 + Math.random() * 80}%`,
+                                        bottom: `${Math.random() * 100}%`,
+                                        transform: `rotate(${Math.random() * 360}deg) scale(${0.8 + Math.random() * 0.4})`,
+                                        opacity: 0.8,
+                                        animation: `coinFloat ${3 + Math.random() * 4}s infinite ease-in-out`
+                                      }}
+                                    />
+                                  ))}
+                                  
+                                  {/* Coin shine effect */}
+                                  <div className="absolute inset-0 bg-gradient-to-b from-yellow-200/30 to-transparent opacity-70"></div>
+                                </div>
+                                
+                                {/* Water surface effect */}
+                                <div 
+                                  className="absolute left-0 right-0 w-full h-4 bg-gradient-to-b from-yellow-300/40 to-transparent"
+                                  style={{
+                                    top: `${Math.min(100, Math.max(10, (userStats.hoursLearning * 100) / 2000 * 100)) - 5}%`,
+                                    transition: 'top 1.5s cubic-bezier(0.4, 0, 0.2, 1)'
+                                  }}
+                                ></div>
+                              </div>
+                              
+                              {/* Jar neck */}
+                              <div className="absolute -top-3 left-1/2 -translate-x-1/2 w-24 h-6 bg-gradient-to-b from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 rounded-t-2xl border-2 border-b-0 border-white/40 dark:border-gray-600/30 z-10">
+                                <div className="absolute -bottom-0.5 left-1/2 -translate-x-1/2 w-28 h-1 bg-gradient-to-r from-amber-200 via-amber-100 to-amber-200 dark:from-amber-900 dark:via-amber-800 dark:to-amber-900 rounded-full"></div>
+                              </div>
+                              
+                              {/* Jar rim */}
+                              <div className="absolute -top-1 left-1/2 -translate-x-1/2 w-28 h-2 bg-gradient-to-r from-amber-300 via-amber-200 to-amber-300 dark:from-amber-700 dark:via-amber-600 dark:to-amber-700 rounded-full shadow-md z-20">
+                                <div className="absolute inset-0.5 bg-gradient-to-r from-amber-200 to-amber-100 dark:from-amber-600 dark:to-amber-500 rounded-full"></div>
+                              </div>
+                              
+                              {/* Coin count label */}
+                              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center z-10">
+                                <div className="relative">
+                                  <div className="absolute inset-0 bg-amber-100 dark:bg-amber-900/80 rounded-full blur-md opacity-70"></div>
+                                  <span className="relative text-xs font-bold text-amber-800 dark:text-amber-200 bg-gradient-to-b from-amber-100 to-amber-50 dark:from-amber-900/80 dark:to-amber-800/80 px-3 py-1.5 rounded-full border border-amber-200 dark:border-amber-700/50 shadow-sm">
+                                    {Math.round(userStats.hoursLearning * 100).toLocaleString()} coins
+                                  </span>
+                                </div>
+                              </div>
+                              
+                              {/* Floating coins animation */}
+                              {[...Array(3)].map((_, i) => (
+                                <div 
+                                  key={i}
+                                  className="absolute rounded-full bg-yellow-400 border-2 border-yellow-500 shadow-lg z-0"
+                                  style={{
+                                    width: '16px',
+                                    height: '16px',
+                                    left: `${10 + i * 30}%`,
+                                    top: '10%',
+                                    opacity: 0,
+                                    animation: `coinFall ${3 + i}s ${i * 0.5}s infinite`,
+                                    transform: 'translateY(-20px)'
+                                  }}
+                                >
+                                  <div className="absolute inset-0.5 rounded-full bg-gradient-to-br from-yellow-200 to-yellow-400 border border-yellow-300"></div>
+                                </div>
+                              ))}
+                            </div>
+                            
+                            {/* Jar shadow */}
+                            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 w-32 h-3 bg-black/10 dark:bg-black/30 rounded-full blur-md"></div>
+                            
+                            {/* CSS for coin animations */}
+                            <style jsx>{`
+                              @keyframes coinFloat {
+                                0%, 100% { transform: translateY(0) rotate(0deg); }
+                                50% { transform: translateY(-3px) rotate(5deg); }
+                              }
+                              
+                              @keyframes coinFall {
+                                0% { 
+                                  opacity: 0;
+                                  transform: translateY(-20px) scale(0.5);
+                                }
+                                10% { 
+                                  opacity: 1;
+                                  transform: translateY(0) scale(1);
+                                }
+                                90% { 
+                                  opacity: 1;
+                                  transform: translateY(0) scale(1);
+                                }
+                                100% { 
+                                  opacity: 0;
+                                  transform: translateY(20px) scale(0.5);
+                                }
+                              }
+                            `}</style>
+                          </div>
+                          
+                          {/* Progress info */}
+                          <div className="mt-4 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 rounded-full bg-amber-400 mr-1.5"></div>
+                              <span>Current</span>
+                            </div>
+                            <div className="flex items-center">
+                              <div className="w-2 h-2 rounded-full bg-gray-200 dark:bg-gray-600 mr-1.5"></div>
+                              <span>Next: {Math.ceil((userStats.hoursLearning * 100 + 1000) / 1000) * 1000}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Progress bar */}
+                          <div className="mt-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                            <div 
+                              className="bg-gradient-to-r from-amber-400 to-yellow-500 h-2 rounded-full transition-all duration-1000 ease-out"
+                              style={{ width: `${(userStats.hoursLearning * 100) % 1000 / 10}%` }}
+                            ></div>
+                          </div>
+                          
+                          <div className="mt-3 text-xs text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" className="h-3.5 w-3.5 mr-1.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Complete more videos to earn coins!
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </div>
                   </div>
                 </div>
               </div>
