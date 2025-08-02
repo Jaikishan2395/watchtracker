@@ -92,15 +92,6 @@ export function AppSidebar() {
 
   return (
     <>
-      {/* Persistent hamburger menu button for sidebar toggle */}
-      <button
-        onClick={toggleSidebar}
-        aria-label="Open sidebar"
-        style={{ position: 'fixed', top: 16, left: 16, zIndex: 10000 }}
-        className="bg-blue-600 hover:bg-blue-700 text-white p-2 rounded-lg shadow-lg focus:outline-none"
-      >
-        <PanelLeft className="h-7 w-7" />
-      </button>
       <Sidebar className="modern-sidebar bg-gradient-to-b from-white/95 to-gray-50/95 border-r border-gray-200/40 shadow-2xl backdrop-blur-xl">
         <SidebarHeader className="modern-sidebar-header flex flex-col items-center justify-center w-full pt-1 pb-1">
           <div className="flex flex-col items-center w-full">

@@ -184,13 +184,13 @@ const LandingPage = () => {
             >
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                 <Button className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-6 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all">
-                  Start Learning Free
+                  Organize Learning
                   <ChevronRight className="ml-2 h-5 w-5" />
                 </Button>
               </motion.div>
               <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.98 }}>
                 <Button variant="outline" className="px-8 py-6 text-lg font-medium rounded-xl border-2 border-gray-300 hover:border-blue-400 hover:bg-blue-50 text-gray-700 transition-all">
-                  Explore Courses
+                  Track Progress
                 </Button>
               </motion.div>
             </motion.div>
@@ -250,7 +250,7 @@ const LandingPage = () => {
             </p>
           </motion.div>
 
-          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-16 grid gap-8 md:grid-cols-2 lg:grid-cols-4 px-4">
             {[
               {
                 icon: <svg className="h-6 w-6 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -319,52 +319,35 @@ const LandingPage = () => {
             ].map((feature, index) => (
               <motion.div 
                 key={index}
-                className="group relative"
+                className="group relative h-full"
                 initial={{ opacity: 0, y: 20 }}
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={{ once: true }}
-                transition={{ duration: 0.4, delay: index * 0.1 }}
+                transition={{ duration: 0.4, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
+                whileHover={{ y: -5 }}
               >
-                <div className="absolute -inset-0.5 bg-gradient-to-r rounded-xl opacity-0 group-hover:opacity-100 blur transition duration-300 group-hover:duration-200" />
-                <div className="relative h-full bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 group-hover:border-transparent">
-                  <div className={`inline-flex items-center justify-center w-12 h-12 rounded-lg bg-gradient-to-r ${feature.color} shadow-lg mb-6`}>
-                    {feature.icon}
+                <div className={`absolute inset-0 bg-gradient-to-br ${feature.color} opacity-0 group-hover:opacity-10 rounded-xl transition-opacity duration-300`}></div>
+                <div className="relative h-full bg-white/80 backdrop-blur-sm rounded-xl p-8 shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 group-hover:border-transparent overflow-hidden">
+                  <div className="relative z-10">
+                    <div className={`inline-flex items-center justify-center w-14 h-14 rounded-xl bg-gradient-to-r ${feature.color} shadow-lg mb-6 transform transition-transform duration-300 group-hover:scale-110`}>
+                      {React.cloneElement(feature.icon, { className: 'h-6 w-6 text-white' })}
+                    </div>
+                    <h3 className="text-xl font-bold text-gray-900 mb-4 group-hover:text-transparent group-hover:bg-clip-text group-hover:bg-gradient-to-r group-hover:from-blue-600 group-hover:to-indigo-600 transition-all duration-300">
+                      {feature.title}
+                    </h3>
+                    <p className="text-gray-600 text-base leading-relaxed">
+                      {feature.description}
+                    </p>
                   </div>
-                  <h3 className="text-xl font-semibold text-gray-900 mb-3">
-                    {feature.title}
-                  </h3>
-                  <p className="text-gray-600">
-                    {feature.description}
-                  </p>
-                  <div className="mt-6">
-                    <a 
-                      href="#" 
-                      className="inline-flex items-center text-sm font-medium text-blue-600 hover:text-blue-700 group-hover:translate-x-1 transition-transform"
-                    >
-                      Learn more
-                      <ChevronRight className="ml-1 h-4 w-4" />
-                    </a>
-                  </div>
+                  {/* Decorative elements */}
+                  <div className="absolute -right-4 -bottom-4 w-24 h-24 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+                  <div className="absolute -left-2 -top-2 w-16 h-16 rounded-full bg-gradient-to-br from-blue-50 to-indigo-50 opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
                 </div>
               </motion.div>
             ))}
           </div>
           
-          <motion.div 
-            className="mt-16 text-center"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ delay: 0.4, duration: 0.6 }}
-          >
-            <Button 
-              className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all"
-              size="lg"
-            >
-              Explore All Features
-              <ChevronRight className="ml-2 h-5 w-5" />
-            </Button>
-          </motion.div>
+
         </div>
       </section>
 
@@ -633,69 +616,120 @@ const LandingPage = () => {
       </section>
 
       {/* Testimonials Section */}
-      <section id="testimonials" className="py-16 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
-            <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-              What Our Students Say
+      <section id="testimonials" className="py-20 bg-gradient-to-br from-white to-blue-50 relative overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute -top-1/2 -left-1/4 w-full h-full bg-gradient-to-br from-blue-50/40 to-indigo-50/40 rounded-full blur-3xl"></div>
+        </div>
+        
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <motion.div 
+            className="text-center mb-16"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <span className="inline-flex items-center px-4 py-2 rounded-full text-sm font-medium text-blue-700 bg-blue-100/80 backdrop-blur-sm mb-4 border border-blue-200/50">
+              <Star className="w-4 h-4 mr-2 fill-current" />
+              Learner Stories
+            </span>
+            <h2 className="text-4xl font-bold text-gray-900 sm:text-5xl">
+              Loved by <span className="bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Students</span>
             </h2>
-            <p className="mt-4 max-w-2xl text-xl text-gray-500 mx-auto">
-              Don't just take our word for it - hear from our community
+            <p className="mt-4 max-w-2xl text-xl text-gray-600/90 mx-auto">
+              See how EduBridge is transforming learning experiences
             </p>
-          </div>
+          </motion.div>
 
-          <div className="mt-12 grid gap-8 md:grid-cols-3">
+          <div className="grid gap-8 md:grid-cols-3">
             {[
               {
-                name: "Sarah Johnson",
-                role: "Web Developer",
-                content: "Edubridge transformed my career. The hands-on projects and mentor support were invaluable.",
+                name: "Alex Johnson",
+                role: "Computer Science Student",
+                content: "The Smart Playlist feature completely changed how I organize my study materials. I can now create custom learning paths by simply adding YouTube links, and the built-in Pomodoro timer keeps me focused.",
+                avatar: "AJ",
+                feature: "Smart Playlists",
                 rating: 5,
-                avatar: "SJ"
+                color: "from-blue-500 to-blue-600"
               },
               {
-                name: "Mike Chen",
-                role: "Data Scientist",
-                content: "The quality of courses and the community support exceeded my expectations. Highly recommended!",
+                name: "Priya Patel",
+                role: "Online Learner",
+                content: "The Learning Analytics dashboard is a game-changer! I can track my progress, see my study patterns, and the AI chat assistant helps me whenever I'm stuck. It's like having a personal tutor 24/7.",
+                avatar: "PP",
+                feature: "Learning Analytics",
                 rating: 5,
-                avatar: "MC"
+                color: "from-purple-500 to-purple-600"
               },
               {
-                name: "Emma Wilson",
-                role: "UI/UX Designer",
-                content: "The project-based learning approach helped me build a strong portfolio that got me hired.",
-                rating: 4,
-                avatar: "EW"
+                name: "Marcus Chen",
+                role: "Bootcamp Graduate",
+                content: "Group Study Rooms made remote learning so much better. I regularly study with my classmates, and the Smart Notes feature with video timestamps helps me revisit key concepts easily. The gamification keeps me motivated!",
+                avatar: "MC",
+                feature: "Group Study",
+                rating: 5,
+                color: "from-indigo-500 to-indigo-600"
               }
             ].map((testimonial, index) => (
-              <div key={index} className="bg-gray-50 p-8 rounded-lg">
-                <div className="flex items-center mb-4">
-                  <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-lg">
-                    {testimonial.avatar}
+              <motion.div
+                key={index}
+                className="group relative"
+                initial={{ opacity: 0, y: 20 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true, margin: "-50px" }}
+                transition={{ duration: 0.5, delay: index * 0.1 }}
+              >
+                <div className="absolute -inset-0.5 bg-gradient-to-r rounded-2xl opacity-0 group-hover:opacity-100 blur transition duration-300 group-hover:duration-200" />
+                <div className="relative h-full bg-white/80 backdrop-blur-sm rounded-2xl p-8 shadow-sm hover:shadow-md transition-all duration-300 border border-gray-100 group-hover:border-transparent">
+                  <div className="flex items-start mb-6">
+                    <div className={`flex-shrink-0 h-14 w-14 rounded-2xl flex items-center justify-center text-white font-bold text-xl bg-gradient-to-r ${testimonial.color} shadow-lg`}>
+                      {testimonial.avatar}
+                    </div>
+                    <div className="ml-4">
+                      <h4 className="text-lg font-semibold text-gray-900">{testimonial.name}</h4>
+                      <p className="text-sm text-gray-500">{testimonial.role}</p>
+                      <div className="mt-1 flex items-center">
+                        {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i}
+                            className={`h-4 w-4 ${i < testimonial.rating ? 'text-yellow-400 fill-current' : 'text-gray-300'}`}
+                          />
+                        ))}
+                        <span className="ml-2 text-xs font-medium text-gray-500">
+                          {testimonial.feature}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <h4 className="text-lg font-medium text-gray-900">{testimonial.name}</h4>
-                    <p className="text-gray-500">{testimonial.role}</p>
-                  </div>
+                  <blockquote className="relative">
+                    <div className="absolute -top-3 -left-3 text-6xl text-gray-100 font-serif leading-none">"</div>
+                    <p className="relative text-gray-700 pl-2">
+                      {testimonial.content}
+                    </p>
+                  </blockquote>
                 </div>
-                <p className="text-gray-600 italic">"{testimonial.content}"</p>
-                <div className="flex mt-4">
-                  {[...Array(5)].map((_, i) => (
-                    <Star 
-                      key={i} 
-                      className={`h-5 w-5 ${i < testimonial.rating ? 'text-yellow-400' : 'text-gray-300'} fill-current`} 
-                    />
-                  ))}
-                </div>
-              </div>
+              </motion.div>
             ))}
           </div>
 
-          <div className="mt-12 text-center">
-            <Button variant="outline" className="border-blue-600 text-blue-600 hover:bg-blue-50">
-              Read More Reviews
+          <motion.div 
+            className="mt-16 text-center"
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ delay: 0.4, duration: 0.6 }}
+          >
+            <Button 
+              className="group relative overflow-hidden bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white px-8 py-3.5 text-lg font-medium rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+              size="lg"
+            >
+              <span className="relative z-10 flex items-center">
+                Share Your Experience
+                <ChevronRight className="ml-2 h-5 w-5 transform group-hover:translate-x-1 transition-transform" />
+              </span>
+              <span className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></span>
             </Button>
-          </div>
+          </motion.div>
         </div>
       </section>
 
