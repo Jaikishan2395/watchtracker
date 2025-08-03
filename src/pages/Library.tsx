@@ -22,6 +22,9 @@ interface WatchTimeData {
 
 const Library = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(3); // Example count
   const { playlists, addPlaylist, deletePlaylist } = usePlaylists();
   const { theme } = useTheme();
 
@@ -123,10 +126,12 @@ const Library = () => {
     };
   }, [playlists, addPlaylist]);
 
-  // Filter playlists by type
-  const filteredPlaylists = playlists.filter(
-    playlist => !playlist.title.toLowerCase().includes('y combinator')
-  );
+  // Filter playlists by type and search query (title only)
+  const filteredPlaylists = playlists
+    .filter(playlist => !playlist.title.toLowerCase().includes('y combinator'))
+    .filter(playlist => 
+      playlist.title.toLowerCase().includes(searchQuery.toLowerCase().trim())
+    );
   const videoPlaylists = filteredPlaylists.filter(playlist => playlist.type === 'video');
   const codingPlaylists = filteredPlaylists.filter(playlist => playlist.type === 'coding');
 
@@ -155,10 +160,96 @@ const Library = () => {
           {playlists.length > 0 && (
             <div className="flex flex-col">
               <div className="flex flex-col">
-                <div className="flex justify-end mb-4 gap-4">
+                <div className="flex flex-col items-center w-full mb-8">
+                  <div className="w-full max-w-4xl mx-auto flex items-center justify-center gap-3 transition-all duration-300">
+                    <div className="relative group flex-1">
+                      <input
+                        type="text"
+                        placeholder="Search by playlist name..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className={`pl-10 pr-4 py-3 rounded-xl border-2 w-[32rem] ${
+                          theme === 'dark' 
+                            ? 'bg-slate-800/70 border-slate-700 text-white placeholder-slate-500 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500' 
+                            : 'bg-white/90 border-slate-200 text-gray-900 placeholder-slate-400 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500'
+                        } transition-all duration-300 shadow-lg text-base focus:w-full hover:w-full`}
+                      />
+                      <svg 
+                        className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" 
+                        />
+                      </svg>
+                    </div>
+                    <button 
+                      onClick={() => setShowNotifications(!showNotifications)}
+                      className="relative p-2 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
+                      aria-label="Notifications"
+                    >
+                      <svg 
+                        className="h-6 w-6 text-gray-500 dark:text-gray-400" 
+                        fill="none" 
+                        viewBox="0 0 24 24" 
+                        stroke="currentColor"
+                      >
+                        <path 
+                          strokeLinecap="round" 
+                          strokeLinejoin="round" 
+                          strokeWidth={2} 
+                          d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" 
+                        />
+                      </svg>
+                      {unreadCount > 0 && (
+                        <span className="absolute top-0 right-0 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center border-2 border-white dark:border-slate-800">
+                          {unreadCount > 9 ? '9+' : unreadCount}
+                        </span>
+                      )}
+                    </button>
+                  </div>
+                  {showNotifications && (
+                    <div className="absolute top-24 right-4 w-80 bg-white dark:bg-slate-800 rounded-xl shadow-xl z-50 border border-slate-200 dark:border-slate-700 overflow-hidden">
+                      <div className="p-4 border-b border-slate-200 dark:border-slate-700">
+                        <div className="flex items-center justify-between">
+                          <h3 className="font-semibold text-lg">Notifications</h3>
+                          <button 
+                            onClick={() => setUnreadCount(0)}
+                            className="text-xs text-blue-500 hover:underline"
+                          >
+                            Mark all as read
+                          </button>
+                        </div>
+                      </div>
+                      <div className="max-h-96 overflow-y-auto">
+                        <div className="p-4 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer border-b border-slate-100 dark:border-slate-700">
+                          <p className="text-sm">New playlist added: <span className="font-medium">React Tutorials</span></p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">2 minutes ago</p>
+                        </div>
+                        <div className="p-4 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer border-b border-slate-100 dark:border-slate-700">
+                          <p className="text-sm">Your playlist <span className="font-medium">JavaScript Basics</span> has been updated</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">1 hour ago</p>
+                        </div>
+                        <div className="p-4 hover:bg-slate-100 dark:hover:bg-slate-700/50 cursor-pointer">
+                          <p className="text-sm">Weekly progress report is ready</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">1 day ago</p>
+                        </div>
+                      </div>
+                      <div className="p-3 text-center border-t border-slate-200 dark:border-slate-700">
+                        <button className="text-sm text-blue-500 hover:underline">View all notifications</button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end mb-6">
                   <Button
                     onClick={() => setIsModalOpen(true)}
-                    className="relative overflow-hidden group transition-all duration-300 shadow-xl rounded-full px-4 py-1 text-base font-semibold bg-white text-black hover:bg-black hover:text-white flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-black"
+                    className="relative overflow-hidden group transition-all duration-300 shadow-xl rounded-full px-6 py-2 text-base font-semibold bg-white text-black hover:bg-black hover:text-white flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-black"
                   >
                     <Plus className="w-4 h-4 mr-2 text-black group-hover:text-white transition-colors" />
                     Add Content
