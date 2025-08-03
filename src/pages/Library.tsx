@@ -164,87 +164,103 @@ const Library = () => {
                     Add Content
                   </Button>
                 </div>
-                <div className="flex justify-center">
-                  <Tabs defaultValue="all" className="w-full max-w-3xl animate-fade-in-up">
-                    <TabsList className="w-full flex justify-between gap-2 p-3 rounded-full shadow-2xl bg-white/80 backdrop-blur-md">
+                <div className="flex justify-center w-full px-4">
+                  <Tabs defaultValue="all" className="w-full max-w-5xl animate-fade-in-up">
+                    <TabsList className="w-full flex justify-between gap-1 p-1.5 rounded-xl bg-gradient-to-r from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900 shadow-lg border border-slate-200 dark:border-slate-700">
                       <TabsTrigger 
                         value="all"
-                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
+                        className="relative flex-1 px-6 py-3 text-base font-medium transition-all duration-300 ease-out rounded-lg group"
                       >
-                        All Content
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-blue-500 group-data-[state=active]:opacity-100 opacity-0 transition-opacity"></span>
+                          <span>All Content</span>
+                        </span>
+                        <span className="absolute inset-0 bg-gradient-to-r from-blue-500 to-indigo-600 rounded-lg opacity-0 group-data-[state=active]:opacity-100 transition-all duration-300 -z-10 scale-95 group-hover:opacity-10 group-data-[state=active]:scale-100" />
                       </TabsTrigger>
                       <TabsTrigger 
                         value="videos"
-                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
+                        className="relative flex-1 px-6 py-3 text-base font-medium transition-all duration-300 ease-out rounded-lg group"
                       >
-                        Video Playlists
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-emerald-500 group-data-[state=active]:opacity-100 opacity-0 transition-opacity"></span>
+                          <span>Video Playlists</span>
+                        </span>
+                        <span className="absolute inset-0 bg-gradient-to-r from-emerald-500 to-teal-600 rounded-lg opacity-0 group-data-[state=active]:opacity-100 transition-all duration-300 -z-10 scale-95 group-hover:opacity-10 group-data-[state=active]:scale-100" />
                       </TabsTrigger>
                       <TabsTrigger 
                         value="coding"
-                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
+                        className="relative flex-1 px-6 py-3 text-base font-medium transition-all duration-300 ease-out rounded-lg group"
                       >
-                        Coding Practice
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-purple-500 group-data-[state=active]:opacity-100 opacity-0 transition-opacity"></span>
+                          <span>Coding Practice</span>
+                        </span>
+                        <span className="absolute inset-0 bg-gradient-to-r from-purple-500 to-fuchsia-600 rounded-lg opacity-0 group-data-[state=active]:opacity-100 transition-all duration-300 -z-10 scale-95 group-hover:opacity-10 group-data-[state=active]:scale-100" />
                       </TabsTrigger>
                       <TabsTrigger 
                         value="complete"
-                        className="flex-1 rounded-full px-6 py-3 font-extrabold text-lg transition-all duration-200 relative group focus:outline-none focus:ring-2 focus:ring-black data-[state=active]:bg-black data-[state=active]:text-white data-[state=active]:shadow-xl data-[state=active]:scale-105 data-[state=inactive]:bg-white data-[state=inactive]:text-black hover:bg-gray-100 hover:text-black hover:scale-105"
+                        className="relative flex-1 px-6 py-3 text-base font-medium transition-all duration-300 ease-out rounded-lg group"
                       >
-                        Complete
+                        <span className="relative z-10 flex items-center justify-center gap-2">
+                          <span className="w-2 h-2 rounded-full bg-green-500 group-data-[state=active]:opacity-100 opacity-0 transition-opacity"></span>
+                          <span>Complete</span>
+                        </span>
+                        <span className="absolute inset-0 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg opacity-0 group-data-[state=active]:opacity-100 transition-all duration-300 -z-10 scale-95 group-hover:opacity-10 group-data-[state=active]:scale-100" />
                       </TabsTrigger>
                     </TabsList>
                     <TabsContent value="all" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full px-4">
                         {filteredPlaylists.map((playlist, index) => (
-                          <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
+                          <div key={playlist.id} className="w-full transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 30}ms`}}>
                             <PlaylistCard
                               playlist={playlist}
                               onDelete={deletePlaylist}
-                              delay={index * 100}
+                              delay={index * 30}
                             />
                           </div>
                         ))}
                       </div>
                     </TabsContent>
                     <TabsContent value="videos" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full px-4">
                         {videoPlaylists.map((playlist, index) => (
-                          <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
+                          <div key={playlist.id} className="w-full transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 30}ms`}}>
                             <PlaylistCard
                               playlist={playlist}
                               onDelete={deletePlaylist}
-                              delay={index * 100}
+                              delay={index * 30}
                             />
                           </div>
                         ))}
                       </div>
                     </TabsContent>
                     <TabsContent value="coding" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full px-4">
                         {codingPlaylists.map((playlist, index) => (
-                          <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
+                          <div key={playlist.id} className="w-full transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 30}ms`}}>
                             <PlaylistCard
                               playlist={playlist}
                               onDelete={deletePlaylist}
-                              delay={index * 100}
+                              delay={index * 30}
                             />
                           </div>
                         ))}
                       </div>
                     </TabsContent>
                     <TabsContent value="complete" className="mt-6 animate-fade-in-up">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto w-full px-4">
                         {completedPlaylists.length > 0 ? (
                           completedPlaylists.map((playlist, index) => (
-                            <div key={playlist.id} className="transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 80}ms`}}>
+                            <div key={playlist.id} className="w-full transform hover:scale-[1.02] transition-transform duration-300 animate-fade-in-up" style={{animationDelay: `${index * 30}ms`}}>
                               <PlaylistCard
                                 playlist={playlist}
                                 onDelete={deletePlaylist}
-                                delay={index * 100}
+                                delay={index * 30}
                               />
                             </div>
                           ))
                         ) : (
-                          <div className="text-center text-gray-500 py-12">No completed playlists yet.</div>
+                          <div className="text-center text-gray-500 py-12 col-span-3">No completed playlists yet.</div>
                         )}
                       </div>
                     </TabsContent>
