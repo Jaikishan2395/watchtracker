@@ -243,31 +243,110 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="flex flex-col items-center space-y-4 p-4">
+          {/* Theme Toggle */}
           <button
             onClick={() => setTheme(darkMode ? 'light' : 'dark')}
             className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center",
+              "group/theme relative w-12 h-12 rounded-xl flex items-center justify-center",
               "text-foreground/70 hover:text-foreground transition-all duration-200",
               "hover:bg-foreground/5"
             )}
+            onMouseEnter={() => setActiveHover('theme')}
+            onMouseLeave={() => setActiveHover(null)}
           >
             {darkMode ? (
               <Sun className="w-5 h-5" />
             ) : (
               <Moon className="w-5 h-5" />
             )}
+            {isHovered && (
+              <motion.div 
+                className="absolute left-full ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap shadow-lg"
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  transition: { 
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 25
+                  }
+                }}
+                exit={{ opacity: 0, x: -5 }}
+              >
+                <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
+                <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
+              </motion.div>
+            )}
+          </button>
+
+          {/* Settings Button */}
+          <button
+            onClick={() => navigate('/settings')}
+            className={cn(
+              "group/settings relative w-12 h-12 rounded-xl flex items-center justify-center",
+              "text-foreground/70 hover:text-foreground transition-all duration-200",
+              location.pathname === '/settings' 
+                ? 'bg-foreground/10 text-foreground' 
+                : 'hover:bg-foreground/5'
+            )}
+            onMouseEnter={() => setActiveHover('settings')}
+            onMouseLeave={() => setActiveHover(null)}
+          >
+            <Settings className="w-5 h-5" />
+            {isHovered && (
+              <motion.div 
+                className="absolute left-full ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap shadow-lg"
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  transition: { 
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 25
+                  }
+                }}
+                exit={{ opacity: 0, x: -5 }}
+              >
+                <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
+                <span>Settings</span>
+              </motion.div>
+            )}
           </button>
           
           <div className="w-8 h-px bg-foreground/10"></div>
           
+          {/* Logout Button */}
           <button
             className={cn(
-              "w-12 h-12 rounded-xl flex items-center justify-center",
+              "group/logout relative w-12 h-12 rounded-xl flex items-center justify-center",
               "text-foreground/70 hover:text-foreground transition-all duration-200",
               "hover:bg-foreground/5"
             )}
+            onMouseEnter={() => setActiveHover('logout')}
+            onMouseLeave={() => setActiveHover(null)}
           >
             <LogOut className="w-5 h-5" />
+            {isHovered && (
+              <motion.div 
+                className="absolute left-full ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap shadow-lg"
+                initial={{ opacity: 0, x: -5 }}
+                animate={{ 
+                  opacity: 1, 
+                  x: 0,
+                  transition: { 
+                    type: 'spring',
+                    stiffness: 500,
+                    damping: 25
+                  }
+                }}
+                exit={{ opacity: 0, x: -5 }}
+              >
+                <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
+                <span>Logout</span>
+              </motion.div>
+            )}
           </button>
         </SidebarFooter>
       </Sidebar>
