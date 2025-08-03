@@ -31,14 +31,14 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload && payload.length) {
     const type = payload[0].payload.type;
     return (
-      <div className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-sm p-3 rounded-lg shadow-lg border border-slate-200 dark:border-slate-700">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">{label}</p>
-        <p className="text-xs text-slate-500 dark:text-slate-400 capitalize">{type} Playlist</p>
+      <div className="bg-white/90 dark:bg-slate-900/95 backdrop-blur-sm p-3 rounded-lg shadow-xl border border-slate-200 dark:border-slate-700">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100">{label}</p>
+        <p className="text-xs text-slate-500 dark:text-slate-300 capitalize mb-1">{type} Playlist</p>
         {payload.map((pld, index: number) => (
-          <div key={index} className="flex items-center gap-2 text-xs mt-1">
-            <div className="w-2 h-2 rounded-full" style={{ backgroundColor: pld.color }} />
-            <p className="text-slate-600 dark:text-slate-400">{`${pld.name}:`}</p>
-            <p className="font-medium text-slate-700 dark:text-slate-300">{pld.value}</p>
+          <div key={index} className="flex items-center gap-2 text-xs mt-1.5">
+            <div className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: pld.color }} />
+            <span className="text-slate-600 dark:text-slate-300 font-medium">{pld.name}:</span>
+            <span className="font-semibold text-slate-800 dark:text-white">{pld.value}</span>
           </div>
         ))}
       </div>
@@ -343,7 +343,26 @@ const Index = () => {
     };
   }).filter(item => item['Time Spent (min)'] > 0 || item['Content Watched'] > 0);
 
-  const COLORS = ['#8884d8', '#82ca9d'];
+  const COLORS = {
+  light: {
+    bar1: '#8884d8',
+    bar2: '#82ca9d',
+    text: '#1f2937',
+    grid: '#e5e7eb',
+    background: '#ffffff',
+    tooltipBg: 'rgba(255, 255, 255, 0.9)',
+    tooltipBorder: '#e5e7eb',
+  },
+  dark: {
+    bar1: '#a78bfa',
+    bar2: '#34d399',
+    text: '#f3f4f6',
+    grid: '#374151',
+    background: 'rgba(30, 41, 59, 0.5)',
+    tooltipBg: 'rgba(15, 23, 42, 0.95)',
+    tooltipBorder: '#334155',
+  }
+};
 
   const progressData = [
     { name: 'Videos', completed: stats.completedVideos, total: stats.totalVideos },
@@ -351,8 +370,16 @@ const Index = () => {
   ];
 
   const pieData = [
-    { name: 'Completed', value: stats.completedVideos + stats.solvedQuestions, color: '#10b981' },
-    { name: 'Remaining', value: (stats.totalVideos - stats.completedVideos) + (stats.totalCodingQuestions - stats.solvedQuestions), color: '#e5e7eb' }
+    { 
+      name: 'Completed', 
+      value: stats.completedVideos + stats.solvedQuestions, 
+      color: document.documentElement.classList.contains('dark') ? '#34d399' : '#10b981' 
+    },
+    { 
+      name: 'Remaining', 
+      value: (stats.totalVideos - stats.completedVideos) + (stats.totalCodingQuestions - stats.solvedQuestions), 
+      color: document.documentElement.classList.contains('dark') ? '#374151' : '#e5e7eb' 
+    }
   ];
 
   // --- Most Productive Hours Data ---
@@ -473,7 +500,7 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-slate-800 dark:to-slate-900 transition-colors duration-200">
       <div className="container mx-auto px-6 py-8">
         {/* Responsive row: Heatmap (left, wider) and Active Day Card (right) at the very top */}
         <div className="flex flex-col md:flex-row gap-6 mb-8 w-full">
@@ -485,78 +512,134 @@ const Index = () => {
           </div>
           {/* Active Day Card - right */}
           <div className="md:w-1/3 w-full flex justify-center items-center">
-            <Card className="relative overflow-hidden bg-white/80 rounded-2xl animate-fade-in w-full max-w-xs shadow-lg">
+            <Card className="relative overflow-hidden bg-white/80 dark:bg-slate-800/80 backdrop-blur-sm rounded-2xl animate-fade-in w-full max-w-xs shadow-lg dark:shadow-slate-900/30 border border-white/20 dark:border-slate-700/50 transition-all duration-300 hover:shadow-xl hover:dark:shadow-slate-800/50">
+              {/* Animated background gradient */}
+              <div className="absolute inset-0 bg-gradient-to-br from-blue-50/30 to-indigo-50/30 dark:from-blue-900/20 dark:to-indigo-900/20 opacity-70 -z-10" />
+              
               <CardHeader className="pb-2 relative z-10">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-base md:text-lg font-bold flex items-center gap-2">
-                    <div className="p-2.5 rounded-xl bg-gray-100">
-                      <Calendar className="w-6 h-6 text-gray-700" />
+                  <CardTitle className="text-base md:text-lg font-bold flex items-center gap-2 text-slate-800 dark:text-slate-100">
+                    <div className="p-2.5 rounded-xl bg-blue-100 dark:bg-blue-900/40 transition-colors">
+                      <Calendar className="w-5 h-5 text-blue-600 dark:text-blue-400" />
                     </div>
+                    <span>Activity</span>
                     {userStats.currentStreak >= 3 && (
-                      <span className="ml-2 flex items-center gap-1 px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold animate-pulse">
-                        <Flame className="w-4 h-4 text-gray-700" /> {userStats.currentStreak}d streak
+                      <span className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-full bg-gradient-to-r from-amber-400/20 to-orange-400/20 text-amber-600 dark:text-amber-400 text-xs font-semibold animate-pulse border border-amber-200/30 shadow-[0_0_10px_rgba(251,191,36,0.1)]">
+                        <Flame className="w-3.5 h-3.5" />
+                        <span>{userStats.currentStreak}d streak</span>
                       </span>
                     )}
                   </CardTitle>
                 </div>
               </CardHeader>
-              <CardContent className="relative z-10 flex flex-col items-center gap-4">
-                <div className="relative flex items-center justify-center mb-2">
-                  <svg width="90" height="90" viewBox="0 0 90 90" className="block">
-                    <circle cx="45" cy="45" r="40" fill="none" stroke="#e0e7ef" strokeWidth="8" />
+              
+              <CardContent className="relative z-10 flex flex-col items-center gap-4 pt-0">
+                <div className="relative flex items-center justify-center my-2">
+                  <svg width="100" height="100" viewBox="0 0 100 100" className="block">
+                    {/* Background circle */}
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="45" 
+                      fill="none" 
+                      stroke="currentColor" 
+                      className="text-slate-200 dark:text-slate-700" 
+                      strokeWidth="8" 
+                    />
+                    {/* Progress circle */}
                     <circle
-                      cx="45" cy="45" r="40" fill="none"
+                      cx="50" 
+                      cy="50" 
+                      r="45" 
+                      fill="none"
                       stroke="url(#active-gradient)"
                       strokeWidth="8"
-                      strokeDasharray={2 * Math.PI * 40}
-                      strokeDashoffset={2 * Math.PI * 40 * (1 - Math.min(1, userStats.daysActive / 30))}
+                      strokeDasharray={2 * Math.PI * 45}
+                      strokeDashoffset={2 * Math.PI * 45 * (1 - Math.min(1, userStats.daysActive / 30))}
                       strokeLinecap="round"
-                      style={{ transition: 'stroke-dashoffset 1s cubic-bezier(.4,2,.6,1)' }}
+                      className="transition-all duration-1000 ease-out"
+                      transform="rotate(-90 50 50)"
                     />
                     <defs>
-                      <linearGradient id="active-gradient" x1="0" y1="0" x2="90" y2="90" gradientUnits="userSpaceOnUse">
-                        <stop stopColor="#3b82f6" />
-                        <stop offset="1" stopColor="#6366f1" />
+                      <linearGradient id="active-gradient" x1="0%" y1="0%" x2="100%" y2="100%" gradientUnits="userSpaceOnUse">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#8b5cf6" />
                       </linearGradient>
                     </defs>
+                    
+                    {/* Inner glow */}
+                    <circle 
+                      cx="50" 
+                      cy="50" 
+                      r="38" 
+                      fill="url(#inner-glow)" 
+                      className="opacity-20"
+                    />
+                    <defs>
+                      <radialGradient id="inner-glow" cx="50%" cy="50%" r="100%" fx="30%" fy="30%">
+                        <stop offset="0%" stopColor="#3b82f6" />
+                        <stop offset="100%" stopColor="#8b5cf6" stopOpacity="0" />
+                      </radialGradient>
+                    </defs>
                   </svg>
+                  
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-4xl font-extrabold text-black">
+                    <span className="text-4xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600 dark:from-blue-400 dark:to-indigo-400 transition-colors">
                       {userStats.daysActive}
                     </span>
-                    <span className="text-xs text-gray-400 font-medium">Days</span>
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
+                      Active Days
+                    </span>
                   </div>
                 </div>
-                <div className="w-full text-center mt-2">
-                  <span className="text-sm font-semibold text-black">
+                
+                <div className="w-full text-center">
+                  <span className="text-sm font-medium bg-gradient-to-r from-slate-700 to-slate-900 dark:from-slate-300 dark:to-slate-100 bg-clip-text text-transparent px-3 py-1 rounded-full inline-flex items-center">
                     {userStats.currentStreak >= 7
-                      ? '🔥 Amazing! You have a week-long streak!'
+                      ? '🔥 Amazing! Week-long streak!'
                       : userStats.currentStreak >= 3
-                        ? 'Keep your streak alive!'
+                        ? '🔥 Keep your streak going!'
                         : userStats.daysActive >= 3
-                          ? 'Great start! Stay consistent.'
-                          : 'Start your learning streak today!'}
+                          ? '✨ Great start! Stay consistent.'
+                          : '🚀 Start your learning journey!'}
                   </span>
                 </div>
-                <div className="w-full flex flex-col items-center mt-2 mb-2">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 border border-gray-200">
-                      <Flame className="w-7 h-7 blink-red" />
+                
+                <div className="w-full flex flex-col items-center mt-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-gradient-to-br from-amber-400/20 to-orange-400/20 border border-amber-200/30 shadow-[0_0_15px_rgba(251,191,36,0.15)]">
+                      <Flame className="w-6 h-6 text-amber-500 dark:text-amber-400 animate-pulse" />
                     </span>
-                    <span className="text-3xl font-extrabold text-black ml-2">{userStats.currentStreak}</span>
-                    <span className="text-base text-gray-500 font-medium ml-1">day streak</span>
-                    <span className="ml-2">
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="cursor-pointer text-gray-400">
-                            <Info className="w-4 h-4" />
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent>
-                          <span>Current streak: consecutive days you have been active. Keep it going for rewards!</span>
-                        </TooltipContent>
-                      </Tooltip>
-                    </span>
+                    <div className="text-left">
+                      <div className="flex items-baseline gap-1">
+                        <span className="text-3xl font-extrabold bg-clip-text text-transparent bg-gradient-to-r from-amber-600 to-orange-600 dark:from-amber-400 dark:to-orange-400">
+                          {userStats.currentStreak}
+                        </span>
+                        <span className="text-sm font-medium text-slate-500 dark:text-slate-400 ml-1">
+                          day{userStats.currentStreak !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                      <div className="text-xs font-medium text-slate-400 dark:text-slate-500">
+                        Current streak
+                      </div>
+                    </div>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <span className="cursor-pointer text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors ml-1">
+                          <Info className="w-4 h-4" />
+                        </span>
+                      </TooltipTrigger>
+                      <TooltipContent className="bg-slate-900 text-slate-100 text-xs p-2 border-slate-700 shadow-lg">
+                        <p className="font-medium">Current Streak</p>
+                        <p className="text-slate-300">Consecutive days you've been active. Keep it going for rewards!</p>
+                        <div className="mt-1 pt-1 border-t border-slate-700">
+                          <div className="flex items-center gap-1 text-amber-400">
+                            <Flame className="w-3 h-3" />
+                            <span className="text-xs font-medium">+{userStats.currentStreak}x streak bonus</span>
+                          </div>
+                        </div>
+                      </TooltipContent>
+                    </Tooltip>
                   </div>
                   <div className="flex items-center gap-3 mb-2">
                     <span className="text-xs text-gray-400">Longest streak:</span>
@@ -638,10 +721,10 @@ const Index = () => {
           />
         </div>
 
-        <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+        <Card className="mb-8 bg-white/60 dark:bg-slate-800/70 backdrop-blur-lg border border-white/20 dark:border-slate-700/50 shadow-lg dark:shadow-slate-900/30 transition-all hover:shadow-xl hover:dark:shadow-slate-800/50">
           <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-6 h-6" />
+            <CardTitle className="flex items-center gap-2 text-slate-800 dark:text-slate-100">
+              <TrendingUp className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               Playlist Stats
             </CardTitle>
             <CardDescription>Breakdown of time spent and content watched for each playlist.</CardDescription>
@@ -663,13 +746,38 @@ const Index = () => {
               <div style={{ minWidth: Math.max(playlistChartData.length * 120, 400) }}>
                 <ReResponsiveContainer width="100%" height={300}>
                   <ReBarChart data={playlistChartData} margin={{ top: 20, right: 30, left: 20, bottom: 70 }}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <ReXAxis dataKey="name" angle={-45} textAnchor="end" interval={0} tick={{ fontSize: 12 }} />
-                    <ReYAxis />
+                    <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-slate-200 dark:text-slate-700" />
+                    <ReXAxis 
+                      dataKey="name" 
+                      angle={-45} 
+                      textAnchor="end" 
+                      interval={0} 
+                      tick={{ 
+                        fontSize: 12, 
+                        fill: 'currentColor',
+                        className: 'text-slate-500 dark:text-slate-400 text-xs'
+                      }} 
+                    />
+                    <ReYAxis 
+                      tick={{ 
+                        fill: 'currentColor',
+                        className: 'text-slate-500 dark:text-slate-400 text-xs'
+                      }}
+                    />
                     <ReTooltip content={<CustomTooltip />} />
                     <Legend />
-                    <ReBar dataKey="Time Spent (min)" fill={COLORS[0]} />
-                    <ReBar dataKey="Content Watched" fill={COLORS[1]} />
+                    <ReBar 
+                      dataKey="Time Spent (min)" 
+                      fill={document.documentElement.classList.contains('dark') ? COLORS.dark.bar1 : COLORS.light.bar1}
+                      radius={[4, 4, 0, 0]}
+                      className="transition-colors duration-200"
+                    />
+                    <ReBar 
+                      dataKey="Content Watched" 
+                      fill={document.documentElement.classList.contains('dark') ? COLORS.dark.bar2 : COLORS.light.bar2}
+                      radius={[4, 4, 0, 0]}
+                      className="transition-colors duration-200"
+                    />
                   </ReBarChart>
                 </ReResponsiveContainer>
               </div>
@@ -677,7 +785,7 @@ const Index = () => {
           </CardContent>
         </Card>
 
-        <Card className="mb-8 bg-white/50 dark:bg-slate-800/50 backdrop-blur-lg border-0 shadow-xl">
+        <Card className="mb-8 bg-white/60 dark:bg-slate-800/70 backdrop-blur-lg border border-white/20 dark:border-slate-700/50 shadow-lg dark:shadow-slate-900/30 transition-all hover:shadow-xl hover:dark:shadow-slate-800/50">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="w-6 h-6" />
@@ -688,11 +796,37 @@ const Index = () => {
           <CardContent>
             <ReResponsiveContainer width="100%" height={220}>
               <ReBarChart data={hoursData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <ReXAxis dataKey="hour" tickFormatter={h => `${h}:00`} />
-                <ReYAxis allowDecimals={false} />
-                <ReTooltip formatter={v => `${v} activities`} />
-                <ReBar dataKey="count" fill="#3b82f6" />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-slate-200 dark:text-slate-700" />
+                <ReXAxis 
+                  dataKey="hour" 
+                  tickFormatter={h => `${h}:00`} 
+                  tick={{
+                    fill: 'currentColor',
+                    className: 'text-slate-500 dark:text-slate-400 text-xs'
+                  }}
+                />
+                <ReYAxis 
+                  allowDecimals={false} 
+                  tick={{
+                    fill: 'currentColor',
+                    className: 'text-slate-500 dark:text-slate-400 text-xs'
+                  }}
+                />
+                <ReTooltip 
+                  contentStyle={{
+                    backgroundColor: document.documentElement.classList.contains('dark') ? COLORS.dark.tooltipBg : COLORS.light.tooltipBg,
+                    borderColor: document.documentElement.classList.contains('dark') ? COLORS.dark.tooltipBorder : COLORS.light.tooltipBorder,
+                    borderRadius: '0.5rem',
+                    color: document.documentElement.classList.contains('dark') ? COLORS.dark.text : COLORS.light.text,
+                  }}
+                  formatter={v => [`${v} activities`, 'Count']}
+                />
+                <ReBar 
+                  dataKey="count" 
+                  fill={document.documentElement.classList.contains('dark') ? '#60a5fa' : '#3b82f6'}
+                  radius={[4, 4, 0, 0]}
+                  className="transition-colors duration-200"
+                />
               </ReBarChart>
             </ReResponsiveContainer>
           </CardContent>
@@ -725,11 +859,40 @@ const Index = () => {
             <CardContent>
               <ReResponsiveContainer width="100%" height={220}>
                 <ReBarChart data={breakData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" />
-                  <ReXAxis dataKey="label" tickFormatter={l => breakAgg === 'day' ? l.slice(5) : l} interval={breakAgg === 'day' ? 4 : 0} />
-                  <ReYAxis allowDecimals={false} />
-                  <ReTooltip formatter={v => `${v} sessions`} />
-                  <ReBar dataKey="count" fill="#f43f5e" />
+                  <CartesianGrid strokeDasharray="3 3" stroke="currentColor" className="text-slate-200 dark:text-slate-700" />
+                  <ReXAxis 
+                    dataKey="label" 
+                    tickFormatter={l => breakAgg === 'day' ? l.slice(5) : l} 
+                    interval={breakAgg === 'day' ? 4 : 0}
+                    tick={{
+                      fill: 'currentColor',
+                      className: 'text-slate-500 dark:text-slate-400 text-xs',
+                      angle: breakAgg === 'day' ? 0 : -45,
+                      textAnchor: breakAgg === 'day' ? 'middle' : 'end'
+                    }}
+                  />
+                  <ReYAxis 
+                    allowDecimals={false}
+                    tick={{
+                      fill: 'currentColor',
+                      className: 'text-slate-500 dark:text-slate-400 text-xs'
+                    }}
+                  />
+                  <ReTooltip 
+                    contentStyle={{
+                      backgroundColor: document.documentElement.classList.contains('dark') ? COLORS.dark.tooltipBg : COLORS.light.tooltipBg,
+                      borderColor: document.documentElement.classList.contains('dark') ? COLORS.dark.tooltipBorder : COLORS.light.tooltipBorder,
+                      borderRadius: '0.5rem',
+                      color: document.documentElement.classList.contains('dark') ? COLORS.dark.text : COLORS.light.text,
+                    }}
+                    formatter={v => [`${v} sessions`, 'Count']}
+                  />
+                  <ReBar 
+                    dataKey="count" 
+                    fill={document.documentElement.classList.contains('dark') ? '#fb7185' : '#f43f5e'}
+                    radius={[4, 4, 0, 0]}
+                    className="transition-colors duration-200"
+                  />
                 </ReBarChart>
               </ReResponsiveContainer>
             </CardContent>
