@@ -59,6 +59,10 @@ const AppContent = () => {
   const location = useLocation();
   const isAuthPage = ['/', '/login', '/create-account', '/landing'].includes(location.pathname);
 
+  // Responsive sidebar state
+  const { state } = useSidebar();
+  const isOpen = state === 'expanded';
+
   useEffect(() => {
     // Load questions when the app starts
     loadQuestionsFromFile().catch(error => {
@@ -67,45 +71,71 @@ const AppContent = () => {
   }, []);
 
   return (
-    <SidebarProvider>
-      
-      <div className="min-h-screen flex w-full">
-        {!isAuthPage && <AppSidebar />}
-        <main className={`flex-1 ${!isAuthPage ? '' : 'w-full'}`}>
-          <SidebarDoubleClickCloser>
-            <Routes>
-              <Route path="/" element={<Splash />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/create-account" element={<CreateAccount />} />
-              <Route path="/dashboard" element={<Index />} />
-              <Route path="/library" element={<Library />} />
-              <Route path="/classroom" element={<Classroom />} />
-              <Route path="/clubs" element={<Clubs />} />
-              <Route path="/todo" element={<Todo />} />
-              <Route path="/pomodoro" element={<Pomodoro />} />
-              <Route path="/premium" element={<Premium />} />
-              <Route path="/bridgelab" element={<BridgeLab />} />
-              <Route path="/launch" element={<Launch />} />
-              <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
-              <Route path="/view-create" element={<ViewCreate />} />
-              <Route path="/shorts" element={<Shorts />} />
-              <Route path="/landing" element={<LandingPage />} />
-              <Route path="/find-cofounder" element={<FindCoFounder />} />
-              <Route 
-                path="/playlist/:playlistId" 
-                element={<PlaylistDetailWrapper />} 
-              />
-              <Route path="/playlist/:playlistId/play" element={<VideoPlayer />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </SidebarDoubleClickCloser>
-        </main>
-      </div>
-    </SidebarProvider>
+    <div className="min-h-screen flex w-full">
+      {/* Only render sidebar if not auth page AND sidebar is expanded */}
+      {!isAuthPage && isOpen && <AppSidebar />}
+      <main
+        className={`flex-1 transition-all duration-300 ${
+          !isAuthPage
+            ? isOpen
+              ? 'ml-24' // Sidebar is visible
+              : 'ml-0'  // Sidebar is hidden, content expands
+            : 'w-full'
+        }`}
+      >
+        <SidebarDoubleClickCloser>
+          <Routes>
+            <Route path="/" element={<Splash />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/create-account" element={<CreateAccount />} />
+            <Route path="/dashboard" element={<Index />} />
+            <Route path="/library" element={<Library />} />
+            <Route path="/classroom" element={<Classroom />} />
+            <Route path="/clubs" element={<Clubs />} />
+            <Route path="/todo" element={<Todo />} />
+            <Route path="/pomodoro" element={<Pomodoro />} />
+            <Route path="/premium" element={<Premium />} />
+            <Route path="/bridgelab" element={<BridgeLab />} />
+            <Route path="/launch" element={<Launch />} />
+            <Route path="/acceleratorlibrary" element={<AcceleratorLibrary />} />
+            <Route path="/view-create" element={<ViewCreate />} />
+            <Route path="/shorts" element={<Shorts />} />
+            <Route path="/landing" element={<LandingPage />} />
+            <Route path="/find-cofounder" element={<FindCoFounder />} />
+            <Route 
+              path="/playlist/:playlistId" 
+              element={<PlaylistDetailWrapper />} 
+            />
+            <Route path="/playlist/:playlistId/play" element={<VideoPlayer />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </SidebarDoubleClickCloser>
+      </main>
+    </div>
   );
 };
+
+const App = () => (
+  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
+    <PlaylistProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <Router>
+            <SidebarProvider>
+              <AppContent />
+            </SidebarProvider>
+          </Router>
+        </TooltipProvider>
+      </QueryClientProvider>
+    </PlaylistProvider>
+  </ThemeProvider>
+);
+
+export default App;
 
 // New component to handle playlist type routing
 const PlaylistDetailWrapper = () => {
@@ -189,21 +219,3 @@ const PlaylistDetailWrapper = () => {
   console.log('PlaylistDetailWrapper: Rendering component for playlist type:', playlistType);
   return playlistType === 'coding' ? <PlaylistDetailCoding /> : <PlaylistDetail />;
 };
-
-const App = () => (
-  <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
-    <PlaylistProvider>
-      <QueryClientProvider client={queryClient}>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <Router>
-            <AppContent />
-          </Router>
-        </TooltipProvider>
-      </QueryClientProvider>
-    </PlaylistProvider>
-  </ThemeProvider>
-);
-
-export default App;

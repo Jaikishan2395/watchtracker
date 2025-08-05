@@ -1,5 +1,4 @@
-import { useTheme } from "next-themes";
-import { Home, User, Library, Settings, CheckSquare, School, Sparkles, ChevronLeft, ChevronRight, LogOut, Moon, Sun } from 'lucide-react';
+import { Home, User, Library, Settings, CheckSquare, School, Sparkles, ChevronLeft, ChevronRight, LogOut, Moon, Sun, PlayCircle } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useState, useEffect } from 'react';
@@ -83,8 +82,6 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { state, toggleSidebar, open } = useSidebar();
   const isOpen = state === 'expanded';
-  const { theme, setTheme } = useTheme();
-  const darkMode = theme === 'dark';
   const [isHovered, setIsHovered] = useState(false);
   const [activeHover, setActiveHover] = useState<string | null>(null);
 
@@ -157,27 +154,6 @@ export function AppSidebar() {
               }}
             />
           </motion.div>
-          
-          {/* App Name Tooltip */}
-          {isHovered && (
-            <motion.div 
-              className="absolute left-24 ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-sm font-medium whitespace-nowrap shadow-lg"
-              initial={{ opacity: 0, x: -5 }}
-              animate={{ 
-                opacity: 1, 
-                x: 0,
-                transition: { 
-                  type: 'spring',
-                  stiffness: 500,
-                  damping: 25
-                }
-              }}
-              exit={{ opacity: 0, x: -5 }}
-            >
-              <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
-              <span className="relative z-10">EduBridge</span>
-            </motion.div>
-          )}
         </SidebarHeader>
 
         <SidebarContent className="flex-1 flex flex-col items-center py-4 space-y-3 px-2">
@@ -222,20 +198,6 @@ export function AppSidebar() {
                       )} 
                     />
                   )}
-                  
-                  {/* Tooltip */}
-                  <div className={cn(
-                    "absolute left-full ml-3 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap",
-                    "bg-foreground text-background shadow-xl pointer-events-none transition-all duration-200",
-                    "flex items-center",
-                    isHovered ? 'opacity-100' : 'opacity-0',
-                    activeHover === item.title ? 'scale-100' : 'scale-95',
-                    "before:content-[''] before:absolute before:right-full before:top-1/2 before:-translate-y-1/2",
-                    "before:border-t-4 before:border-b-4 before:border-l-0 before:border-r-4 before:border-t-transparent before:border-b-transparent",
-                    "before:border-r-foreground before:border-l-0"
-                  )}>
-                    {item.title}
-                  </div>
                 </SidebarMenuButton>
               </SidebarMenuItem>
             </SidebarMenu>
@@ -243,43 +205,7 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="flex flex-col items-center space-y-4 p-4">
-          {/* Theme Toggle */}
-          <button
-            onClick={() => setTheme(darkMode ? 'light' : 'dark')}
-            className={cn(
-              "group/theme relative w-12 h-12 rounded-xl flex items-center justify-center",
-              "text-foreground/70 hover:text-foreground transition-all duration-200",
-              "hover:bg-foreground/5"
-            )}
-            onMouseEnter={() => setActiveHover('theme')}
-            onMouseLeave={() => setActiveHover(null)}
-          >
-            {darkMode ? (
-              <Sun className="w-5 h-5" />
-            ) : (
-              <Moon className="w-5 h-5" />
-            )}
-            {isHovered && (
-              <motion.div 
-                className="absolute left-full ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap shadow-lg"
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0,
-                  transition: { 
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 25
-                  }
-                }}
-                exit={{ opacity: 0, x: -5 }}
-              >
-                <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
-                <span>{darkMode ? 'Light Mode' : 'Dark Mode'}</span>
-              </motion.div>
-            )}
-          </button>
-
+          {/* REMOVE Theme Toggle Button */}
           {/* Settings Button */}
           <button
             onClick={() => navigate('/settings')}
@@ -294,25 +220,6 @@ export function AppSidebar() {
             onMouseLeave={() => setActiveHover(null)}
           >
             <Settings className="w-5 h-5" />
-            {isHovered && (
-              <motion.div 
-                className="absolute left-full ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap shadow-lg"
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0,
-                  transition: { 
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 25
-                  }
-                }}
-                exit={{ opacity: 0, x: -5 }}
-              >
-                <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
-                <span>Settings</span>
-              </motion.div>
-            )}
           </button>
           
           <div className="w-8 h-px bg-foreground/10"></div>
@@ -328,25 +235,6 @@ export function AppSidebar() {
             onMouseLeave={() => setActiveHover(null)}
           >
             <LogOut className="w-5 h-5" />
-            {isHovered && (
-              <motion.div 
-                className="absolute left-full ml-2 bg-foreground/90 text-background px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap shadow-lg"
-                initial={{ opacity: 0, x: -5 }}
-                animate={{ 
-                  opacity: 1, 
-                  x: 0,
-                  transition: { 
-                    type: 'spring',
-                    stiffness: 500,
-                    damping: 25
-                  }
-                }}
-                exit={{ opacity: 0, x: -5 }}
-              >
-                <div className="absolute left-0 top-1/2 -ml-1 w-2 h-2 bg-foreground/90 rotate-45 -translate-y-1/2"></div>
-                <span>Logout</span>
-              </motion.div>
-            )}
           </button>
         </SidebarFooter>
       </Sidebar>
