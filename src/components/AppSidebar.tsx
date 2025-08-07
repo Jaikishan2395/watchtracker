@@ -1,15 +1,12 @@
-import { Home, User, Library, Settings, CheckSquare, School, Sparkles, ChevronLeft, ChevronRight, LogOut, Moon, Sun, PlayCircle } from 'lucide-react';
+import { Home, User, Library, Settings, CheckSquare, School, Sparkles, ChevronRight, LogOut } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
 import logo from '../assets/logo.png';
 import bridgelabLogo from '../assets/bridgelab_logo.png';
 import {
   Sidebar,
   SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -80,42 +77,67 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { state, toggleSidebar, open } = useSidebar();
+  const { state } = useSidebar();
   const isOpen = state === 'expanded';
-  const [isHovered, setIsHovered] = useState(false);
   const [activeHover, setActiveHover] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  // Mobile Footer Navigation (always visible on small screens)
+  const MobileFooter = () => (
+    <nav className="fixed bottom-0 left-0 w-full bg-white dark:bg-zinc-900 border-t border-zinc-200 dark:border-zinc-800 flex justify-around items-center py-2 z-50 md:hidden">
+      {menuItems.map((item) => (
+        <button
+          key={item.title}
+          onClick={() => navigate(item.url)}
+          className={cn(
+            "flex flex-col items-center justify-center px-2 py-1",
+            location.pathname === item.url
+              ? "text-blue-600 dark:text-blue-400"
+              : "text-zinc-500 dark:text-zinc-400"
+          )}
+        >
+          {item.customIcon ? (
+            <img src={item.customIcon} alt={item.title} className="w-6 h-6" />
+          ) : (
+            <item.icon className="w-6 h-6" />
+          )}
+          <span className="text-xs mt-1">{item.title}</span>
+        </button>
+      ))}
+    </nav>
+  );
+
+  // Only show sidebar on desktop/tablet
+  if (isMobile) {
+    return <MobileFooter />;
+  }
 
   return (
-    <div className="h-screen flex flex-col">
-      <Sidebar 
+    <>
+      <div
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
           "bg-gradient-to-b from-sidebar to-sidebar/80 backdrop-blur-md text-sidebar-foreground border-r border-sidebar-border/20 shadow-2xl",
           isOpen ? 'w-24' : 'w-20 hover:w-24',
-          "overflow-y-auto overflow-x-hidden scrollbar-hide"
+          "overflow-y-auto overflow-x-hidden scrollbar-hide",
+          "md:flex"
         )}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => {
-          setIsHovered(false);
-          setActiveHover(null);
-        }}
       >
         {/* Minimalist Logo Header */}
         <SidebarHeader className="relative flex items-center justify-center h-24 px-2">
           <motion.div 
             className="group/logo relative"
-            whileHover={{ 
-              scale: 1.05,
-              transition: { duration: 0.2 }
-            }}
+            whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
           >
-            {/* Logo with subtle hover effects */}
             <motion.div
               className="relative z-10 p-3"
-              whileHover={{
-                y: -2,
-                transition: { duration: 0.2 }
-              }}
+              whileHover={{ y: -2, transition: { duration: 0.2 } }}
             >
               <img 
                 src={logo} 
@@ -126,8 +148,6 @@ export function AppSidebar() {
                   "drop-shadow-md"
                 )}
               />
-              
-              {/* Glow effect on hover */}
               <motion.div 
                 className="absolute inset-0 rounded-full opacity-0 group-hover/logo:opacity-100 -z-10"
                 style={{
@@ -138,20 +158,10 @@ export function AppSidebar() {
                 transition={{ duration: 0.5 }}
               />
             </motion.div>
-            
-            {/* Subtle dot indicator for active state */}
             <motion.div 
               className="absolute -bottom-1 left-1/2 w-1 h-1 rounded-full bg-blue-500 opacity-0 group-hover/logo:opacity-100"
               initial={{ x: '-50%', scale: 0 }}
-              whileHover={{ 
-                scale: 1,
-                y: -2,
-                transition: { 
-                  type: 'spring',
-                  stiffness: 500,
-                  damping: 20
-                }
-              }}
+              whileHover={{ scale: 1, y: -2, transition: { type: 'spring', stiffness: 500, damping: 20 } }}
             />
           </motion.div>
         </SidebarHeader>
@@ -205,8 +215,6 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="flex flex-col items-center space-y-4 p-4">
-          {/* REMOVE Theme Toggle Button */}
-          {/* Settings Button */}
           <button
             onClick={() => navigate('/settings')}
             className={cn(
@@ -221,10 +229,7 @@ export function AppSidebar() {
           >
             <Settings className="w-5 h-5" />
           </button>
-          
           <div className="w-8 h-px bg-foreground/10"></div>
-          
-          {/* Logout Button */}
           <button
             className={cn(
               "group/logout relative w-12 h-12 rounded-xl flex items-center justify-center",
@@ -237,7 +242,7 @@ export function AppSidebar() {
             <LogOut className="w-5 h-5" />
           </button>
         </SidebarFooter>
-      </Sidebar>
-    </div>
+      </div>
+    </>
   );
 }
