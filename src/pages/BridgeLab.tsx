@@ -1577,7 +1577,7 @@ const BridgeLab: React.FC = () => {
 
         {/* Enhanced New Tag Input */}
         {showNewTagInput && (
-          <div className="mt-2 p-2 bg-gradient-to-r from-gray-50 to-gray-100 rounded-2xl shadow-md">
+          <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 relative pl-20 md:pl-64">
             <div className="flex items-center gap-2 mb-2">
               <div>
                 <span className="text-sm font-semibold text-gray-900">Create New Tag</span>
@@ -3709,12 +3709,7 @@ const BridgeLab: React.FC = () => {
     <div className="min-h-screen bg-white flex flex-col items-center animate-fade-in font-sans relative" style={{ fontFamily: 'Space Grotesk, Inter, Helvetica Neue, Arial, sans-serif' }}>
       {/* Faint background pattern */}
       <div className="absolute inset-0 pointer-events-none z-0" style={{ backgroundImage: 'radial-gradient(circle, #e5e5e5 1px, transparent 1.5px)', backgroundSize: '32px 32px', opacity: 0.18 }} />
-      {/* Fixed Logo at top left */}
-      <div className="fixed top-6 left-6 z-50 flex flex-col items-center">
-        <div className="bg-black text-white shadow-xl rounded-full p-1 flex items-center justify-center h-28 w-28 border border-white">
-          <img src={BridgeLabLogo} alt="BridgeLab Logo" className="h-24 w-24 object-contain bg-white rounded-full" />
-        </div>
-      </div>
+
       <div className="w-full max-w-7xl z-10" style={{ marginLeft: '9rem' }}>
         {/* Top left: Heading, Back Button and Top right: Search */}
         <div className="flex items-center justify-between gap-4 pt-8 pb-4 pl-4 pr-4">
@@ -4595,37 +4590,76 @@ const BridgeLab: React.FC = () => {
           )}
         </div>
         
-        {/* Bottom Navigation Tabs */}
-        <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pointer-events-none">
-          <div className="w-full max-w-7xl mx-auto pointer-events-auto px-4">
-            <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList
-                className="flex flex-row gap-0 bg-white/90 backdrop-blur-md border border-neutral-200 rounded-xl shadow-2xl w-full justify-between px-2 py-2 mb-0 mt-0 transition-all duration-300"
-                style={{ minHeight: '3.5rem' }}
-              >
-                {tabItems.map(({ value, label, icon }) => (
+        {/* Enhanced Vertical Sidebar */}
+        <div className="fixed left-0 top-0 bottom-0 z-40 w-20 md:w-64 transition-all duration-300 bg-gradient-to-b from-white via-blue-50/50 to-white/90 backdrop-blur-sm border-r border-blue-100/50 shadow-2xl hover:shadow-2xl">
+          <div className="flex flex-col h-full">
+            {/* Navigation Tabs */}
+            <Tabs value={tab} onValueChange={setTab} className="flex-1 flex flex-col h-full py-4 px-1.5">
+              <TabsList className="flex flex-col gap-1.5 bg-transparent h-full justify-start">
+                {/* BridgeLab Logo above Discover */}
+                {tabItems[0].value === 'discover' && (
+                  <div className="flex items-center justify-center mb-6 px-2">
+                    <div className="relative group">
+                      <div className="absolute -inset-2 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full blur opacity-20 group-hover:opacity-30 transition-opacity duration-300"></div>
+                      <img 
+                        src={BridgeLabLogo} 
+                        alt="BridgeLab" 
+                        className="relative h-12 w-auto transform transition-transform duration-300 group-hover:scale-110" 
+                      />
+                    </div>
+                  </div>
+                )}
+                
+                {tabItems.map(({ value, label, icon }, index) => (
                   <TabsTrigger
                     key={value}
                     value={value}
-                    className={`mx-1 group relative flex flex-col items-center justify-center px-3 py-2 rounded-lg font-brand text-xs font-semibold transition-all duration-200 flex-1 max-w-[120px] cursor-pointer
-                      hover:scale-105 hover:bg-neutral-200 hover:shadow
+                    className={`group relative flex items-center justify-start px-4 py-3 rounded-xl font-brand text-sm font-medium transition-all duration-300 w-full cursor-pointer
+                      hover:bg-blue-50/80 hover:shadow-sm hover:translate-x-1
                       ${tab === value
-                        ? 'text-blue-700 bg-gradient-to-r from-blue-100 via-pink-100 to-blue-50 shadow-xl border-2 border-blue-400 scale-105 z-10 font-bold'
-                        : 'text-neutral-500 hover:text-blue-600'
+                        ? 'text-blue-700 bg-gradient-to-r from-blue-50 to-blue-100/70 shadow-sm border border-blue-200/80 font-semibold translate-x-1'
+                        : 'text-neutral-600 hover:text-blue-600 hover:bg-blue-50/50'
                       }
                     `}
-                    style={{ minWidth: 0 }}
                   >
-                    <span className="flex items-center justify-center w-full mb-1">
+                    <span className={`flex items-center justify-center w-6 h-6 mr-3 rounded-full transition-all duration-300 ${
+                      tab === value ? 'bg-blue-100 text-blue-600' : 'group-hover:bg-blue-100/50 text-neutral-500 group-hover:text-blue-500'
+                    }`}>
                       {React.cloneElement(icon, {
-                        className: `w-5 h-5 transition-all duration-200 ${tab === value ? 'text-blue-600 drop-shadow-tabicon' : 'text-neutral-400 group-hover:text-blue-500'}`
+                        className: `w-4 h-4 transition-all duration-300 ${tab === value ? 'scale-110' : 'group-hover:scale-110'}`
                       })}
                     </span>
-                    <span className="text-center transition-all duration-200 leading-tight">{label}</span>
+                    <span className="hidden md:inline transition-all duration-300 font-medium">{label}</span>
+                    {tab === value && (
+                      <span className="absolute right-3 w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                    )}
                   </TabsTrigger>
                 ))}
               </TabsList>
             </Tabs>
+            
+            {/* Enhanced User Profile */}
+            <div className="p-4 border-t border-blue-100/50 bg-gradient-to-b from-white/80 to-blue-50/30">
+              <div className="group flex items-center gap-3 p-2.5 rounded-xl hover:bg-white/80 hover:shadow-sm transition-all duration-300 cursor-pointer border border-transparent hover:border-blue-100">
+                <div className="relative">
+                  <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-400 to-blue-600 rounded-full blur opacity-0 group-hover:opacity-70 transition-opacity duration-300"></div>
+                  <img 
+                    src={profile.avatar} 
+                    alt="Profile" 
+                    className="relative w-9 h-9 rounded-full border-2 border-white shadow-md transform transition-transform duration-300 group-hover:scale-110"
+                  />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-500 rounded-full border-2 border-white"></span>
+                </div>
+                <div className="hidden md:block truncate">
+                  <div className="text-sm font-semibold text-neutral-800 truncate group-hover:text-blue-700 transition-colors duration-300">
+                    {profile.name}
+                  </div>
+                  <div className="text-xs text-neutral-500 group-hover:text-blue-500 transition-colors duration-300">
+                    @{profile.name.toLowerCase().replace(/\s+/g, '')}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

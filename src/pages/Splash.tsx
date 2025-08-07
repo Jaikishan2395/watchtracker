@@ -1,146 +1,108 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import logo from '../assets/logo.png';
 
 const Splash = () => {
   const navigate = useNavigate();
+  const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
+    // Trigger load animation
     const timer = setTimeout(() => {
+      setIsLoaded(true);
+    }, 100);
+
+    // Navigate after delay
+    const navTimer = setTimeout(() => {
       navigate('/profile');
-    }, 4000);
-    return () => clearTimeout(timer);
+    }, 3000);
+
+    return () => {
+      clearTimeout(timer);
+      clearTimeout(navTimer);
+    };
   }, [navigate]);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-white via-gray-100 to-gray-200 relative overflow-hidden">
-      {/* Animated Gradient Overlay */}
-      <div className="absolute inset-0 z-0 pointer-events-none">
-        <div className="w-full h-full animate-gradient-move bg-gradient-to-tr from-gray-100 via-white to-gray-200 opacity-60 mix-blend-lighten"></div>
-      </div>
-      {/* Animated Sparkles */}
-      <div className="absolute inset-0 z-10 pointer-events-none">
-        {Array.from({ length: 18 }).map((_, i) => (
-          <span
-            key={i}
-            className={`absolute sparkle animate-sparkle${(i % 3) + 1}`}
+    <div className={`min-h-screen flex flex-col items-center justify-center bg-white transition-colors duration-1000 ${isLoaded ? 'bg-white' : 'bg-gray-50'}`}>
+      {/* Main Content */}
+      <div className="relative z-10 text-center px-6 w-full max-w-sm">
+        {/* Logo */}
+        <div className={`mb-8 transform transition-all duration-1000 ${isLoaded ? 'scale-110 opacity-100' : 'scale-90 opacity-0'}`}>
+          <div className="w-32 h-32 mx-auto mb-6 rounded-full bg-white shadow-lg flex items-center justify-center">
+            <img 
+              src={logo}
+              alt="WatchTracker"
+              className="w-24 h-24 object-contain"
+            />
+          </div>
+          
+          <h1 className="text-3xl font-bold text-gray-900 mb-6">EduBridge</h1>
+          <div className="flex items-center justify-center space-x-1 mb-8 h-8">
+            {['learn', 'Discover', 'Build', 'Grow'].map((word, index) => (
+              <span 
+                key={index}
+                className="inline-block text-blue-600 font-medium"
+                style={{
+                  opacity: 0,
+                  transform: 'translateY(10px)',
+                  animation: `fadeInUp 0.5s ease-out forwards ${index * 0.2 + 0.3}s`
+                }}
+              >
+                {index > 0 && <span className="text-gray-400 mx-1">•</span>}
+                {word}
+              </span>
+            ))}
+          </div>
+          <style jsx>{`
+            @keyframes fadeInUp {
+              to {
+                opacity: 1;
+                transform: translateY(0);
+              }
+            }
+          `}</style>
+        </div>
+
+        {/* Loading Indicator */}
+        <div className="relative h-1 bg-gray-100 rounded-full overflow-hidden max-w-xs mx-auto">
+          <div 
+            className={`absolute top-0 left-0 h-full bg-blue-500 rounded-full transition-all duration-300 ease-out ${isLoaded ? 'w-full' : 'w-0'}`}
             style={{
+              transitionDuration: '2800ms',
+              transitionTimingFunction: 'cubic-bezier(0.4, 0, 0.2, 1)'
+            }}
+          />
+        </div>
+      </div>
+
+      {/* Animated Background Elements */}
+      <div className="fixed inset-0 overflow-hidden -z-10">
+        {[...Array(16)].map((_, i) => (
+          <div 
+            key={i}
+            className="absolute rounded-full bg-blue-50"
+            style={{
+              width: `${Math.random() * 200 + 100}px`,
+              height: `${Math.random() * 200 + 100}px`,
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
-              animationDelay: `${Math.random() * 3}s`,
-              background: 'radial-gradient(circle, #fff 60%, #aaa 100%)',
+              opacity: 0.4,
+              filter: 'blur(40px)',
+              transform: `scale(${isLoaded ? 1 : 0.5})`,
+              transition: 'all 1.5s cubic-bezier(0.4, 0, 0.2, 1)',
+              transitionDelay: `${i * 0.05}s`
             }}
           />
         ))}
       </div>
-      {/* Floating Monochrome Shapes - Randomized Floating */}
-      <div className="absolute inset-0 w-full h-full pointer-events-none z-0">
-        {Array.from({ length: 8 }).map((_, i) => {
-          // Use simple monochrome SVGs (circle, square, triangle, line)
-          const shapes = [
-            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" key="circle"><circle cx="22" cy="22" r="16" fill="#fff" fillOpacity="0.08" stroke="#fff" strokeWidth="2" /></svg>,
-            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" key="square"><rect x="8" y="8" width="28" height="28" fill="#fff" fillOpacity="0.08" stroke="#fff" strokeWidth="2" /></svg>,
-            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" key="triangle"><polygon points="22,8 36,36 8,36" fill="#fff" fillOpacity="0.08" stroke="#fff" strokeWidth="2" /></svg>,
-            <svg width="44" height="44" viewBox="0 0 44 44" fill="none" key="line"><line x1="8" y1="36" x2="36" y2="8" stroke="#fff" strokeWidth="2" strokeOpacity="0.08" /></svg>,
-          ];
-          const icon = shapes[i % shapes.length];
-          // Randomize start/end positions and animation
-          const sides = ['top', 'bottom', 'left', 'right'];
-          const startSide = sides[Math.floor(Math.random() * sides.length)];
-          let start = {}, end = {};
-          if (startSide === 'top') {
-            start = { top: '-10%', left: `${Math.random() * 90}%` };
-            end = { top: '110%', left: `${Math.random() * 90}%` };
-          } else if (startSide === 'bottom') {
-            start = { top: '110%', left: `${Math.random() * 90}%` };
-            end = { top: '-10%', left: `${Math.random() * 90}%` };
-          } else if (startSide === 'left') {
-            start = { left: '-10%', top: `${Math.random() * 90}%` };
-            end = { left: '110%', top: `${Math.random() * 90}%` };
-          } else {
-            start = { left: '110%', top: `${Math.random() * 90}%` };
-            end = { left: '-10%', top: `${Math.random() * 90}%` };
-          }
-          const duration = `${18 + Math.random() * 14}s`;
-          const delay = `${Math.random() * 10}s`;
-          const rotate = Math.random() > 0.5;
-          const scale = 0.9 + Math.random() * 0.4;
-          return (
-            <div
-              key={i}
-              style={{
-                position: 'absolute',
-                ...start,
-                animation: `float-random-${i} ${duration} linear ${delay} forwards`,
-                zIndex: 1,
-                pointerEvents: 'none',
-                transform: `scale(${scale})${rotate ? ' rotate(360deg)' : ''}`,
-                opacity: 0.18,
-              }}
-            >
-              {icon}
-              <style>{`
-                @keyframes float-random-${i} {
-                  0% { ${Object.entries(start).map(([k, v]) => `${k}: ${v};`).join(' ')} opacity: 0.18; }
-                  10% { transform: scale(${scale})${rotate ? ' rotate(0deg)' : ''}; }
-                  50% { transform: scale(${scale * 1.08})${rotate ? ' rotate(180deg)' : ''}; }
-                  90% { transform: scale(${scale})${rotate ? ' rotate(350deg)' : ''}; }
-                  100% { ${Object.entries(end).map(([k, v]) => `${k}: ${v};`).join(' ')} opacity: 0.18; }
-                }
-              `}</style>
-            </div>
-          );
-        })}
+
+      {/* Subtle Grid */}
+      <div className="fixed inset-0 z-0 opacity-10">
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(0,0,0,0.1)_1px,transparent_1px),linear-gradient(90deg,rgba(0,0,0,0.1)_1px,transparent_1px)] bg-[size:20px_20px]"></div>
       </div>
-      {/* Glassmorphism Card Behind Logo */}
-      <div className="absolute z-20 rounded-3xl shadow-xl backdrop-blur-md bg-white/10 border border-white/20 px-12 py-10 flex items-center justify-center" style={{boxShadow: '0 8px 32px 0 rgba(255,255,255,0.08)'}}>
-        <img 
-          src={logo} 
-          alt="Watch Logo" 
-          className="w-40 h-45 object-contain animate-fade-in-splash relative z-10"
-        />
-      </div>
-      <style>{`
-        @keyframes fadeInSplash {
-          0% {
-            opacity: 0;
-            transform: scale(0.85);
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.12));
-          }
-          60% {
-            opacity: 1;
-            transform: scale(1.12);
-            filter: drop-shadow(0 16px 48px rgba(0,0,0,0.32));
-          }
-          100% {
-            opacity: 1;
-            transform: scale(1.22);
-            filter: drop-shadow(0 32px 96px rgba(0,0,0,0.55));
-          }
-        }
-        .animate-fade-in-splash {
-          animation: fadeInSplash 1.4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
-        }
-        .sparkle {
-          width: 8px;
-          height: 8px;
-          border-radius: 50%;
-          background: radial-gradient(circle, #fff 60%, #aaa 100%);
-          opacity: 0.7;
-          pointer-events: none;
-        }
-        .animate-sparkle1 { animation: sparkle1 2.5s linear infinite; }
-        .animate-sparkle2 { animation: sparkle2 3.2s linear infinite; }
-        .animate-sparkle3 { animation: sparkle3 4.1s linear infinite; }
-        @keyframes sparkle1 { 0%,100%{ opacity:0.7; transform:scale(1);} 50%{ opacity:0.2; transform:scale(1.5);} }
-        @keyframes sparkle2 { 0%,100%{ opacity:0.7; transform:scale(1);} 50%{ opacity:0.1; transform:scale(1.8);} }
-        @keyframes sparkle3 { 0%,100%{ opacity:0.7; transform:scale(1);} 50%{ opacity:0.3; transform:scale(1.3);} }
-        @media (max-width: 640px) {
-          .edu-icon { opacity: 0.18; }
-        }
-      `}</style>
     </div>
   );
 };
 
-export default Splash; 
+export default Splash;
