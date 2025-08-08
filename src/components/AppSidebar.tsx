@@ -1,8 +1,6 @@
-import { Home, User, Library, Settings, CheckSquare, School, Sparkles, ChevronRight, LogOut } from 'lucide-react';
+import { Home, User, Library, Settings, CheckSquare, School, Sparkles, ChevronRight, Menu } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import { useState, useEffect } from 'react';
-import logo from '../assets/logo.png';
 import bridgelabLogo from '../assets/bridgelab_logo.png';
 import {
   Sidebar,
@@ -10,7 +8,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarHeader,
   SidebarFooter,
   useSidebar,
 } from '@/components/ui/sidebar';
@@ -77,7 +74,7 @@ const menuItems = [
 export function AppSidebar() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const isOpen = state === 'expanded';
   const [activeHover, setActiveHover] = useState<string | null>(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
@@ -124,49 +121,23 @@ export function AppSidebar() {
         className={cn(
           "fixed inset-y-0 left-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
           "bg-gradient-to-b from-sidebar to-sidebar/80 backdrop-blur-md text-sidebar-foreground border-r border-sidebar-border/20 shadow-2xl",
-          isOpen ? 'w-24' : 'w-20 hover:w-24',
           "overflow-y-auto overflow-x-hidden scrollbar-hide",
-          "md:flex"
+          "md:flex",
+          isOpen ? 'w-24 translate-x-0' : 'w-24 -translate-x-full'
         )}
       >
-        {/* Minimalist Logo Header */}
-        <SidebarHeader className="relative flex items-center justify-center h-24 px-2">
-          <motion.div 
-            className="group/logo relative"
-            whileHover={{ scale: 1.05, transition: { duration: 0.2 } }}
+        {/* Burger Menu Button */}
+        <div className="flex justify-center pt-2 pb-3">
+          <button
+            onClick={toggleSidebar}
+            className="p-2 bg-white/10 dark:bg-black/10 hover:bg-white/20 dark:hover:bg-black/20 rounded-lg transition-all duration-200 hover:scale-105 group"
+            aria-label="Toggle Sidebar"
           >
-            <motion.div
-              className="relative z-10 p-3"
-              whileHover={{ y: -2, transition: { duration: 0.2 } }}
-            >
-              <img 
-                src={logo} 
-                alt="EduBridge Logo" 
-                className={cn(
-                  "w-12 h-12 object-contain transition-all duration-300",
-                  "group-hover/logo:scale-110 group-hover/logo:rotate-6",
-                  "drop-shadow-md"
-                )}
-              />
-              <motion.div 
-                className="absolute inset-0 rounded-full opacity-0 group-hover/logo:opacity-100 -z-10"
-                style={{
-                  background: 'radial-gradient(circle at center, rgba(96, 165, 250, 0.2) 0%, rgba(96, 165, 250, 0) 70%)',
-                }}
-                initial={{ scale: 0.8 }}
-                whileHover={{ scale: 1.5 }}
-                transition={{ duration: 0.5 }}
-              />
-            </motion.div>
-            <motion.div 
-              className="absolute -bottom-1 left-1/2 w-1 h-1 rounded-full bg-blue-500 opacity-0 group-hover/logo:opacity-100"
-              initial={{ x: '-50%', scale: 0 }}
-              whileHover={{ scale: 1, y: -2, transition: { type: 'spring', stiffness: 500, damping: 20 } }}
-            />
-          </motion.div>
-        </SidebarHeader>
+            <Menu className="w-5 h-5 text-sidebar-foreground/70 group-hover:text-sidebar-foreground transition-colors" />
+          </button>
+        </div>
 
-        <SidebarContent className="flex-1 flex flex-col items-center py-4 space-y-3 px-2">
+        <SidebarContent className="flex-1 flex flex-col items-center py-6 space-y-4 px-2">
           {menuItems.map((item) => (
             <SidebarMenu key={item.title} className="w-full">
               <SidebarMenuItem>
@@ -214,7 +185,7 @@ export function AppSidebar() {
           ))}
         </SidebarContent>
 
-        <SidebarFooter className="flex flex-col items-center space-y-4 p-4">
+        <SidebarFooter className="flex flex-col items-center p-4">
           <button
             onClick={() => navigate('/settings')}
             className={cn(
@@ -228,18 +199,6 @@ export function AppSidebar() {
             onMouseLeave={() => setActiveHover(null)}
           >
             <Settings className="w-5 h-5" />
-          </button>
-          <div className="w-8 h-px bg-foreground/10"></div>
-          <button
-            className={cn(
-              "group/logout relative w-12 h-12 rounded-xl flex items-center justify-center",
-              "text-foreground/70 hover:text-foreground transition-all duration-200",
-              "hover:bg-foreground/5"
-            )}
-            onMouseEnter={() => setActiveHover('logout')}
-            onMouseLeave={() => setActiveHover(null)}
-          >
-            <LogOut className="w-5 h-5" />
           </button>
         </SidebarFooter>
       </div>

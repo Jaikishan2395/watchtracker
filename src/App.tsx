@@ -36,32 +36,29 @@ import { Button } from "@/components/ui/button";
 import Shorts from "./pages/Shorts";
 
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Menu } from "lucide-react";
 
 const queryClient = new QueryClient();
 
-function SidebarDoubleClickCloser({ children }: { children: React.ReactNode }) {
-  const { open, setOpen, openMobile, setOpenMobile } = useSidebar();
-  return (
-    <div
-      style={{ height: '100%' }}
-      onDoubleClick={() => {
-        setOpen(!open);
-        setOpenMobile(!openMobile);
-      }}
-    >
-      {children}
-    </div>
-  );
-}
+
 
 const AppContent = () => {
   const location = useLocation();
   const isAuthPage = ['/', '/login', '/create-account', '/landing'].includes(location.pathname);
+  const isBridgeLabPage = location.pathname === '/bridgelab';
 
   // Responsive sidebar state
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const isOpen = state === 'expanded';
+
+  // Check if we're on mobile
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
+
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   useEffect(() => {
     // Load questions when the app starts
@@ -70,21 +67,38 @@ const AppContent = () => {
     });
   }, []);
 
+  // Top Left Burger Menu Component (visible when sidebar is closed)
+  const TopLeftBurgerMenu = () => (
+    <button
+      onClick={toggleSidebar}
+      className="fixed top-4 left-4 z-50 p-3 bg-white dark:bg-zinc-800 border border-zinc-200 dark:border-zinc-700 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 group"
+      aria-label="Open Sidebar"
+    >
+      <Menu className="w-5 h-5 text-zinc-700 dark:text-zinc-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors" />
+    </button>
+  );
+
   return (
     <div className="min-h-screen flex w-full">
-      {/* Only render sidebar if not auth page AND sidebar is expanded */}
-      {!isAuthPage && isOpen && <AppSidebar />}
+      {/* Top Left Burger Menu - Show when sidebar is closed (except on auth pages and BridgeLab page) */}
+      {!isAuthPage && !isBridgeLabPage && !isOpen && !isMobile && <TopLeftBurgerMenu />}
+      
+      {/* Only render sidebar if not auth page and not BridgeLab page */}
+      {!isAuthPage && !isBridgeLabPage && <AppSidebar />}
       <main
         className={`flex-1 transition-all duration-300 ${
           !isAuthPage
-            ? isOpen
-              ? 'ml-24' // Sidebar is visible
-              : 'ml-0'  // Sidebar is hidden, content expands
+            ? isBridgeLabPage
+              ? 'ml-0 pb-16' // No left margin on BridgeLab, add bottom padding for footer nav
+              : !isMobile && isOpen
+              ? 'ml-24' // Sidebar is visible on desktop
+              : isMobile
+              ? 'ml-0 pb-16' // No left margin on mobile, add bottom padding for footer nav
+              : 'ml-0'  // No margin when sidebar is hidden on desktop
             : 'w-full'
         }`}
       >
-        <SidebarDoubleClickCloser>
-          <Routes>
+        <Routes>
             <Route path="/" element={<Splash />} />
             <Route path="/login" element={<Login />} />
             <Route path="/create-account" element={<CreateAccount />} />
@@ -111,7 +125,6 @@ const AppContent = () => {
             <Route path="/settings" element={<SettingsPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </SidebarDoubleClickCloser>
       </main>
     </div>
   );
